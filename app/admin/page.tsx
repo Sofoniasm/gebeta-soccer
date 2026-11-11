@@ -90,7 +90,10 @@ export default async function AdminPage({
           <Logo size="sm" />
           <span className="rounded-full bg-lilac/15 px-2.5 py-0.5 text-xs font-bold text-lilac-soft">ADMIN</span>
         </div>
-        <Link href="/dashboard" className="text-sm text-mist hover:text-white">Dashboard →</Link>
+        <div className="flex items-center gap-4">
+          <Link href="/admin/deposits" className="rounded-full bg-lilac px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">Deposits</Link>
+          <Link href="/dashboard" className="text-sm text-mist hover:text-white">Dashboard →</Link>
+        </div>
       </header>
 
       {msg && <Banner kind="success">{msg}</Banner>}

@@ -40,6 +40,14 @@ export function SideNav({ isAdmin }: { isAdmin: boolean }) {
           >
             <ShieldIcon size={18} /> Admin panel
           </Link>
+          <Link
+            href="/admin/deposits"
+            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition ${
+              path.startsWith("/admin/deposits") ? "bg-lilac text-ink shadow-lg shadow-lilac/20" : "text-mist hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <WalletIcon size={18} /> Deposits
+          </Link>
         </>
       )}
     </nav>

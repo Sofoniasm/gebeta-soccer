@@ -1,0 +1,204 @@
+import Link from "next/link";
+import { requireAdminId } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ETB_PER_UNIT, etbLabel, unitsLabel } from "@/lib/money";
+import { AppShell } from "@/components/AppShell";
+import { DepositForm } from "./DepositForm";
+
+export const metadata = { title: "Deposits · Admin · GebetaSoccer" };
+export const dynamic = "force-dynamic";
+
+const TZ = "Africa/Addis_Ababa";
+const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+const dayLabel = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: TZ, day: "numeric", month: "short" }).format(d);
+const dateTime = (iso: string) =>
+  new Intl.DateTimeFormat("en-GB", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
+
+interface Row {
+  id: number;
+  amount_units: number;
+  kind: string;
+  reference: string | null;
+  created_at: string;
+  created_by: string | null;
+  profiles: { username: string; phone_number: string | null } | null;
+}
+
+export default async function DepositsPage({ searchParams }: { searchParams: Promise<{ q?: string; type?: string }> }) {
+  await requireAdminId("/admin/deposits");
+  const { q = "", type = "all" } = await searchParams;
+  const admin = createAdminClient();
+
+  // Everything recorded by hand: deposits (+) and manual deductions (−)
+  const kinds = type === "deposit" ? ["deposit"] : type === "deduct" ? ["adjustment"] : ["deposit", "adjustment"];
+  const { data } = await admin
+    .from("wallet_ledger")
+    .select("id, amount_units, kind, reference, created_at, created_by, profiles(username, phone_number)")
+    .in("kind", kinds)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  let rows = ((data ?? []) as unknown as Row[]);
+
+  const term = q.trim().toLowerCase();
+  const digits = term.replace(/\D/g, "").slice(-9);
+  if (term) {
+    rows = rows.filter(
+      (r) =>
+        r.profiles?.username.toLowerCase().includes(term) ||
+        (digits.length >= 4 && (r.profiles?.phone_number ?? "").includes(digits)) ||
+        (r.reference ?? "").toLowerCase().includes(term)
+    );
+  }
+
+  // Admin names for "recorded by"
+  const adminIds = [...new Set(rows.map((r) => r.created_by).filter(Boolean))] as string[];
+  const { data: admins } = adminIds.length
+    ? await admin.from("profiles").select("id, username").in("id", adminIds)
+    : { data: [] };
+  const adminName = new Map(((admins ?? []) as { id: string; username: string }[]).map((a) => [a.id, a.username]));
+
+  // ---- summary (deposits only)
+  const deposits = ((data ?? []) as unknown as Row[]).filter((r) => r.kind === "deposit");
+  const now = new Date();
+  const todayKey = dayKey(now);
+  const weekAgo = now.getTime() - 7 * 86_400_000;
+  const sumUnits = (list: Row[]) => list.reduce((s, r) => s + Number(r.amount_units), 0);
+  const today = deposits.filter((r) => dayKey(new Date(r.created_at)) === todayKey);
+  const week = deposits.filter((r) => new Date(r.created_at).getTime() >= weekAgo);
+
+  // ---- last 14 days chart
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(now.getTime() - (13 - i) * 86_400_000);
+    return { key: dayKey(d), label: dayLabel(d), units: 0 };
+  });
+  const byKey = new Map(days.map((d) => [d.key, d]));
+  for (const r of deposits) {
+    const slot = byKey.get(dayKey(new Date(r.created_at)));
+    if (slot) slot.units += Number(r.amount_units);
+  }
+  const max = Math.max(...days.map((d) => d.units), 1);
+
+  const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
+  const tab = (t: string, label: string) => (
+    <Link
+      href={`/admin/deposits?type=${t}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+      className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${type === t ? "bg-lilac text-ink" : "text-mist hover:text-white"}`}
+    >
+      {label}
+    </Link>
+  );
+
+  return (
+    <AppShell title="Deposits" next="/admin/deposits">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-mist">Record Telegram payments and see everything you&apos;ve submitted. 1 Unit = {ETB_PER_UNIT} ETB.</p>
+        <Link href="/admin" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">← Admin panel</Link>
+      </div>
+
+      {/* Summary */}
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        {[
+          { label: "Today", list: today },
+          { label: "Last 7 days", list: week },
+          { label: "All time", list: deposits },
+        ].map(({ label, list }) => (
+          <div key={label} className={card}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">{label}</p>
+            <p className="mt-2 text-3xl font-extrabold">{etbLabel(sumUnits(list))}</p>
+            <p className="text-xs text-mist">{unitsLabel(sumUnits(list))} · {list.length} deposit{list.length === 1 ? "" : "s"}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,26rem)_1fr]">
+        {/* 1. Submit */}
+        <section className={card}>
+          <h2 className="mb-4 text-lg font-extrabold">Record a deposit</h2>
+          <DepositForm />
+        </section>
+
+        {/* Chart */}
+        <section className={card}>
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="text-lg font-extrabold">Deposits · last 14 days</h2>
+            <p className="text-xs text-mist">ETB per day</p>
+          </div>
+          <div className="flex h-56 items-end gap-1.5 sm:gap-2">
+            {days.map((d) => {
+              const h = d.units > 0 ? Math.max(6, (d.units / max) * 100) : 2;
+              return (
+                <div key={d.key} className="group flex h-full flex-1 flex-col items-center justify-end gap-2">
+                  <span className="text-[10px] font-bold text-lilac-soft opacity-0 transition group-hover:opacity-100">
+                    {d.units > 0 ? (d.units * ETB_PER_UNIT).toLocaleString("en-US") : ""}
+                  </span>
+                  <div
+                    className={`w-full rounded-t-lg ${d.units > 0 ? "bg-gradient-to-t from-[#6c5fb3] to-lilac" : "bg-white/10"}`}
+                    style={{ height: `${h}%` }}
+                    title={`${d.label}: ${(d.units * ETB_PER_UNIT).toLocaleString("en-US")} ETB`}
+                  />
+                  <span className="text-[9px] text-mist">{d.label.split(" ")[0]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+
+      {/* 2. List */}
+      <section className={`${card} mt-5`}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-extrabold">All submitted</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-full border border-white/10 bg-ink/60 p-1">
+              {tab("all", "All")}
+              {tab("deposit", "Deposits")}
+              {tab("deduct", "Deductions")}
+            </div>
+            <form className="flex gap-2">
+              <input type="hidden" name="type" value={type} />
+              <input name="q" defaultValue={q} placeholder="Search player, phone, note" className="w-52 rounded-full border border-white/10 bg-ink/70 px-4 py-2 text-sm outline-none focus:border-lilac" />
+            </form>
+          </div>
+        </div>
+
+        {rows.length === 0 ? (
+          <p className="py-6 text-center text-sm text-mist">Nothing recorded yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left text-[10px] font-bold uppercase tracking-[0.15em] text-mist/70">
+                  <th className="py-3 pr-3">Date</th>
+                  <th className="py-3 pr-3">Player</th>
+                  <th className="py-3 pr-3">Phone</th>
+                  <th className="py-3 pr-3 text-right">ETB</th>
+                  <th className="py-3 pr-3 text-right">Units</th>
+                  <th className="py-3 pr-3">Note</th>
+                  <th className="py-3">By</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {rows.map((r) => {
+                  const u = Number(r.amount_units);
+                  return (
+                    <tr key={r.id} className="hover:bg-white/[0.03]">
+                      <td className="whitespace-nowrap py-3 pr-3 text-mist">{dateTime(r.created_at)}</td>
+                      <td className="py-3 pr-3 font-bold">{r.profiles?.username ?? "—"}</td>
+                      <td className="whitespace-nowrap py-3 pr-3 text-mist">{r.profiles?.phone_number ?? "—"}</td>
+                      <td className={`whitespace-nowrap py-3 pr-3 text-right font-extrabold ${u > 0 ? "text-emerald-200" : "text-rose-200"}`}>
+                        {u > 0 ? "+" : "−"}{(Math.abs(u) * ETB_PER_UNIT).toLocaleString("en-US")}
+                      </td>
+                      <td className="whitespace-nowrap py-3 pr-3 text-right">{u > 0 ? "+" : "−"}{Math.abs(u)}</td>
+                      <td className="max-w-[16rem] truncate py-3 pr-3 text-mist">{r.reference ?? ""}</td>
+                      <td className="whitespace-nowrap py-3 text-mist">{r.created_by ? adminName.get(r.created_by) ?? "admin" : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </AppShell>
+  );
+}
