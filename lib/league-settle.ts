@@ -1,11 +1,14 @@
 /**
  * Settle one private league with the same scoring as rounds:
  * league members only, 70% of the league pot to the winner(s) (ties share),
- * 30% house. Free leagues settle with no money moving.
+ * 30% house. Paid leagues use the same winning bar as the main pool: the
+ * winner needs MORE than half the match points (more than 15 of 30), else
+ * the house keeps the league pot. Free leagues settle with no money moving.
  * Server only (uses the secret-key client).
  */
 import { createAdminClient } from "@/lib/supabase/admin";
 import { settleRound } from "@/lib/settlement";
+import { winningBar } from "@/lib/scoring";
 
 export interface LeagueSettleResult {
   ok: boolean;
@@ -40,13 +43,17 @@ export async function settleLeague(leagueId: number, adminId: string): Promise<L
         .in("user_id", memberIds)
     : { data: [] };
 
+  const results = list
+    .filter((m: Row) => m.status === "finished" && m.actual_home_score !== null && m.actual_away_score !== null)
+    .map((m: Row) => ({ matchId: m.id, homeScore: m.actual_home_score, awayScore: m.actual_away_score }));
+  const paidLeague = Number(league.entry_fee_units) > 0;
   const result = settleRound({
     entrantIds: memberIds,
     entryFeeUnits: Number(league.entry_fee_units),
     houseCut: Number(league.house_cut),
-    results: list
-      .filter((m: Row) => m.status === "finished" && m.actual_home_score !== null && m.actual_away_score !== null)
-      .map((m: Row) => ({ matchId: m.id, homeScore: m.actual_home_score, awayScore: m.actual_away_score })),
+    // Paid leagues: same winning bar as the main pool.
+    ...(paidLeague ? { minMatchPoints: winningBar(results.length) } : {}),
+    results,
     predictions: ((preds ?? []) as Row[]).map((p) => ({
       predictionId: p.id,
       userId: p.user_id,
@@ -72,8 +79,10 @@ export async function settleLeague(leagueId: number, adminId: string): Promise<L
     .map((s) => ({
       user_id: s.userId,
       kind: "league_result",
-      title: `📊 ${league.name} — final table`,
-      body: `You finished #${s.rank} of ${total} with ${s.totalPoints} points.`,
+      title: `📊 ${league.name}: final table`,
+      body:
+        `You finished #${s.rank} of ${total} with ${s.totalPoints} points.` +
+        (result.barMet ? "" : ` Nobody scored more than ${result.winningBar} match points, so the league pot goes to the house.`),
       link: `/leagues/${league.code}`,
     }));
   if (notes.length) await admin.from("notifications").insert(notes);
@@ -88,7 +97,9 @@ export async function settleLeague(leagueId: number, adminId: string): Promise<L
     winners,
     message:
       Number(league.entry_fee_units) > 0
-        ? `${league.name}: paid ${paid} Units to ${winners.join(", ") || "nobody"}.`
+        ? result.barMet
+          ? `${league.name}: paid ${paid} Units to ${winners.join(", ") || "nobody"}.`
+          : `${league.name}: no winner (best ${result.topMatchPoints}, bar more than ${result.winningBar}); house keeps the pot.`
         : `${league.name}: settled (free league).`,
   };
 }

@@ -39,8 +39,9 @@ const sections: { title: string; body: string[] }[] = [
     ],
   },
   {
-    title: "3b. Private challenges",
+    title: "3b. Private leagues and challenges",
     body: [
+      "Paid private leagues use Slip #1 of each member. The league winner(s) receive 70% of the league pot (30% house fee) under the same winning bar as rounds: more than half of the match points available. If no member clears the bar, the league pot is kept by GebetaSoccer. Free leagues move no money.",
       "A player can create a challenge on 1 to 10 upcoming matches with a stake per player of 200 to 1,000,000 ETB. The stake is taken from the creator's wallet when the challenge is created and from each player's wallet when they join. A player can only join with enough Units in their wallet.",
       "Scores can be changed free of charge until the first of the selected matches kicks off; after that nobody can join or change scores. Other players' scores are hidden until then.",
       "Scoring is the same as in rounds (3 / 1.5 / 1 / 0, no Slam Points). Postponed or cancelled matches score 0 for everyone. The highest total wins; ties are decided by most correct results, most exact scores, most close picks and smallest total goal difference, and players still level share the prize equally.",

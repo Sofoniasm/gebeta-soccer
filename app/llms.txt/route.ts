@@ -25,7 +25,7 @@ export function GET() {
 - Withdrawals: any amount; 1 Unit always stays in the account. Paid to the player's Telebirr number after review.
 
 ## Private leagues
-- Any player can create a free league (bragging rights) or a paid league (5-50 Units per player, winner takes 70% of the league pot) and invite friends with a link or code.
+- Any player can create a free league (bragging rights) or a paid league (5-50 Units per player, winner takes 70% of the league pot if they score more than 15 of 30 match points, otherwise the house keeps it) and invite friends with a link or code.
 
 ## Match predictions
 - ${SITE_URL}/predictions lists this week's matches with GebetaSoccer score tips and kickoff times in Ethiopia time (EAT).

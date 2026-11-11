@@ -147,3 +147,14 @@ test("winning bar: tied slips above the bar share; a cancelled match lowers the 
   assert.equal(r.barMet, true);
   assert.deepEqual(r.payouts, [{ userId: "a", units: 10.5 }, { userId: "b", units: 10.5 }]);
 });
+
+test("free play without a bar still has a winner (free leagues)", () => {
+  const r = settleRound({
+    entrantIds: ["a", "b"],
+    entryFeeUnits: 0,
+    results: tenMatches,
+    predictions: [...slip("a", ["exact", "wrong", "wrong", "wrong", "wrong", "wrong", "wrong", "wrong", "wrong", "wrong"])],
+  });
+  assert.equal(r.barMet, true);
+  assert.equal(r.standings[0].userId, "a");
+});
