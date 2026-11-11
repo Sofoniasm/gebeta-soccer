@@ -58,7 +58,7 @@ export default async function WalletPage() {
             Once confirmed, your balance will update here.
           </p>
           <div className="mt-4 rounded-2xl bg-ink/60 p-4 text-sm">
-            <p className="text-mist">Tell the admin your username:</p>
+            <p className="text-mist">Quote your username when you message us:</p>
             <p className="mt-1 text-lg font-extrabold text-lilac-soft">{me.username}</p>
           </div>
           <a
