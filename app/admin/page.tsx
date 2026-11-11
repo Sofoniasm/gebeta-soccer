@@ -13,7 +13,7 @@ import { SubmitButton } from "./SubmitButton";
 export const metadata = { title: "Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-const small = "rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white outline-none focus:border-emerald-400";
+const small = "rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white outline-none focus:border-amber-400";
 
 export default async function AdminPage({
   searchParams,
@@ -206,7 +206,7 @@ export default async function AdminPage({
               <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
                 {(upcoming ?? []).map((m: MatchRow) => (
                   <label key={m.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/5">
-                    <input type="checkbox" name="matchId" value={m.id} className="h-4 w-4 accent-emerald-500" />
+                    <input type="checkbox" name="matchId" value={m.id} className="h-4 w-4 accent-amber-400" />
                     <span className="flex-1 text-sm">{m.home_team} vs {m.away_team}</span>
                     <span className="text-xs text-neutral-500">{formatKickoff(m.kickoff_at)}</span>
                   </label>

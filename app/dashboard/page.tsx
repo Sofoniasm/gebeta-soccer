@@ -55,7 +55,7 @@ export default async function DashboardPage() {
   return (
     <main className="mx-auto min-h-dvh max-w-lg px-4 pt-4">
       {/* Header */}
-      <header className="sticky top-0 z-10 -mx-4 mb-4 border-b border-white/5 bg-neutral-950/85 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 -mx-4 mb-4 border-b border-white/5 bg-pitch/85 px-4 py-3 backdrop-blur">
         <div className="flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
@@ -98,8 +98,8 @@ export default async function DashboardPage() {
             </div>
             {pool && (
               <div className="text-right">
-                <p className="flex items-center justify-end gap-1 text-xs text-lime-300"><TrophyIcon size={14} /> Prize pot</p>
-                <p className="text-xl font-black text-lime-300">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
+                <p className="flex items-center justify-end gap-1 text-xs text-amber-300"><TrophyIcon size={14} /> Prize pot</p>
+                <p className="text-xl font-black text-amber-300">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
                 <p className="text-xs text-neutral-500">{pool.entrants} players</p>
               </div>
             )}

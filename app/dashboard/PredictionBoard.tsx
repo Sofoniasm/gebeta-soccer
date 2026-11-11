@@ -50,7 +50,7 @@ function ScoreInput(props: { value: string; disabled: boolean; label: string; on
       disabled={props.disabled}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.onChange(e.target.value.replace(/\D/g, "").slice(0, 2))}
       onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
-      className="h-12 w-12 rounded-xl border border-white/15 bg-neutral-950 text-center text-xl font-bold text-white outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 disabled:border-transparent disabled:bg-white/5 disabled:text-neutral-400"
+      className="h-12 w-12 rounded-xl border border-white/15 bg-pitch text-center text-xl font-bold text-white outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 disabled:border-transparent disabled:bg-white/5 disabled:text-neutral-400"
       placeholder="–"
     />
   );
@@ -105,7 +105,7 @@ export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeL
       {result && <Banner kind={result.ok ? "success" : "error"}>{result.message}</Banner>}
 
       {!entered && roundOpen && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/15 to-lime-400/5 p-5">
+        <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/15 to-amber-400/5 p-5">
           <p className="text-lg font-bold">Join this round</p>
           <p className="mt-1 text-sm text-neutral-300">Entry: {entryFeeLabel}. Predict all matches and win the pot.</p>
           <button onClick={onJoin} disabled={pending} className={`${primaryButtonClass} mt-4`}>
@@ -168,7 +168,7 @@ export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeL
                   Final: <b className="text-white">{m.actual_home_score} – {m.actual_away_score}</b>
                 </span>
                 {points !== null && (
-                  <span className={`font-bold ${Number(points) >= 3 ? "text-lime-300" : Number(points) > 0 ? "text-emerald-400" : "text-neutral-500"}`}>
+                  <span className={`font-bold ${Number(points) >= 3 ? "text-amber-300" : Number(points) > 0 ? "text-emerald-400" : "text-neutral-500"}`}>
                     +{Number(points)} pts
                   </span>
                 )}
@@ -185,7 +185,7 @@ export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeL
       )}
 
       {canEdit && editable.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-neutral-950/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-pitch/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
           <div className="mx-auto max-w-lg">
             <button onClick={onSave} disabled={pending || changed.length === 0} className={primaryButtonClass}>
               {pending && <SpinnerIcon size={18} />}

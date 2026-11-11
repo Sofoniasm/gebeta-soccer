@@ -1,21 +1,25 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+
 export const metadata: Metadata = {
-  title: "GebetaSoccer — Predict. Compete. Win.",
-  description: "Predict 10 football matches every week and top the table.",
+  title: "GebetaSoccer — Predict. Win. Dominate the Gebeta.",
+  description: "Predict 10 football matches every week, beat the leaderboard and win the prize pool.",
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#07110c",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="bg-neutral-950">
-      <body className="min-h-dvh bg-neutral-950 text-neutral-100 antialiased selection:bg-emerald-400/30">
+    <html lang="en" className={`${inter.variable} bg-pitch`}>
+      <body className="min-h-dvh bg-pitch font-sans text-neutral-100 antialiased selection:bg-amber-400/30">
         {children}
       </body>
     </html>

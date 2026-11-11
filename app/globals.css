@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Brand colours */
+  --color-pitch: #07110c;   /* page background: near-black forest green */
+  --color-forest: #146c43;  /* Gebeta board green */
+  --color-gold: #fbbf24;    /* seeds / accents */
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
