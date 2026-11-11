@@ -22,7 +22,7 @@ export function LoginForm({ next }: { next?: string }) {
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
       <input type="hidden" name="next" value={next ?? "/dashboard"} />
-      <Field label="Phone number" hint="The number you registered with (your display name also works).">
+      <Field label="Phone number" hint="The number you registered with (your display name or email also works).">
         <input name="identifier" type="tel" inputMode="tel" autoComplete="tel" autoCapitalize="none" required className={inputClass} placeholder="0911 223 344" />
       </Field>
       <Field label="Password">

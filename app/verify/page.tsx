@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { telegramEnabled } from "@/lib/telegram";
+import { telegramEnabled, TELEGRAM_BOT_USERNAME } from "@/lib/telegram";
 import { smsEnabled } from "@/lib/sms";
 import { startTelegram } from "./actions";
 import { AutoRefresh, SmsForm } from "./VerifyClient";
@@ -51,7 +51,20 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
                     <SendIcon size={18} /> Verify with Telegram
                   </button>
                 </form>
-                <p className="mt-2 text-center text-xs text-mist">Free · opens our bot · tap “Share my phone number” · come back here</p>
+                <ol className="mt-4 space-y-2 text-sm text-mist">
+                  {[
+                    <>Tap the button above — Telegram opens <b className="text-white">@{TELEGRAM_BOT_USERNAME}</b></>,
+                    <>Tap <b className="text-white">START</b> at the bottom of the chat</>,
+                    <>Tap <b className="text-white">Share my phone number</b> and confirm</>,
+                    <>Come back here — this page continues by itself</>,
+                  ].map((step, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2aabee]/20 text-[11px] font-bold text-[#7fd0f7]">{i + 1}</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-3 text-center text-xs text-mist">Free · use the Telegram account with <b className="text-white">{profile?.phone_number}</b></p>
               </div>
             ) : (
               <Banner kind="error">Telegram verification is being set up. Please check back shortly.</Banner>
