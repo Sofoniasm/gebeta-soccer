@@ -19,6 +19,11 @@ export async function AppShell({ children, title, next }: { children: React.Reac
 
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
+      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/stadium.webp" alt="" className="h-full w-full object-cover opacity-[0.14]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-plum/40 via-plum/80 to-plum" />
+      </div>
       <FlowLines />
 
       {/* Desktop sidebar */}

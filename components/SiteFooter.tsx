@@ -25,6 +25,7 @@ export function SiteFooter() {
             <li><Link href="/#how" className="hover:text-white">How it works</Link></li>
             <li><Link href="/#prize" className="hover:text-white">Prize pool</Link></li>
             <li><Link href="/#scoring" className="hover:text-white">Scoring</Link></li>
+            <li><Link href="/terms" className="hover:text-white">Terms &amp; responsible play</Link></li>
           </ul>
         </div>
       </div>

@@ -75,6 +75,9 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   if (!phone) return { error: "Enter a valid Ethiopian mobile number, e.g. 0911 223 344." };
   if (emailInput && !/^\S+@\S+\.\S+$/.test(emailInput)) return { error: "That email doesn't look right (or leave it empty)." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (formData.get("age_ok") !== "on") {
+    return { error: "You must be 18 or older and accept the Terms to play GebetaSoccer." };
+  }
 
   const supabase = await createClient();
 
@@ -94,7 +97,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     email: loginEmail,
     password,
     email_confirm: true,
-    user_metadata: { username, phone_number: phone },
+    user_metadata: { username, phone_number: phone, age_confirmed_18: true, terms_accepted_at: new Date().toISOString() },
   });
 
   if (createError) {

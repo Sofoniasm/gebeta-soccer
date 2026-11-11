@@ -4,6 +4,7 @@ import { getCurrentRound, getRoundPool } from "@/lib/rounds";
 import { unitsToEtb, ETB_PER_UNIT, DEFAULT_HOUSE_CUT } from "@/lib/money";
 import { POINTS } from "@/lib/scoring";
 import { LogoMark, SectionTitle } from "@/components/ui";
+import { formatKickoff } from "@/lib/format";
 import { CountUp } from "@/components/CountUp";
 import { FlowLines } from "@/components/FlowLines";
 import { PhoneMockup } from "@/components/PhoneMockup";
@@ -33,6 +34,33 @@ export default async function Home() {
     .limit(12);
   const tickerMatches = (upcoming ?? []) as TickerMatch[];
 
+  // Public numbers (needs migration 0008; falls back gracefully)
+  const { data: statsRow } = await supabase.rpc("get_public_stats").maybeSingle();
+  const stats = (statsRow ?? { players: 0, predictions: 0, rounds: 0 }) as { players: number; predictions: number; rounds: number };
+
+  // Featured matches: this round's fixtures, else the next upcoming ones
+  let featured: { home_team: string; away_team: string; kickoff_at: string; competition: string | null; home_crest?: string | null; away_crest?: string | null }[] = [];
+  if (activeRound) {
+    const { data } = await supabase
+      .from("matches")
+      .select("home_team, away_team, kickoff_at, competition, home_crest, away_crest")
+      .eq("round_id", activeRound.id)
+      .gt("kickoff_at", new Date().toISOString())
+      .order("kickoff_at")
+      .limit(3);
+    featured = data ?? [];
+  }
+  if (featured.length === 0) {
+    const { data } = await supabase
+      .from("matches")
+      .select("home_team, away_team, kickoff_at, competition, home_crest, away_crest")
+      .eq("status", "scheduled")
+      .gt("kickoff_at", new Date().toISOString())
+      .order("kickoff_at")
+      .limit(3);
+    featured = data ?? [];
+  }
+
   const houseCut = activeRound ? Number(activeRound.house_cut) : DEFAULT_HOUSE_CUT;
   const prizePct = Math.round((1 - houseCut) * 100);
   const housePct = 100 - prizePct;
@@ -45,40 +73,87 @@ export default async function Home() {
       <FlowLines />
       <SiteHeader loggedIn={loggedIn} />
 
-      {/* ------------------------------------------------ Hero (full width, animated) */}
+      {/* ------------------------------------------------ Hero: stadium photo, centred brand */}
       <section className="relative isolate overflow-hidden">
         <HeroScene />
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-2 lg:px-10 lg:py-24">
-          <div className="text-center lg:text-left">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-lilac/30 bg-lilac/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-lilac-soft">
-              Ethiopia&apos;s football prediction game
-            </p>
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-[3.8rem]">
-              <span className="text-lilac">Predict</span> The Scores.
-              <br />
-              Win <span className="text-lilac">The Gebeta.</span>
-            </h1>
-            <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-white/75 lg:mx-0">
-              Call the scores of 10 big matches every week. Climb the table, beat your friends and take {prizePct}% of the prize pool.
-            </p>
-            <div className="mt-9 flex items-center justify-center gap-5 lg:justify-start">
-              <Link href={ctaHref} className={pill}>
-                {loggedIn ? "Make predictions" : "Create free account"}
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-6 pb-16 pt-14 text-center sm:pt-20 lg:pb-24">
+          <LogoMark tile className="h-24 w-24 drop-shadow-[0_10px_40px_rgba(169,156,240,0.55)] sm:h-32 sm:w-32" />
+          <p className="mt-5 text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
+            Gebeta<span className="text-lilac">Soccer</span>
+          </p>
+          <h1 className="mt-6 text-lg font-bold uppercase tracking-[0.25em] text-white/90 sm:text-2xl">
+            Football Predictor Game
+          </h1>
+          <p className="mt-5 flex flex-wrap items-baseline justify-center gap-x-3 text-white/80">
+            {stats.players > 0 ? (
+              <>
+                played by <span className="text-4xl font-extrabold tabular-nums text-white sm:text-5xl"><CountUp value={Number(stats.players)} suffix="" /></span> football fans
+              </>
+            ) : (
+              <span className="text-lg">Predict the scores. Win the Gebeta.</span>
+            )}
+          </p>
+          <p className="mt-2 text-sm text-white/60">10 big matches every week · {prizePct}% of every pool goes to the winners</p>
+
+          <div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link href={ctaHref} className={`${pill} w-full sm:w-auto`}>
+              {loggedIn ? "Make predictions" : "Create free account"}
+            </Link>
+            {!loggedIn && (
+              <Link
+                href="/login"
+                className="inline-flex w-full items-center justify-center rounded-full border border-white/70 bg-black/20 px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-white backdrop-blur hover:bg-white/10 sm:w-auto"
+              >
+                Log in
               </Link>
-              <Link href="#how" className="text-lilac transition hover:translate-x-1" aria-label="How it works">
-                <ArrowRightIcon size={30} />
-              </Link>
-            </div>
+            )}
           </div>
 
-          {/* Squircle with app preview */}
-          <div className="relative mx-auto w-full max-w-md">
-            <div className="absolute inset-0 rotate-3 rounded-[3.5rem] bg-gradient-to-br from-lilac/70 via-[#8a7bd8]/60 to-[#5b4f96]/60" />
-            <div className="relative flex justify-center rounded-[3.5rem] border border-white/10 bg-gradient-to-br from-[#9d8fe6] to-[#5f539c] px-6 py-10">
-              <PhoneMockup className="animate-float" />
-            </div>
+          {/* Prize pot */}
+          <div className="mt-10 inline-flex items-center gap-4 rounded-full border border-white/10 bg-black/30 px-6 py-3 backdrop-blur-md">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac opacity-70" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lilac" />
+            </span>
+            <span className="text-xs font-bold uppercase tracking-widest text-lilac-soft">{activeRound ? `${activeRound.name} prize pot` : "Prize pot"}</span>
+            <span className="text-xl font-extrabold text-white"><CountUp value={prizeEtb} /></span>
           </div>
         </div>
+
+        {/* Popular this week */}
+        {featured.length > 0 && (
+          <div className="mx-auto max-w-6xl px-6 pb-16">
+            <p className="mb-5 text-center text-xl font-bold text-white sm:text-2xl">Big matches this week</p>
+            <div className="grid gap-4 md:grid-cols-3">
+              {featured.map((m, i) => (
+                <Link
+                  key={i}
+                  href={ctaHref}
+                  className="group overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#141022]/75 backdrop-blur-xl transition hover:-translate-y-1 hover:border-lilac/40"
+                >
+                  <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.04] px-5 py-3 text-xs">
+                    <span className="font-bold uppercase tracking-widest text-lilac">{m.competition ?? "Football"}</span>
+                    <span className="text-mist">{formatKickoff(m.kickoff_at)}</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-6">
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      {m.home_crest ? <img src={m.home_crest} alt="" className="h-12 w-12 object-contain" loading="lazy" /> : <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 font-bold">{m.home_team.slice(0, 2)}</span>}
+                      <span className="text-sm font-bold">{m.home_team}</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-mist">VS</span>
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      {m.away_crest ? <img src={m.away_crest} alt="" className="h-12 w-12 object-contain" loading="lazy" /> : <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 font-bold">{m.away_team.slice(0, 2)}</span>}
+                      <span className="text-sm font-bold">{m.away_team}</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-white/5 px-5 py-3 text-center text-xs font-bold uppercase tracking-widest text-lilac transition group-hover:bg-lilac group-hover:text-ink">
+                    Predict the score →
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <MatchTicker matches={tickerMatches} />
@@ -104,13 +179,21 @@ export default async function Home() {
         </section>
 
         {/* ------------------------------------------------ Introduction */}
-        <section id="how" className="grid scroll-mt-24 gap-8 py-20 lg:grid-cols-2 lg:items-center">
-          <SectionTitle top="Introduction" bottom="To GebetaSoccer" />
-          <p className="text-sm leading-relaxed text-mist">
+        <section id="how" className="grid scroll-mt-24 items-center gap-12 py-20 lg:grid-cols-2">
+          <div>
+            <SectionTitle top="Introduction" bottom="To GebetaSoccer" />
+            <p className="mt-6 text-sm leading-relaxed text-mist">
             Every week we pick 10 big matches. You predict the exact score of each one before kickoff. Exact scores and correct
             results earn points, and the player with the most points wins the prize pool. Like Gebeta, the board game of seeds and
             strategy we all grew up with, it rewards patience, knowledge and a little bit of nerve.
           </p>
+          </div>
+          <div className="relative mx-auto w-full max-w-md">
+            <div className="absolute inset-0 rotate-3 rounded-[3.5rem] bg-gradient-to-br from-lilac/70 via-[#8a7bd8]/60 to-[#5b4f96]/60" />
+            <div className="relative flex justify-center rounded-[3.5rem] border border-white/10 bg-gradient-to-br from-[#9d8fe6] to-[#5f539c] px-6 py-10">
+              <PhoneMockup className="animate-float" />
+            </div>
+          </div>
         </section>
 
         {/* ------------------------------------------------ Prize pool */}

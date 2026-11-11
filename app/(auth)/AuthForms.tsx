@@ -70,6 +70,13 @@ export function RegisterForm() {
       <Field label="Password" hint="At least 8 characters.">
         <input name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} placeholder="••••••••" />
       </Field>
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-ink/50 p-4 text-sm text-mist">
+        <input name="age_ok" type="checkbox" required className="mt-0.5 h-5 w-5 shrink-0 accent-violet-300" />
+        <span>
+          I confirm I am <b className="text-white">18 years or older</b> and I accept the{" "}
+          <Link href="/terms" target="_blank" className="font-semibold text-lilac underline underline-offset-2">Terms &amp; Responsible Play</Link> rules.
+        </span>
+      </label>
       <button type="submit" disabled={pending} className={primaryButtonClass}>
         {pending && <SpinnerIcon size={18} />} Create account
       </button>

@@ -1,0 +1,81 @@
+import Link from "next/link";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import { TELEGRAM_URL } from "@/lib/config";
+
+export const metadata = { title: "Terms & Responsible Play · GebetaSoccer" };
+
+// NOTE: plain-language starter terms. Have a lawyer review before launch.
+const sections: { title: string; body: string[] }[] = [
+  {
+    title: "1. Who can play",
+    body: [
+      "You must be 18 years or older to create an account or play. We may ask for proof of age at any time and close accounts that do not meet this rule.",
+      "One account per person. Accounts are personal and may not be shared, sold or transferred.",
+    ],
+  },
+  {
+    title: "2. Units and payments",
+    body: [
+      "Your wallet holds Units. 1 Unit = 200 ETB.",
+      "Deposits are made manually through our Telegram admin (minimum 200 ETB, maximum 10,000 ETB per transaction) and are credited after we confirm the payment.",
+      "Withdrawals are requested in the app. The Units are held immediately and the money is sent to your phone number after review.",
+    ],
+  },
+  {
+    title: "3. How rounds work",
+    body: [
+      "Each round has an entry fee. Predictions for a match lock at its kickoff time.",
+      "Scoring: exact score 3 points; correct result and close (same goal difference or one goal away) 1.5 points; correct result 1 point; wrong result 0 points.",
+      "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Ties are decided by most exact scores, and remaining ties share the prize equally.",
+      "Postponed or cancelled matches score 0 for everyone.",
+    ],
+  },
+  {
+    title: "4. Fair play",
+    body: [
+      "Using multiple accounts, automated tools or any form of cheating will lead to the account being closed and any balance being withheld.",
+      "Our decision on results and scoring is final once a round is settled.",
+    ],
+  },
+  {
+    title: "5. Responsible play",
+    body: [
+      "Only play with money you can afford to lose. Never chase losses.",
+      "If you feel you are playing too much, contact us on Telegram and we will pause or close your account.",
+    ],
+  },
+  {
+    title: "6. Privacy",
+    body: [
+      "We store your username, phone number, optional email and your game and wallet history to run the service. We never show your phone or email to other players.",
+    ],
+  },
+];
+
+export default function TermsPage() {
+  return (
+    <div className="relative">
+      <SiteHeader loggedIn={false} />
+      <main className="mx-auto max-w-3xl px-6 py-14">
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Terms &amp; Responsible Play</h1>
+        <p className="mt-3 text-sm text-mist">Please read these before you play. Last updated {new Date().getFullYear()}.</p>
+        <div className="mt-10 space-y-8">
+          {sections.map((s) => (
+            <section key={s.title} className="rounded-[2rem] border border-white/5 bg-card/60 p-6">
+              <h2 className="text-lg font-extrabold text-lilac-soft">{s.title}</h2>
+              <ul className="mt-3 space-y-2 text-sm leading-relaxed text-mist">
+                {s.body.map((b) => <li key={b}>{b}</li>)}
+              </ul>
+            </section>
+          ))}
+        </div>
+        <p className="mt-10 text-sm text-mist">
+          Questions? <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-lilac">Message us on Telegram</a> ·{" "}
+          <Link href="/register" className="font-semibold text-lilac">Create account</Link>
+        </p>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}

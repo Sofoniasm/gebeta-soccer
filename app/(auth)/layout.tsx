@@ -7,9 +7,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="relative grid min-h-dvh overflow-hidden lg:grid-cols-2">
       {/* Left: brand panel (desktop only) */}
-      <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#3a3260] via-plum to-ink lg:flex lg:flex-col lg:justify-between lg:p-12">
+      <aside className="relative hidden overflow-hidden bg-ink lg:flex lg:flex-col lg:justify-between lg:p-12">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/stadium.webp" alt="" className="animate-pitch-zoom absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0b0912]/85 via-[#2c2740]/60 to-[#0b0912]/90" />
         <FlowLines />
-        <Logo size="md" className="relative" />
+        <Logo size="lg" className="relative" />
         <div className="relative flex items-center gap-10">
           <div className="max-w-xs">
             <h2 className="text-4xl font-extrabold leading-tight">
@@ -30,12 +33,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
           <PhoneMockup className="hidden shrink-0 rotate-3 xl:block" />
         </div>
-        <p className="relative text-xs text-mist/70">18+ only · Play responsibly</p>
+        <p className="relative text-xs text-white/70">18+ only · Play responsibly</p>
       </aside>
 
       {/* Right: form */}
       <main className="relative flex flex-col items-center justify-center px-5 py-10">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-lilac/10 to-transparent lg:hidden" />
+        <div className="pointer-events-none absolute inset-0 lg:hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/stadium.webp" alt="" className="h-full w-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b0912]/70 via-plum/85 to-plum" />
+        </div>
         <div className="relative w-full max-w-md space-y-8">
           <div className="text-center lg:hidden">
             <Logo size="lg" />

@@ -26,7 +26,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${montserrat.variable} bg-plum`}>
-      <body className="min-h-dvh bg-plum font-sans text-[#ece9f6] antialiased selection:bg-lilac/30">
+      <body className="relative isolate min-h-dvh font-sans text-[#ece9f6] antialiased selection:bg-lilac/30">
         {children}
       </body>
     </html>

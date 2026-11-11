@@ -5,7 +5,7 @@ export function SiteHeader({ loggedIn }: { loggedIn: boolean }) {
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[#0b0912]/80 backdrop-blur-xl">
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-10">
-        <Logo size="md" />
+        <Logo size="lg" />
         <div className="hidden items-center gap-8 text-xs font-bold uppercase tracking-widest text-mist md:flex">
           <Link href="/#how" className="hover:text-white">How it works</Link>
           <Link href="/#prize" className="hover:text-white">Prize pool</Link>
