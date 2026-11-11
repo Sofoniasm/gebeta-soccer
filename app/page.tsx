@@ -7,6 +7,8 @@ import { LogoMark, SectionTitle } from "@/components/ui";
 import { CountUp } from "@/components/CountUp";
 import { FlowLines } from "@/components/FlowLines";
 import { PhoneMockup } from "@/components/PhoneMockup";
+import { HeroScene } from "@/components/HeroScene";
+import { MatchTicker, type TickerMatch } from "@/components/MatchTicker";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ArrowRightIcon, BallIcon, SendIcon, ShieldIcon, StarIcon, TrophyIcon, WalletIcon } from "@/components/icons";
@@ -22,6 +24,14 @@ export default async function Home() {
   const activeRound = round && round.status !== "settled" ? round : null;
   const pool = activeRound ? await getRoundPool(supabase, activeRound.id) : null;
   const loggedIn = !!auth.user;
+  const { data: upcoming } = await supabase
+    .from("matches")
+    .select("home_team, away_team, kickoff_at, competition")
+    .eq("status", "scheduled")
+    .gt("kickoff_at", new Date().toISOString())
+    .order("kickoff_at", { ascending: true })
+    .limit(12);
+  const tickerMatches = (upcoming ?? []) as TickerMatch[];
 
   const houseCut = activeRound ? Number(activeRound.house_cut) : DEFAULT_HOUSE_CUT;
   const prizePct = Math.round((1 - houseCut) * 100);
@@ -35,16 +45,20 @@ export default async function Home() {
       <FlowLines />
       <SiteHeader loggedIn={loggedIn} />
 
-      <main className="relative mx-auto max-w-6xl px-6">
-        {/* ------------------------------------------------ Hero */}
-        <section className="grid items-center gap-12 py-14 lg:grid-cols-2 lg:py-20">
+      {/* ------------------------------------------------ Hero (full width, animated) */}
+      <section className="relative isolate overflow-hidden">
+        <HeroScene />
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-2 lg:px-10 lg:py-24">
           <div className="text-center lg:text-left">
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-[3.4rem]">
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-lilac/30 bg-lilac/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-lilac-soft">
+              Ethiopia&apos;s football prediction game
+            </p>
+            <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-[3.8rem]">
               <span className="text-lilac">Predict</span> The Scores.
               <br />
               Win <span className="text-lilac">The Gebeta.</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-mist lg:mx-0">
+            <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-white/75 lg:mx-0">
               Call the scores of 10 big matches every week. Climb the table, beat your friends and take {prizePct}% of the prize pool.
             </p>
             <div className="mt-9 flex items-center justify-center gap-5 lg:justify-start">
@@ -61,13 +75,17 @@ export default async function Home() {
           <div className="relative mx-auto w-full max-w-md">
             <div className="absolute inset-0 rotate-3 rounded-[3.5rem] bg-gradient-to-br from-lilac/70 via-[#8a7bd8]/60 to-[#5b4f96]/60" />
             <div className="relative flex justify-center rounded-[3.5rem] border border-white/10 bg-gradient-to-br from-[#9d8fe6] to-[#5f539c] px-6 py-10">
-              <PhoneMockup />
+              <PhoneMockup className="animate-float" />
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
+      <MatchTicker matches={tickerMatches} />
+
+      <main className="relative mx-auto max-w-7xl px-6 lg:px-10">
         {/* ------------------------------------------------ Info strip */}
-        <section className="rounded-[2.5rem] border border-white/5 bg-gradient-to-r from-card/80 via-[#3e3660]/80 to-card/80 px-6 py-6 backdrop-blur">
+        <section className="mt-12 rounded-[2.5rem] border border-white/5 bg-gradient-to-r from-card/80 via-[#3e3660]/80 to-card/80 px-6 py-6 backdrop-blur">
           <div className="grid gap-6 sm:grid-cols-3 sm:divide-x sm:divide-white/10">
             {[
               { icon: <WalletIcon size={26} />, title: "Top up with Telebirr", text: `1 unit = ${ETB_PER_UNIT} ETB` },
@@ -145,8 +163,13 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ------------------------------------------------ Why play */}
-        <section className="py-20">
+      </main>
+
+      {/* ------------------------------------------------ Why play (full-width dark band) */}
+      <section className="relative mt-20 overflow-hidden bg-[#16121f] py-20">
+        <div className="animate-glow pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-lilac/15 blur-3xl" />
+        <div className="animate-glow pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-[#6c5fb3]/20 blur-3xl [animation-delay:2.5s]" />
+        <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
           <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
             <SectionTitle top="Why play" bottom="With GebetaSoccer" />
             <p className="text-sm leading-relaxed text-mist">
@@ -161,7 +184,7 @@ export default async function Home() {
               { icon: <StarIcon size={30} />, title: "Win", text: `Top the table and take ${prizePct}% of the pool.` },
               { icon: <ShieldIcon size={30} />, title: "Trust", text: "Every deposit and payout is recorded and can't be edited." },
             ].map((c) => (
-              <div key={c.title} className="rounded-[2rem] border border-white/5 bg-card/60 p-6 text-center">
+              <div key={c.title} className="rounded-[2rem] border border-white/5 bg-card/60 p-6 text-center transition duration-300 hover:-translate-y-2 hover:border-lilac/30 hover:bg-card">
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-plum bg-gradient-to-br from-lilac to-[#6c5fb3] text-ink shadow-lg shadow-black/30">
                   {c.icon}
                 </div>
@@ -170,10 +193,12 @@ export default async function Home() {
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
+      <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
         {/* ------------------------------------------------ Scoring */}
-        <section id="scoring" className="scroll-mt-24 pb-20">
+        <section id="scoring" className="scroll-mt-24 py-20">
           <SectionTitle top="Scoring" bottom="How points work" />
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -182,7 +207,7 @@ export default async function Home() {
               [POINTS.RESULT, "Right result", "Correct winner or draw"],
               [POINTS.WRONG, "Wrong result", "Better luck next match"],
             ].map(([pts, label, ex]) => (
-              <div key={String(label)} className="rounded-[2rem] border border-white/5 bg-card/60 p-6">
+              <div key={String(label)} className="rounded-[2rem] border border-white/5 bg-card/60 p-6 transition duration-300 hover:-translate-y-2 hover:border-lilac/30">
                 <p className="text-4xl font-extrabold text-lilac">{pts}</p>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-mist">points</p>
                 <p className="mt-4 font-bold">{label}</p>
@@ -194,7 +219,7 @@ export default async function Home() {
 
         {/* ------------------------------------------------ CTA */}
         {!loggedIn && (
-          <section className="mb-20 overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#9d8fe6] to-[#5f539c] px-6 py-14 text-center">
+          <section className="animate-shimmer mb-20 overflow-hidden rounded-[3rem] bg-[linear-gradient(110deg,#5f539c,#9d8fe6,#5f539c,#9d8fe6)] bg-[length:200%_100%] px-6 py-16 text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Ready to play?</h2>
             <p className="mt-3 text-white/80">Sign up with just your phone number. It takes 30 seconds.</p>
             <Link
@@ -205,7 +230,7 @@ export default async function Home() {
             </Link>
           </section>
         )}
-      </main>
+      </div>
 
       <SiteFooter />
     </div>

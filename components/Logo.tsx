@@ -8,10 +8,11 @@ import Link from "next/link";
  * Flat colours only (no SVG ids), so it can be used many times on a page.
  */
 
-const BOARD = "#4b4270";
-const PIT = "#1b1729";
-const GOLD = "#b8abf7"; // lavender: outline, hinges, seeds
-const TILE = "#2c2740";
+const BOARD = "#231e36";
+const PIT = "#0f0c18";
+const GOLD = "#cbc2fa"; // seeds & hinges
+const OUTLINE = "#ffffff";
+const TILE = "#b2a5f6"; // lavender tile so the mark pops on dark backgrounds
 
 const PIT_X = [10.6, 19.1, 27.6, 36.1, 44.6, 53.1];
 const TOP_Y = 25.8;
@@ -30,10 +31,11 @@ export function LogoMark({
   return (
     <svg viewBox="0 0 64 64" className={className} role="img" aria-label={title}>
       {tile && <rect width="64" height="64" rx="15" fill={TILE} />}
+      {tile && <rect width="64" height="32" rx="15" fill="#ffffff" opacity="0.12" />}
       <g transform="rotate(-38 32 32)">
         {/* the two hinged strips */}
-        <rect x="4.5" y="20" width="55" height="11.6" rx="5.8" fill={BOARD} stroke={GOLD} strokeWidth="1.5" />
-        <rect x="4.5" y="32.4" width="55" height="11.6" rx="5.8" fill={BOARD} stroke={GOLD} strokeWidth="1.5" />
+        <rect x="4.5" y="20" width="55" height="11.6" rx="5.8" fill={BOARD} stroke={OUTLINE} strokeWidth="1.6" />
+        <rect x="4.5" y="32.4" width="55" height="11.6" rx="5.8" fill={BOARD} stroke={OUTLINE} strokeWidth="1.6" />
         <rect x="14" y="30" width="4.2" height="4.4" rx="0.9" fill={GOLD} />
         <rect x="45.8" y="30" width="4.2" height="4.4" rx="0.9" fill={GOLD} />
 
@@ -78,11 +80,11 @@ export function Logo({
   href?: string;
   className?: string;
 }) {
-  const mark = { sm: "h-8 w-8", md: "h-10 w-10", lg: "h-14 w-14" }[size];
-  const text = { sm: "text-lg", md: "text-xl", lg: "text-3xl" }[size];
+  const mark = { sm: "h-10 w-10", md: "h-11 w-11", lg: "h-14 w-14" }[size];
+  const text = { sm: "text-xl", md: "text-2xl", lg: "text-3xl" }[size];
   return (
     <Link href={href} className={`inline-flex items-center gap-2 ${className}`} aria-label="GebetaSoccer home">
-      <LogoMark className={`${mark} shrink-0`} tile />
+      <LogoMark className={`${mark} shrink-0 drop-shadow-[0_4px_14px_rgba(169,156,240,0.45)]`} tile />
       <span className={`${text} font-extrabold tracking-tight text-white`}>
         Gebeta<span className="text-lilac">Soccer</span>
       </span>

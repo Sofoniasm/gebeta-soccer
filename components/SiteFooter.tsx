@@ -4,7 +4,7 @@ import { Logo } from "./Logo";
 export function SiteFooter() {
   return (
     <footer className="relative border-t border-white/5 bg-ink">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:px-10 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
           <Logo size="sm" />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-mist">
@@ -29,7 +29,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-white/5">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-6 py-5 text-xs text-mist/70 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-6 py-5 lg:px-10 text-xs text-mist/70 sm:flex-row">
           <p>© {new Date().getFullYear()} GebetaSoccer</p>
           <p>18+ only · Play responsibly — only stake what you can afford to lose.</p>
         </div>

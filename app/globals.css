@@ -25,3 +25,30 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Motion (stadium feel) ---------- */
+@theme inline {
+  --animate-marquee: marquee 50s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-beam-l: beam-l 9s ease-in-out infinite;
+  --animate-beam-r: beam-r 11s ease-in-out infinite;
+  --animate-pitch: pitch 16s ease-in-out infinite;
+  --animate-roll: roll 22s linear infinite;
+  --animate-roll-slow: roll 34s linear infinite;
+  --animate-glow: glow 5s ease-in-out infinite;
+  --animate-shimmer: shimmer 6s linear infinite;
+}
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-14px) rotate(1deg); } }
+@keyframes beam-l { 0%, 100% { transform: rotate(18deg); opacity: .55; } 50% { transform: rotate(28deg); opacity: .9; } }
+@keyframes beam-r { 0%, 100% { transform: rotate(-18deg); opacity: .5; } 50% { transform: rotate(-30deg); opacity: .85; } }
+@keyframes pitch { 0%, 100% { transform: perspective(900px) rotateX(58deg) scale(1.05) translateY(0); } 50% { transform: perspective(900px) rotateX(58deg) scale(1.12) translateY(-12px); } }
+@keyframes roll {
+  0%   { transform: translateX(-12vw) translateY(0) rotate(0deg); }
+  25%  { transform: translateX(22vw) translateY(-40px) rotate(260deg); }
+  50%  { transform: translateX(56vw) translateY(0) rotate(520deg); }
+  75%  { transform: translateX(88vw) translateY(-30px) rotate(780deg); }
+  100% { transform: translateX(112vw) translateY(0) rotate(1040deg); }
+}
+@keyframes glow { 0%, 100% { opacity: .35; transform: scale(1); } 50% { opacity: .7; transform: scale(1.15); } }
+@keyframes shimmer { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
