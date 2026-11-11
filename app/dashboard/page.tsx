@@ -23,11 +23,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const tab = tabParam === "results" ? "results" : "upcoming";
   const todo = await getTodo();
 
-  const round = await getCurrentRound(supabase);
+  // Only an open/in-progress round is "active". A settled one moves to Results.
+  const current = await getCurrentRound(supabase);
+  const round = current && current.status !== "settled" ? current : null;
+  const lastSettled = current?.status === "settled" ? current : null;
   const matches = round ? await getRoundMatches(supabase, round.id) : [];
   const pool = round ? await getRoundPool(supabase, round.id) : null;
 
   let entered = false;
+  let leagueNames: string[] = [];
   let saved: SavedPrediction[] = [];
   if (round) {
     const { data: entry } = await supabase
@@ -37,6 +41,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .eq("user_id", me.id)
       .maybeSingle();
     entered = !!entry;
+
+    const { data: myLeagues } = await supabase
+      .from("league_members")
+      .select("leagues!inner(name, round_id)")
+      .eq("user_id", me.id)
+      .eq("status", "active")
+      .eq("leagues.round_id", round.id);
+    leagueNames = ((myLeagues ?? []) as unknown as { leagues: { name: string } }[]).map((l) => l.leagues.name);
 
     if (matches.length > 0) {
       const { data } = await supabase
@@ -198,7 +210,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
             <div className="relative mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
               {nextKickoff && round.status === "open" ? <Countdown to={nextKickoff} /> : <span className="text-xs text-mist">All matches have kicked off</span>}
-              {entered && (
+              {(entered || leagueNames.length > 0) && (
                 <span className="rounded-full bg-lilac/15 px-3 py-1 text-xs font-bold text-lilac-soft">
                   {predictedCount}/{matches.length} predicted
                 </span>
@@ -213,6 +225,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             roundId={round.id}
             roundOpen={round.status === "open"}
             entered={entered}
+            leagueNames={leagueNames}
             entryFeeLabel={formatUnits(Number(round.entry_fee_units))}
             balanceUnits={me.balance_units}
             entryFeeUnits={Number(round.entry_fee_units)}
@@ -222,8 +235,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </>
       ) : (
         <div className="rounded-[2rem] border border-white/5 bg-card/60 p-10 text-center">
-          <p className="text-lg font-bold">No round yet</p>
-          <p className="mt-1 text-sm text-mist">The next round opens soon. Top up your wallet so you&apos;re ready.</p>
+          <p className="text-lg font-bold">No active round — check back soon</p>
+          <p className="mt-1 text-sm text-mist">
+            {lastSettled ? (
+              <>
+                <b className="text-white">{lastSettled.name}</b> is finished.{" "}
+                <Link href="/results" className="font-bold text-lilac hover:text-lilac-soft">See the results →</Link>{" "}
+              </>
+            ) : null}
+            The next round opens soon. Top up your wallet so you&apos;re ready.
+          </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link href="/wallet" className="rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
               Top up wallet

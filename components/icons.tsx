@@ -140,3 +140,9 @@ export const EyeIcon = (p: IconProps) => (
     <circle cx="12" cy="12" r="3" />
   </Svg>
 );
+
+export const FlagIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
+  </Svg>
+);

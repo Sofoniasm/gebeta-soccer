@@ -3,7 +3,7 @@ import { getMe } from "@/lib/me";
 import { getCareer, certificatesFor } from "@/lib/career";
 import { etbLabel } from "@/lib/money";
 import { AppShell } from "@/components/AppShell";
-import { AwardIcon, CalendarIcon, ClockIcon, UsersIcon } from "@/components/icons";
+import { AwardIcon, CalendarIcon, ClockIcon, FlagIcon, UsersIcon } from "@/components/icons";
 
 export const metadata = { title: "Career · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -137,6 +137,7 @@ export default async function CareerPage() {
         {/* Shortcuts (the "Me" hub on mobile) */}
         <section className="space-y-2">
           {[
+            { href: "/leagues", label: "Private leagues", sub: "Play your friends · free or paid", icon: FlagIcon },
             { href: "/certificates", label: "Certificates", sub: `${earned.length} earned`, icon: AwardIcon },
             { href: "/results", label: "Round results", sub: "Past rounds and winners", icon: ClockIcon },
             { href: "/fixtures", label: "Fixtures", sub: "All upcoming matches", icon: CalendarIcon },

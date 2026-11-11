@@ -11,15 +11,16 @@ import { signOut } from "../(auth)/actions";
 export const metadata = { title: "Verify your phone · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
+export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ err?: string; next?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/verify");
 
   const { data: profile } = await supabase.from("profiles").select("username, phone_number, phone_verified_at").eq("id", user.id).single();
-  if (profile?.phone_verified_at) redirect("/dashboard");
+  const { err, next } = await searchParams;
+  const after = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  if (profile?.phone_verified_at) redirect(after);
 
-  const { err } = await searchParams;
   const tgOn = telegramEnabled();
   const smsOn = smsEnabled();
 

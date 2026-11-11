@@ -14,6 +14,7 @@ import { syncMatches } from "@/lib/football/sync";
 import { settleRound } from "@/lib/settlement";
 import { formatUnits } from "@/lib/money";
 import { pushNotifications } from "@/lib/notify";
+import { settleLeague } from "@/lib/league-settle";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -149,7 +150,9 @@ export async function assignMatches(formData: FormData) {
     .from("matches")
     .update({ round_id: roundId })
     .in("id", ids)
-    .is("round_id", null);
+    .is("round_id", null)
+    .eq("status", "scheduled")
+    .gt("kickoff_at", new Date().toISOString());
   if (error) return done("err", error.message);
   return done("msg", `Added ${ids.length} match${ids.length === 1 ? "" : "es"} to the round.`);
 }
@@ -259,13 +262,23 @@ export async function settle(formData: FormData) {
       link: "/results",
     }));
   if (notes.length) await admin.from("notifications").insert(notes);
-  await pushNotifications(result.standings.map((s) => s.userId));
+
+  // Private leagues on this round are settled in the same click.
+  const { data: openLeagues } = await admin.from("leagues").select("id").eq("round_id", roundId).eq("status", "open");
+  const leagueMsgs: string[] = [];
+  for (const l of (openLeagues ?? []) as { id: number }[]) {
+    const r = await settleLeague(l.id, adminId);
+    leagueMsgs.push(r.message);
+  }
+
+  await pushNotifications();
 
   const winners = result.payouts.length;
   const paid = result.payouts.reduce((sum, p) => sum + p.units, 0);
   return done(
     "msg",
-    `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winner${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.`
+    `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winner${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.` +
+      (leagueMsgs.length ? ` Leagues: ${leagueMsgs.join(" ")}` : "")
   );
 }
 
@@ -288,4 +301,44 @@ export async function rejectWithdrawal(formData: FormData) {
   if (error) return done("err", error.message);
   await pushNotifications();
   return done("msg", `Withdrawal #${id} rejected and units refunded.`);
+}
+
+// ------------------------------------------------------ private leagues
+export async function approveLeagueMember(formData: FormData) {
+  const adminId = await requireAdmin();
+  const leagueId = Number(formData.get("leagueId"));
+  const userId = String(formData.get("userId") ?? "");
+  const addUnits = formData.get("mode") === "add";
+  const { error } = await createAdminClient().rpc("admin_approve_league_member", {
+    p_league_id: leagueId,
+    p_user_id: userId,
+    p_add_units: addUnits,
+    p_admin_id: adminId,
+  });
+  if (error) {
+    return done("err", error.message.includes("insufficient") ? "Player doesn't have enough units — use “Received ETB: add & approve”." : error.message);
+  }
+  await pushNotifications([userId]);
+  return done("msg", addUnits ? "Units added and player approved." : "Approved — entry fee taken from the player's wallet.");
+}
+
+export async function rejectLeagueMember(formData: FormData) {
+  const adminId = await requireAdmin();
+  const leagueId = Number(formData.get("leagueId"));
+  const userId = String(formData.get("userId") ?? "");
+  const { error } = await createAdminClient().rpc("admin_reject_league_member", {
+    p_league_id: leagueId,
+    p_user_id: userId,
+    p_admin_id: adminId,
+  });
+  if (error) return done("err", error.message);
+  await pushNotifications([userId]);
+  return done("msg", "Request declined.");
+}
+
+export async function settleLeagueNow(formData: FormData) {
+  const adminId = await requireAdmin();
+  const r = await settleLeague(Number(formData.get("leagueId")), adminId);
+  await pushNotifications();
+  return done(r.ok ? "msg" : "err", r.message);
 }

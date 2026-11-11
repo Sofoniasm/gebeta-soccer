@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { joinRound, savePredictions, type ActionResult } from "./actions";
 import { formatKickoff } from "@/lib/format";
 import { calculateMatchPoints } from "@/lib/scoring";
@@ -19,6 +19,8 @@ interface Props {
   roundId: number;
   roundOpen: boolean;
   entered: boolean;
+  /** Names of private leagues on this round the player is active in (they can predict even without the main round). */
+  leagueNames?: string[];
   entryFeeLabel: string;
   balanceUnits: number;
   entryFeeUnits: number;
@@ -58,8 +60,16 @@ function ScoreInput(props: { value: string; disabled: boolean; label: string; on
   );
 }
 
-export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeLabel, balanceUnits, entryFeeUnits, matches, saved }: Props) {
+export default function PredictionBoard({ roundId, roundOpen, entered, leagueNames = [], entryFeeLabel, balanceUnits, entryFeeUnits, matches, saved }: Props) {
   const savedByMatch = useMemo(() => new Map(saved.map((s) => [s.match_id, s])), [saved]);
+
+  // Re-check every 15 s so a match's boxes lock the moment it kicks off,
+  // even if the page stays open (the server refuses late picks anyway).
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 15_000);
+    return () => clearInterval(t);
+  }, []);
 
   const [draft, setDraft] = useState<Draft>(() => {
     const d: Draft = {};
@@ -72,7 +82,7 @@ export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeL
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const canEdit = roundOpen && entered;
+  const canEdit = roundOpen && (entered || leagueNames.length > 0);
   const editable = matches.filter((m) => canEdit && isOpen(m));
 
   const changed = editable.filter((m) => {
@@ -108,8 +118,12 @@ export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeL
 
       {!entered && roundOpen && (
         <div className="rounded-[2rem] border border-lilac/30 bg-gradient-to-br from-lilac/20 to-transparent p-6">
-          <p className="text-lg font-extrabold">Join this round</p>
-          <p className="mt-1 text-sm text-mist">Entry: {entryFeeLabel}. Predict every match and win the pot.</p>
+          <p className="text-lg font-extrabold">{leagueNames.length ? "Also play the main round?" : "Join this round"}</p>
+          <p className="mt-1 text-sm text-mist">
+            {leagueNames.length
+              ? `Your picks already count for ${leagueNames.join(", ")}. Join the main round too (entry ${entryFeeLabel}) to compete for the big pot with the same picks.`
+              : `Entry: ${entryFeeLabel}. Predict every match and win the pot.`}
+          </p>
           {balanceUnits >= entryFeeUnits ? (
             <button onClick={onJoin} disabled={pending} className={`${primaryButtonClass} mt-5 sm:w-auto`}>
               {pending && <SpinnerIcon size={18} />} Join round

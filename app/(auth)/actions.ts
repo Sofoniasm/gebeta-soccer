@@ -139,7 +139,8 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     }
     return { success: "Account created. Log in with your phone number to confirm it." };
   }
-  redirect("/verify");
+  const next = safeNext(formData.get("next"));
+  redirect(next !== "/dashboard" ? `/verify?next=${encodeURIComponent(next)}` : "/verify");
 }
 
 // -------------------------------------------------------------- sign out

@@ -8,6 +8,7 @@ import {
   CalendarIcon,
   ChartIcon,
   ClockIcon,
+  FlagIcon,
   ListCheckIcon,
   ShieldIcon,
   TrophyIcon,
@@ -20,6 +21,7 @@ type Item = { href: string; label: string; icon: (p: { size?: number }) => React
 const PLAY: Item[] = [
   { href: "/dashboard", label: "Dashboard", icon: BallIcon },
   { href: "/todo", label: "To-do", icon: ListCheckIcon, badge: "todo" },
+  { href: "/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/fixtures", label: "Fixtures", icon: CalendarIcon },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon },
   { href: "/results", label: "Results", icon: ClockIcon },
@@ -35,6 +37,7 @@ const ME: Item[] = [
 const ADMIN_ITEMS: Item[] = [
   { href: "/admin", label: "Rounds", icon: ShieldIcon },
   { href: "/admin/players", label: "Players", icon: UsersIcon },
+  { href: "/admin/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/admin/deposits", label: "Deposits", icon: WalletIcon },
 ];
 
@@ -95,7 +98,7 @@ export function SideNav({ isAdmin, todoCount = 0 }: { isAdmin: boolean; todoCoun
 
 export function BottomNav({ todoCount = 0 }: { todoCount?: number }) {
   const path = usePathname();
-  const meActive = ["/career", "/certificates", "/profile", "/results", "/fixtures", "/notifications"].some((p) => path.startsWith(p));
+  const meActive = ["/career", "/certificates", "/profile", "/results", "/fixtures", "/notifications", "/leagues", "/join"].some((p) => path.startsWith(p));
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0912]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
       <div className="mx-auto grid max-w-lg grid-cols-5">

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
+import { getCareer } from "@/lib/career";
 import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS, etbLabel, formatUnits, unitsLabel } from "@/lib/money";
 import { formatKickoff } from "@/lib/format";
 import { TELEGRAM_HANDLE, TELEGRAM_URL } from "@/lib/config";
@@ -31,11 +32,57 @@ export default async function WalletPage() {
   const supabase = await createClient();
 
   const [{ data: ledger }, { data: withdrawals }] = await Promise.all([
-    supabase.from("wallet_ledger").select("id, amount_units, kind, reference, created_at").eq("user_id", me.id).order("created_at", { ascending: false }).limit(50),
+    supabase
+      .from("wallet_ledger")
+      .select("id, amount_units, kind, reference, created_at, round_id, league_id, rounds(name), leagues(name)")
+      .eq("user_id", me.id)
+      .order("created_at", { ascending: false })
+      .limit(100),
     supabase.from("withdrawal_requests").select("id, units, payout_phone, status, admin_note, created_at").order("created_at", { ascending: false }).limit(10),
   ]);
 
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
+
+  // Rank per round, so winnings read "Won Week 1 (Rank 1)"
+  const rankOf = new Map((await getCareer(me.id)).rounds.map((r) => [r.round_id, r.rank]));
+  type Tx = {
+    id: number;
+    amount_units: number;
+    kind: string;
+    reference: string | null;
+    created_at: string;
+    round_id: number | null;
+    league_id: number | null;
+    rounds: { name: string } | null;
+    leagues: { name: string } | null;
+  };
+  const describe = (t: Tx): { title: string; note: string } => {
+    const amt = Number(t.amount_units);
+    const round = t.rounds?.name ?? (t.round_id ? `Round ${t.round_id}` : "");
+    const league = t.leagues?.name;
+    switch (t.kind) {
+      case "deposit":
+        return { title: "Telegram deposit", note: (t.reference ?? "").replace(/^Telegram deposit ?·? ?/, "") };
+      case "entry_fee":
+        return { title: league ? `Joined league ${league}` : `Joined ${round}`, note: "Entry fee" };
+      case "payout": {
+        if (league) {
+          const m = (t.reference ?? "").match(/\(Rank (\d+)\)/);
+          return { title: `Won league ${league}${m ? ` (Rank ${m[1]})` : ""}`, note: "70% of the league pot" };
+        }
+        const r = t.round_id ? rankOf.get(t.round_id) : null;
+        return { title: `Won ${round}${r ? ` (Rank ${r})` : ""}`, note: "Prize money" };
+      }
+      case "withdrawal":
+        return { title: (t.reference ?? "Withdrawal").replace("Withdrawal request", "Withdrawal"), note: "On hold until sent to your Telebirr" };
+      case "refund":
+        return { title: "Refund", note: t.reference ?? "" };
+      case "adjustment":
+        return { title: amt > 0 ? "Added by admin" : "Deducted by admin", note: t.reference ?? "" };
+      default:
+        return { title: KIND_LABEL[t.kind] ?? t.kind, note: t.reference ?? "" };
+    }
+  };
 
   return (
     <AppShell title="Wallet" next="/wallet">
@@ -109,16 +156,20 @@ export default async function WalletPage() {
           <p className="text-sm text-mist">No transactions yet.</p>
         ) : (
           <div className="divide-y divide-white/5">
-            {((ledger ?? []) as { id: number; amount_units: number; kind: string; reference: string | null; created_at: string }[]).map((t) => {
+            {((ledger ?? []) as unknown as Tx[]).map((t) => {
               const amt = Number(t.amount_units);
+              const d = describe(t);
               return (
                 <div key={t.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                   <div className="min-w-0">
-                    <p className="font-semibold">{KIND_LABEL[t.kind] ?? t.kind}</p>
-                    <p className="truncate text-xs text-mist">{t.reference ?? ""} · {formatKickoff(t.created_at)}</p>
+                    <p className="font-semibold">{d.title}</p>
+                    <p className="truncate text-xs text-mist">
+                      {formatKickoff(t.created_at)}
+                      {d.note ? ` · ${d.note}` : ""}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className={`font-extrabold ${amt > 0 ? "text-emerald-200" : "text-white"}`}>
+                    <p className={`font-extrabold ${amt > 0 ? "text-emerald-200" : "text-rose-200"}`}>
                       {amt > 0 ? "+" : "−"}{unitsLabel(Math.abs(amt))}
                     </p>
                     <p className="text-xs text-mist">({etbLabel(Math.abs(amt))})</p>

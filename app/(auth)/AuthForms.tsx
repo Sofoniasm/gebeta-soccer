@@ -33,7 +33,7 @@ export function LoginForm({ next }: { next?: string }) {
       </button>
       <p className="text-center text-sm text-mist">
         New here?{" "}
-        <Link href="/register" className="font-semibold text-lilac">
+        <Link href={next && next !== "/dashboard" ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="font-semibold text-lilac">
           Create an account
         </Link>
       </p>
@@ -41,7 +41,7 @@ export function LoginForm({ next }: { next?: string }) {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(register, undefined);
 
   if (state?.success) {
@@ -58,6 +58,7 @@ export function RegisterForm() {
   return (
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
+      {next && <input type="hidden" name="next" value={next} />}
       <Field label="Phone number" hint="You'll log in with this and confirm it in the next step.">
         <input name="phone" type="tel" inputMode="tel" autoComplete="tel" required className={inputClass} placeholder="0911 223 344" />
       </Field>

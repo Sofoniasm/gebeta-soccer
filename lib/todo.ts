@@ -33,8 +33,9 @@ export const getTodo = cache(async (): Promise<Todo> => {
 
   const ids = open.map((r) => r.id);
   const nowIso = new Date().toISOString();
-  const [{ data: entries }, { data: matches }] = await Promise.all([
+  const [{ data: entries }, { data: leagueRows }, { data: matches }] = await Promise.all([
     supabase.from("round_entries").select("round_id").eq("user_id", user.id).in("round_id", ids),
+    supabase.from("league_members").select("leagues!inner(round_id)").eq("user_id", user.id).eq("status", "active").in("leagues.round_id", ids),
     supabase
       .from("matches")
       .select("*")
@@ -43,7 +44,11 @@ export const getTodo = cache(async (): Promise<Todo> => {
       .gt("kickoff_at", nowIso)
       .order("kickoff_at", { ascending: true }),
   ]);
-  const joined = new Set(((entries ?? []) as { round_id: number }[]).map((e) => e.round_id));
+  // Joined = in the main round, or in a private league on that round.
+  const joined = new Set([
+    ...((entries ?? []) as { round_id: number }[]).map((e) => e.round_id),
+    ...((leagueRows ?? []) as unknown as { leagues: { round_id: number } }[]).map((l) => l.leagues.round_id),
+  ]);
   const list = (matches ?? []) as MatchRow[];
 
   const { data: preds } = list.length

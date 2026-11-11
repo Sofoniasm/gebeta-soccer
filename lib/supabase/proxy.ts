@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
 
-const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates"];
+const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates", "/leagues", "/join"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function updateSession(request: NextRequest) {
@@ -45,14 +45,16 @@ export async function updateSession(request: NextRequest) {
   if (user && !verified && PRIVATE_PREFIXES.some((p) => path.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/verify";
-    url.search = "";
+    url.search = path === "/dashboard" ? "" : `?next=${encodeURIComponent(path)}`;
     return NextResponse.redirect(url);
   }
 
   if (user && AUTH_PAGES.includes(path)) {
     const url = request.nextUrl.clone();
-    url.pathname = verified ? "/dashboard" : "/verify";
-    url.search = "";
+    const next = request.nextUrl.searchParams.get("next");
+    const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+    url.pathname = verified ? safe ?? "/dashboard" : "/verify";
+    url.search = !verified && safe ? `?next=${encodeURIComponent(safe)}` : "";
     return NextResponse.redirect(url);
   }
 
