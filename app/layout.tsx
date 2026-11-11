@@ -7,7 +7,14 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 export const metadata: Metadata = {
   title: "GebetaSoccer — Predict. Win. Dominate the Gebeta.",
   description: "Predict 10 football matches every week, beat the leaderboard and win the prize pool.",
-  icons: { icon: "/icon.svg" },
+  icons: { icon: "/icon.svg", apple: "/apple-icon.png" },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "GebetaSoccer", statusBarStyle: "black-translucent" },
+  openGraph: {
+    title: "GebetaSoccer — Predict. Win. Dominate the Gebeta.",
+    description: "Predict 10 football matches every week and win the prize pool.",
+    images: [{ url: "/og.png", width: 1080, height: 1080 }],
+  },
 };
 
 export const viewport: Viewport = {

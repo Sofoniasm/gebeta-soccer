@@ -93,7 +93,7 @@ export default async function Home() {
                     ? "Be the first to join this round"
                     : "Next round opens soon"}
               </p>
-              <LogoMark className="mx-auto mt-6 h-16 w-auto opacity-90" />
+              <LogoMark className="mx-auto mt-6 h-20 w-20" />
               <p className="mt-3 text-xs text-neutral-500">Entry: 1 unit = {ETB_PER_UNIT} ETB</p>
             </div>
           </div>
