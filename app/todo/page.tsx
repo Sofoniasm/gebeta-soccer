@@ -47,7 +47,7 @@ export default async function TodoPage() {
                   Entry {formatUnits(Number(r.entry_fee_units))} · your balance {formatUnits(me.balance_units)}
                 </p>
               </div>
-              <Link href="/dashboard" className="rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
+              <Link href={`/dashboard?round=${r.id}`} className="rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
                 Fill my slip →
               </Link>
             </div>

@@ -2,7 +2,7 @@
 
 /* GebetaSoccer — calm plum & lavender theme */
 @theme inline {
-  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-montserrat), var(--font-ethiopic), ui-sans-serif, system-ui, sans-serif;
 
   --color-ink: #1f1b2e;        /* deepest: footer, inputs, phone mockup */
   --color-plum: #2c2740;       /* page background */

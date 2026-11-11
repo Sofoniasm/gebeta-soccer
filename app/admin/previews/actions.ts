@@ -26,11 +26,14 @@ export async function savePreview(formData: FormData) {
   const confidence = String(formData.get("confidence") ?? "medium");
   const verdict = String(formData.get("verdict") ?? "").trim().replace(/\s+/g, " ");
   const body = String(formData.get("body") ?? "").trim();
+  const verdictAm = String(formData.get("verdict_am") ?? "").trim().replace(/\s+/g, " ");
+  const bodyAm = String(formData.get("body_am") ?? "").trim();
   const published = formData.get("published") === "on";
 
   if (!matchId) back("err", "Pick a match first.");
   if (home === null || away === null) back("err", "Enter your predicted score (0 to 20 for each team).", matchId);
   if (verdict.length < 20 || verdict.length > 400) back("err", "The short answer must be 20 to 400 characters.", matchId);
+  if (verdictAm && (verdictAm.length < 10 || verdictAm.length > 400)) back("err", "The Amharic short answer must be 10 to 400 characters (or empty).", matchId);
   if (!["low", "medium", "high"].includes(confidence)) back("err", "Pick a confidence level.", matchId);
 
   const admin = createAdminClient();
@@ -45,13 +48,15 @@ export async function savePreview(formData: FormData) {
       confidence,
       verdict,
       body,
+      verdict_am: verdictAm || null,
+      body_am: bodyAm || null,
       is_published: published,
       author_id: adminId,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "match_id" },
   );
-  if (error) back("err", `Could not save: ${error.message}. Did you run the 0022 SQL?`, matchId);
+  if (error) back("err", `Could not save: ${error.message}. Did you run the 0022 and 0023 SQL?`, matchId);
   revalidatePath(predictionPath(m));
   back("msg", published ? `Published. Live at ${predictionPath(m)}` : "Saved as draft (not visible).", matchId);
 }

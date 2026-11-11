@@ -1,0 +1,66 @@
+import type { Lang } from "@/lib/i18n";
+
+/** Words used in the public header, menu and footer. */
+export const COMMON = {
+  en: {
+    nav: { predictions: "Predictions", tournaments: "Tournaments", howToPlay: "How to play", news: "News", apps: "Apps", about: "About" },
+    myPredictions: "My predictions",
+    logIn: "Log in",
+    join: "Join",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    footerTagline: "Ethiopia's weekly football prediction game, inspired by Gebeta, the board game of strategy we all grew up with.",
+    playResponsibly: "18+ · Play responsibly",
+    cols: { play: "Play", learn: "Learn", company: "Company" },
+    links: {
+      createAccount: "Create account",
+      logIn: "Log in",
+      myPredictions: "My predictions",
+      tournaments: "Tournaments",
+      predictions: "Predictions",
+      howToPlay: "How to play",
+      news: "News",
+      getApp: "Get the app",
+      terms: "Terms",
+      about: "About us",
+      business: "For businesses",
+      telegram: "Telegram",
+    },
+    bottomNote: "18+ only · Only stake what you can afford to lose.",
+  },
+  am: {
+    nav: { predictions: "ትንበያዎች", tournaments: "ውድድሮች", howToPlay: "አጨዋወት", news: "ዜና", apps: "መተግበሪያ", about: "ስለ እኛ" },
+    myPredictions: "የኔ ትንበያዎች",
+    logIn: "ይግቡ",
+    join: "ይመዝገቡ",
+    openMenu: "ምናሌ ክፈት",
+    closeMenu: "ምናሌ ዝጋ",
+    footerTagline: "የኢትዮጵያ ሳምንታዊ የእግር ኳስ ትንበያ ጨዋታ፤ ሁላችንም ባደግንበት የስልት ጨዋታ ገበጣ ተመስጦ የተሰራ።",
+    playResponsibly: "18+ · በኃላፊነት ይጫወቱ",
+    cols: { play: "ጨዋታ", learn: "ይማሩ", company: "ድርጅት" },
+    links: {
+      createAccount: "መለያ ይክፈቱ",
+      logIn: "ይግቡ",
+      myPredictions: "የኔ ትንበያዎች",
+      tournaments: "ውድድሮች",
+      predictions: "ትንበያዎች",
+      howToPlay: "አጨዋወት",
+      news: "ዜና",
+      getApp: "መተግበሪያውን ያግኙ",
+      terms: "ደንቦች",
+      about: "ስለ እኛ",
+      business: "ለንግድ ድርጅቶች",
+      telegram: "ቴሌግራም",
+    },
+    bottomNote: "ለ18 ዓመትና ከዚያ በላይ ብቻ · ሊያጡት የሚችሉትን ብቻ ያስይዙ።",
+  },
+} satisfies Record<Lang, unknown>;
+
+export const SITE_LINK_KEYS = [
+  { href: "/predictions", key: "predictions" },
+  { href: "/tournaments", key: "tournaments" },
+  { href: "/how-to-play", key: "howToPlay" },
+  { href: "/news", key: "news" },
+  { href: "/apps", key: "apps" },
+  { href: "/about", key: "about" },
+] as const;

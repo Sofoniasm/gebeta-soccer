@@ -7,7 +7,8 @@ import { formatKickoff } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Banner, secondaryButtonClass } from "@/components/ui";
 import { SubmitButton } from "../../SubmitButton";
-import { adjustUnits, unlockLogin } from "../../actions";
+import { adjustUnits, removePlayerPhoto, unlockLogin } from "../../actions";
+import { Avatar } from "@/components/Avatar";
 
 export const metadata = { title: "Player · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export default async function PlayerDetailPage({
 
   const { data: p } = await admin
     .from("profiles")
-    .select("id, username, phone_number, email, balance_units, created_at, is_admin, phone_verified_at, telegram_user_id")
+    .select("id, username, phone_number, email, balance_units, created_at, is_admin, phone_verified_at, telegram_user_id, avatar_url, date_of_birth")
     .eq("id", id)
     .maybeSingle();
   if (!p) notFound();
@@ -64,6 +65,7 @@ export default async function PlayerDetailPage({
 
   const facts: [string, string][] = [
     ["Phone", p.phone_number ?? "—"],
+    ["Date of birth", p.date_of_birth ?? "not given"],
     ["Email", p.email ?? "— (phone login)"],
     ["Registered", formatKickoff(p.created_at)],
     ["Phone confirmed", p.phone_verified_at ? formatKickoff(p.phone_verified_at) : "Not yet"],
@@ -90,7 +92,15 @@ export default async function PlayerDetailPage({
 
       <section className="relative mb-5 overflow-hidden rounded-[2rem] border border-white/5 bg-gradient-to-br from-[#3a3166] via-card to-ink p-6">
         <div className="flex flex-wrap items-center gap-4">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-lilac text-2xl font-extrabold text-ink">{p.username.slice(0, 1).toUpperCase()}</span>
+          <div className="flex flex-col items-center gap-1">
+            <Avatar name={p.username} src={p.avatar_url} size={64} />
+            {p.avatar_url && (
+              <form action={removePlayerPhoto}>
+                <input type="hidden" name="userId" value={p.id} />
+                <SubmitButton confirm="Remove this player's photo?" className="text-[10px] font-bold uppercase tracking-wider text-rose-200">Remove photo</SubmitButton>
+              </form>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-3xl font-extrabold">
               {p.username}

@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { login, register, type AuthState } from "./actions";
 import { Banner, inputClass, primaryButtonClass } from "@/components/ui";
 import { SpinnerIcon } from "@/components/icons";
+import { latestAdultBirthDate } from "@/lib/age";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -64,6 +65,9 @@ export function RegisterForm({ next }: { next?: string }) {
       </Field>
       <Field label="Password" hint="At least 8 characters.">
         <input name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} placeholder="••••••••" />
+      </Field>
+      <Field label="Date of birth" hint="You must be 18 or older. We never show it to other players.">
+        <input name="date_of_birth" type="date" required min="1900-01-01" max={latestAdultBirthDate()} className={`${inputClass} [color-scheme:dark]`} />
       </Field>
       <Field label="Display name (optional)" hint="Shown on leaderboards. Leave empty and we'll pick one for you.">
         <input name="username" autoComplete="nickname" autoCapitalize="none" minLength={3} maxLength={24} className={inputClass} placeholder="abebe_10" />

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentRound } from "@/lib/rounds";
+import { getActiveRounds, getCurrentRound } from "@/lib/rounds";
 import { AppShell } from "@/components/AppShell";
 import { TrophyIcon } from "@/components/icons";
+import { Avatar } from "@/components/Avatar";
 
 export const metadata = { title: "Leaderboard · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -31,10 +32,13 @@ function Medal({ rank }: { rank: number }) {
   return <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${style}`}>{rank}</span>;
 }
 
-export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab = "round" } = await searchParams;
+export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<{ tab?: string; round?: string }> }) {
+  const { tab = "round", round: roundParam } = await searchParams;
   const supabase = await createClient();
-  const round = await getCurrentRound(supabase);
+  // Daily rounds: pick one (default: a round in play, else the one closing soonest, else the last settled).
+  const active = await getActiveRounds(supabase);
+  const chosen = active.find((r) => String(r.id) === roundParam) ?? active.find((r) => !r.bettable) ?? active[0] ?? null;
+  const round = chosen ?? (await getCurrentRound(supabase));
 
   let rows: Row[] = [];
   if (tab === "all") {
@@ -45,6 +49,9 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
     rows = (data ?? []) as Row[];
   }
   const me = rows.find((r) => r.is_me);
+  const names = [...new Set(rows.map((r) => r.username))];
+  const { data: avatarRows } = names.length ? await supabase.rpc("get_avatars", { p_usernames: names }) : { data: [] };
+  const avatarOf = new Map(((avatarRows ?? []) as { username: string; avatar_url: string }[]).map((a) => [a.username, a.avatar_url]));
 
   const tabClass = (t: string) =>
     `rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition ${
@@ -58,6 +65,19 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
           <Link href="/leaderboard" className={tabClass("round")}>{round ? round.name : "This round"}</Link>
           <Link href="/leaderboard?tab=all" className={tabClass("all")}>All-time</Link>
         </div>
+        {tab !== "all" && active.length > 1 && (
+          <div className="flex w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            {active.map((r) => (
+              <Link
+                key={r.id}
+                href={`/leaderboard?round=${r.id}`}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold ${r.id === round?.id ? "border-lilac bg-lilac/20 text-white" : "border-white/10 text-mist"}`}
+              >
+                {r.name}
+              </Link>
+            ))}
+          </div>
+        )}
         {me && (
           <p className="rounded-full bg-lilac/15 px-4 py-2 text-sm font-bold text-lilac-soft">
             You: #{me.rank} · {Number(me.points)} pts
@@ -79,17 +99,18 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
         <div className="overflow-hidden rounded-[2rem] border border-white/5 bg-card/60">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-white/5 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/70">
             <span>Rank</span>
-            <span>Player</span>
+            <span className="pl-10">Player</span>
             <span className="text-right">Points</span>
           </div>
           {rows.map((r, i) => (
             <div
               key={`${r.username}-${i}`}
-              className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-white/5 px-5 py-3 last:border-0 ${
+              className={`grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 border-b border-white/5 px-5 py-3 last:border-0 sm:gap-4 ${
                 r.is_me ? "bg-lilac/10" : ""
               }`}
             >
               <Medal rank={Number(r.rank)} />
+              <Avatar name={r.username} src={avatarOf.get(r.username)} size={34} />
               <div className="min-w-0">
                 <p className="truncate font-bold">
                   {r.username}

@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/site";
 import { TELEGRAM_URL } from "@/lib/config";
+import { localPath, type Lang } from "@/lib/i18n";
 
 export const BRAND = "GebetaSoccer";
 export const DEFAULT_DESCRIPTION =
@@ -17,6 +18,8 @@ export function pageMeta({
   image = "/og.png",
   type = "website",
   publishedTime,
+  lang = "en",
+  translated = false,
 }: {
   title: string;
   description: string;
@@ -24,20 +27,29 @@ export function pageMeta({
   image?: string;
   type?: "website" | "article";
   publishedTime?: string;
+  /** Language of this page version. */
+  lang?: Lang;
+  /** The page also exists in Amharic (/am/...): adds hreflang links for Google. */
+  translated?: boolean;
 }): Metadata {
-  const url = `${SITE_URL}${path}`;
+  const enUrl = `${SITE_URL}${path}`;
+  const amUrl = `${SITE_URL}${localPath(path || "/", "am")}`;
+  const url = lang === "am" ? amUrl : enUrl;
   const fullTitle = title.includes(BRAND) ? title : `${title} | ${BRAND}`;
   return {
     title: fullTitle,
     description,
-    alternates: { canonical: url },
+    alternates: translated
+      ? { canonical: url, languages: { en: enUrl, am: amUrl, "x-default": enUrl } }
+      : { canonical: url },
     openGraph: {
       type,
       url,
       title: fullTitle,
       description,
       siteName: BRAND,
-      locale: "en_ET",
+      locale: lang === "am" ? "am_ET" : "en_ET",
+      ...(translated ? { alternateLocale: [lang === "am" ? "en_ET" : "am_ET"] } : {}),
       images: [{ url: image, width: 1080, height: 1080, alt: BRAND }],
       ...(publishedTime ? { publishedTime } : {}),
     },

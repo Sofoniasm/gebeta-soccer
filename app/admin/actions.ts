@@ -14,7 +14,7 @@ import { syncMatches } from "@/lib/football/sync";
 import { formatUnits } from "@/lib/money";
 import { pushNotifications } from "@/lib/notify";
 import { settleLeague } from "@/lib/league-settle";
-import { computeSlipSettlement } from "@/lib/slip-settle";
+import { settleDueRounds, settleRoundNow } from "@/lib/round-settle";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -34,7 +34,11 @@ async function done(kind: "msg" | "err", text: string, extra = ""): Promise<neve
     const ref = (await headers()).get("referer");
     if (ref) {
       const u = new URL(ref);
-      if (u.pathname.startsWith("/admin")) path = u.pathname;
+      if (u.pathname.startsWith("/admin")) {
+        path = u.pathname;
+        const r = u.searchParams.get("round");
+        if (r && !extra.includes("round=")) extra += `&round=${encodeURIComponent(r)}`;
+      }
     }
   } catch {
     /* keep default */
@@ -96,13 +100,14 @@ export async function unlockLogin(formData: FormData) {
 }
 
 // ------------------------------------------------------------ matches
-/** Pay out / refund private challenges whose matches are over. Never blocks the caller. */
+/** Pay out / refund private challenges, and settle auto-settle rounds, whose matches are over. Never blocks the caller. */
 async function settleChallenges() {
   try {
     const { data } = await createAdminClient().rpc("settle_due_challenges");
-    if (Number(data) > 0) await pushNotifications();
+    const rounds = await settleDueRounds();
+    if (Number(data) > 0 || rounds.length > 0) await pushNotifications();
   } catch (e) {
-    console.error("settle_due_challenges:", (e as Error).message);
+    console.error("settle due:", (e as Error).message);
   }
 }
 
@@ -125,14 +130,17 @@ export async function createRound(formData: FormData) {
   await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const fee = Number(formData.get("entryFee") ?? 1);
-  if (!name) return done("err", "Give the round a name, e.g. “Week 12”.");
+  if (!name) return done("err", "Give the round a name, e.g. “Today's 10”.");
   if (!Number.isFinite(fee) || fee <= 0) return done("err", "Entry fee must be positive.");
 
-  const { error } = await createAdminClient()
+  const autoSettle = formData.get("autoSettle") === "on";
+  const { data, error } = await createAdminClient()
     .from("rounds")
-    .insert({ name, entry_fee_units: fee, status: "draft" });
-  if (error) return done("err", error.message);
-  return done("msg", `Round “${name}” created as a draft. Add exactly 10 matches, then open it for players.`);
+    .insert({ name, entry_fee_units: fee, status: "draft", auto_settle: autoSettle })
+    .select("id")
+    .single();
+  if (error) return done("err", error.message.includes("auto_settle") ? "Run the 0024 SQL first (daily rounds)." : error.message);
+  return done("msg", `Round “${name}” created as a draft. Add exactly 10 matches, then open it for players.`, `&round=${data.id}`);
 }
 
 export async function setRoundStatus(formData: FormData) {
@@ -218,72 +226,9 @@ export async function setScore(formData: FormData) {
 // ------------------------------------------------------------ settle
 export async function settle(formData: FormData) {
   const adminId = await requireAdmin();
-  const roundId = Number(formData.get("roundId"));
-  const admin = createAdminClient();
-
-  const { data: round } = await admin.from("rounds").select("*").eq("id", roundId).single();
-  if (!round) return done("err", "Round not found.");
-
-  const { data: matches } = await admin.from("matches").select("*").eq("round_id", roundId);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  type Row = any;
-  const list: Row[] = matches ?? [];
-  if (list.length === 0) return done("err", "This round has no matches.");
-  const unfinished = list.filter((m: Row) => !["finished", "cancelled", "postponed"].includes(m.status));
-  if (unfinished.length > 0) return done("err", `${unfinished.length} match(es) not finished yet. Sync or enter scores first.`);
-  const missing = list.filter((m: Row) => m.status === "finished" && (m.actual_home_score === null || m.actual_away_score === null));
-  if (missing.length > 0) return done("err", `${missing.length} finished match(es) have no score. Enter them first.`);
-
-  // Every slip is an entrant (slips are always complete, so no default picks needed).
-  const { result, slipById, payouts } = await computeSlipSettlement(admin, round);
-
-  const { error } = await admin.rpc("settle_round_slips", {
-    p_round_id: roundId,
-    p_points: result.pointsByPrediction.map((p) => ({ pick_id: p.predictionId, points: p.points })),
-    p_slams: result.slams.map((x) => ({ slip_id: Number(x.userId), slam_points: x.slamPoints })),
-    p_payouts: payouts.map((p) => ({ slip_id: p.slip.id, units: p.units, rank: p.rank })),
-    p_admin_id: adminId,
-  });
-  if (error) return done("err", error.message);
-
-  // Every slip that didn't win gets its result; winners already got "You won!" from the wallet.
-  const winningSlips = new Set(payouts.map((p) => String(p.slip.id)));
-  const total = result.standings.length;
-  const roundName = (round.name as string) || `Round ${roundId}`;
-  const barNote = result.barMet ? "" : ` Nobody scored more than ${result.winningBar} match points, so there is no winner this round.`;
-  const notes = result.standings
-    .filter((s) => !winningSlips.has(s.userId))
-    .map((s) => {
-      const slip = slipById.get(s.userId)!;
-      return {
-        user_id: slip.user_id,
-        kind: "round_result",
-        title: `📊 ${roundName} results`,
-        body: `Slip #${slip.slip_no} finished #${s.rank} of ${total} with ${s.totalPoints} points (${s.matchPoints} match points, ${s.exactScores} exact, ${s.correctResults} correct).${barNote || " Better luck next round!"}`,
-        link: "/results",
-      };
-    });
-  if (notes.length) await admin.from("notifications").insert(notes);
-
-  // Private leagues on this round are settled in the same click.
-  const { data: openLeagues } = await admin.from("leagues").select("id").eq("round_id", roundId).eq("status", "open");
-  const leagueMsgs: string[] = [];
-  for (const l of (openLeagues ?? []) as { id: number }[]) {
-    const r = await settleLeague(l.id, adminId);
-    leagueMsgs.push(r.message);
-  }
-
-  await pushNotifications();
-
-  const winners = payouts.length;
-  const paid = payouts.reduce((sum, p) => sum + p.units, 0);
-  return done(
-    "msg",
-    (result.barMet
-      ? `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winning slip${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.`
-      : `Round settled with no winner (best slip ${result.topMatchPoints}, bar more than ${result.winningBar}). House keeps the pool: ${formatUnits(result.houseUnits)}.`) +
-      (leagueMsgs.length ? ` Leagues: ${leagueMsgs.join(" ")}` : "")
-  );
+  const r = await settleRoundNow(Number(formData.get("roundId")), adminId);
+  if (r.ok) await pushNotifications();
+  return done(r.ok ? "msg" : "err", r.message);
 }
 
 // ------------------------------------------------- withdrawal requests
@@ -345,4 +290,27 @@ export async function settleLeagueNow(formData: FormData) {
   const r = await settleLeague(Number(formData.get("leagueId")), adminId);
   await pushNotifications();
   return done(r.ok ? "msg" : "err", r.message);
+}
+
+// ------------------------------------------------------------ player photos
+/** Take down a player's profile picture (e.g. not suitable). */
+export async function removePlayerPhoto(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const admin = createAdminClient();
+  const { data } = await admin.from("profiles").select("avatar_url").eq("id", userId).maybeSingle();
+  await admin.from("profiles").update({ avatar_url: null }).eq("id", userId);
+  const m = data?.avatar_url?.match(/\/storage\/v1\/object\/public\/avatars\/(.+)$/);
+  if (m) await admin.storage.from("avatars").remove([decodeURIComponent(m[1])]);
+  return done("msg", "Photo removed.");
+}
+
+/** Turn automatic settling on or off for a round. */
+export async function setAutoSettle(formData: FormData) {
+  await requireAdmin();
+  const roundId = Number(formData.get("roundId"));
+  const on = formData.get("on") === "1";
+  const { error } = await createAdminClient().from("rounds").update({ auto_settle: on }).eq("id", roundId);
+  if (error) return done("err", error.message);
+  return done("msg", on ? "This round will settle by itself when its last match ends." : "Automatic settling turned off. Settle it with the button.");
 }

@@ -102,6 +102,20 @@ export default async function AdminPreviewsPage({ searchParams }: { searchParams
               />
               <p className="mt-1 text-[11px] text-mist/70">Empty line = new paragraph · ## heading · - bullet · **bold** · &gt; highlight. Real facts (form, injuries, head-to-head) help ranking most.</p>
             </div>
+            <details className="rounded-2xl border border-white/10 bg-white/5 p-4" open={Boolean(pv?.verdict_am)}>
+              <summary className="cursor-pointer text-sm font-bold">አማርኛ (optional): Amharic version for /am pages</summary>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className={label} htmlFor="verdict_am">Short answer in Amharic</label>
+                  <textarea id="verdict_am" name="verdict_am" maxLength={400} rows={3} defaultValue={pv?.verdict_am ?? ""} placeholder="አርሰናል በሜዳው ባለፉት 6 ጨዋታዎች አልተሸነፈም..." className={`${inputClass} resize-y`} />
+                </div>
+                <div>
+                  <label className={label} htmlFor="body_am">Analysis in Amharic</label>
+                  <textarea id="body_am" name="body_am" rows={6} defaultValue={pv?.body_am ?? ""} className={`${inputClass} resize-y font-mono text-sm`} />
+                </div>
+                <p className="text-[11px] text-mist/70">Leave empty and the Amharic page shows your English text. The score and the page around it are already in Amharic.</p>
+              </div>
+            </details>
             <label className="flex items-center gap-3 text-sm">
               <input type="checkbox" name="published" defaultChecked={pv ? pv.is_published !== false : true} className="h-4 w-4 accent-[#b4a7f5]" />
               Published (visible to everyone and to Google)

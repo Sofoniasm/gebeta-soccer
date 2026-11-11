@@ -16,7 +16,7 @@ export interface LeagueSettleResult {
   winners?: string[];
 }
 
-export async function settleLeague(leagueId: number, adminId: string): Promise<LeagueSettleResult> {
+export async function settleLeague(leagueId: number, adminId: string | null): Promise<LeagueSettleResult> {
   const admin = createAdminClient();
   const { data: league } = await admin.from("leagues").select("*").eq("id", leagueId).single();
   if (!league) return { ok: false, message: "League not found." };

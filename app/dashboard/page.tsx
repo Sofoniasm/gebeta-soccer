@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
-import { getCurrentRound, getRoundMatches, getRoundPool } from "@/lib/rounds";
+import { getActiveRounds, getCurrentRound, getRoundMatches, getRoundPool } from "@/lib/rounds";
+import { formatKickoff } from "@/lib/format";
 import { formatUnits, unitsToEtb } from "@/lib/money";
 import { formatEtb } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
@@ -16,16 +17,18 @@ import { calculateMatchPoints } from "@/lib/scoring";
 export const metadata = { title: "Predict · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string; round?: string }> }) {
   const me = await getMe("/dashboard");
   const supabase = await createClient();
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, round: roundParam } = await searchParams;
   const tab = tabParam === "results" ? "results" : "upcoming";
   const todo = await getTodo();
 
   // Only an open/in-progress round is "active". A settled one moves to Results.
-  const current = await getCurrentRound(supabase);
-  const round = current && current.status !== "settled" ? current : null;
+  // Daily rounds: several can be open at once; ?round=<id> picks one (default: closing soonest).
+  const active = await getActiveRounds(supabase);
+  const round = active.find((r) => String(r.id) === roundParam) ?? active[0] ?? null;
+  const current = round ? null : await getCurrentRound(supabase);
   const lastSettled = current?.status === "settled" ? current : null;
   const matches = round ? await getRoundMatches(supabase, round.id) : [];
   const pool = round ? await getRoundPool(supabase, round.id) : null;
@@ -99,6 +102,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <AppShell next="/dashboard">
+      {active.length > 1 && (
+        <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          {active.map((r) => {
+            const on = r.id === round?.id;
+            return (
+              <Link
+                key={r.id}
+                href={`/dashboard?round=${r.id}`}
+                className={`shrink-0 rounded-2xl border px-4 py-2.5 ${on ? "border-lilac bg-lilac/15" : "border-white/10 bg-card/60 hover:border-white/30"}`}
+              >
+                <span className="block max-w-[13rem] truncate text-sm font-extrabold">{r.name}</span>
+                <span className={`block text-[11px] ${r.bettable ? "text-emerald-200" : "text-mist"}`}>
+                  {r.bettable && r.lock_at ? `Open · closes ${formatKickoff(r.lock_at)}` : "In play"}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
       <Link
         href="/challenges"
         className="mb-4 flex items-center gap-3 rounded-2xl border border-lilac/25 bg-gradient-to-r from-lilac/15 to-transparent px-4 py-3 transition hover:border-lilac/50"

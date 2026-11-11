@@ -10,7 +10,12 @@ interface Item {
   label: string;
   when: string;
   competition: string | null;
+  kickoff?: string;
 }
+
+const TZ = "Africa/Addis_Ababa";
+const dayKey = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+const dayName = (iso: string) => new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso));
 
 function AddButton({ n, room }: { n: number; room: number }) {
   const { pending } = useFormStatus();
@@ -36,15 +41,35 @@ export function MatchPicker({
 }) {
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const full = picked.size >= room;
+  // Day filter (Ethiopia time): Today / Tomorrow / other days
+  const today = dayKey(new Date().toISOString());
+  const tomorrow = dayKey(new Date(Date.now() + 86400000).toISOString());
+  const days = Array.from(new Set(matches.map((m) => (m.kickoff ? dayKey(m.kickoff) : "")).filter(Boolean)));
+  const [day, setDay] = useState<string>(days.includes(today) ? today : "all");
+  const label = (k: string) => (k === today ? "Today" : k === tomorrow ? "Tomorrow" : dayName(`${k}T12:00:00+03:00`));
+  const shown = day === "all" ? matches : matches.filter((m) => (m.kickoff ? dayKey(m.kickoff) : "") === day || picked.has(m.id));
 
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="roundId" value={roundId} />
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+        {["all", ...days].map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setDay(k)}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold ${day === k ? "border-lilac bg-lilac/20 text-white" : "border-white/10 text-mist"}`}
+          >
+            {k === "all" ? "All days" : label(k)} {k !== "all" && <span className="text-mist">({matches.filter((m) => m.kickoff && dayKey(m.kickoff) === k).length})</span>}
+          </button>
+        ))}
+      </div>
       <p className="text-xs text-mist">
-        Sorted by kickoff. Ticked <b className="text-white">{picked.size}</b> of the <b className="text-white">{room}</b> still needed.
+        Only matches that haven&apos;t started are listed. Sorted by kickoff. Ticked <b className="text-white">{picked.size}</b> of the <b className="text-white">{room}</b> still needed.
       </p>
       <div className="max-h-96 space-y-1 overflow-y-auto rounded-2xl border border-white/5 bg-ink/40 p-2">
-        {matches.map((m) => {
+        {shown.length === 0 && <p className="p-3 text-sm text-mist">No matches on this day. Try another day or sync matches.</p>}
+        {shown.map((m) => {
           const on = picked.has(m.id);
           const blocked = !on && full;
           return (

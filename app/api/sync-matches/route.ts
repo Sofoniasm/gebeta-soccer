@@ -9,6 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { syncMatches } from "@/lib/football/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
+import { settleDueRounds } from "@/lib/round-settle";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +28,15 @@ export async function GET(req: NextRequest) {
     });
     // Private challenges whose matches are over get paid (or refunded) right away.
     const { data: settled } = await createAdminClient().rpc("settle_due_challenges");
-    if (Number(settled) > 0) await pushNotifications();
-    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0) }, { status: result.ok ? 200 : 207 });
+    // Rounds marked "settle automatically" whose matches are all over get paid too.
+    let roundsSettled: string[] = [];
+    try {
+      roundsSettled = await settleDueRounds();
+    } catch (e) {
+      roundsSettled = [`round settle error: ${(e as Error).message}`];
+    }
+    if (Number(settled) > 0 || roundsSettled.length > 0) await pushNotifications();
+    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0), roundsSettled }, { status: result.ok ? 200 : 207 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

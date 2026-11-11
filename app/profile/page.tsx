@@ -3,6 +3,8 @@ import { signOut } from "@/app/(auth)/actions";
 import { AppShell } from "@/components/AppShell";
 import { PasswordForm } from "./PasswordForm";
 import { LogOutIcon } from "@/components/icons";
+import { AvatarUpload } from "./AvatarUpload";
+import { DobForm } from "./DobForm";
 
 export const metadata = { title: "Profile · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -16,21 +18,24 @@ export default async function ProfilePage() {
     <AppShell title="Profile" next="/profile">
       <div className="grid gap-5 lg:grid-cols-2">
         <section className={card}>
-          <div className="flex items-center gap-4">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-lilac to-[#6c5fb3] text-2xl font-extrabold text-ink">
-              {me.username.slice(0, 1).toUpperCase()}
-            </span>
-            <div>
-              <p className="text-xl font-extrabold">{me.username}</p>
-              <p className="text-sm text-mist">Member since {since}</p>
-              {me.is_admin && <span className="mt-1 inline-block rounded-full bg-lilac/15 px-2 py-0.5 text-[10px] font-bold uppercase text-lilac-soft">Admin</span>}
-            </div>
-          </div>
+          <AvatarUpload name={me.username} src={me.avatar_url} />
+          <p className="mt-2 text-sm text-mist">
+            Member since {since}
+            {me.is_admin && <span className="ml-2 rounded-full bg-lilac/15 px-2 py-0.5 text-[10px] font-bold uppercase text-lilac-soft">Admin</span>}
+          </p>
+          <p className="mt-1 text-[11px] text-mist/70">Your picture is shown to other players on leaderboards and challenges. Keep it decent; the admin can remove it.</p>
           <dl className="mt-6 divide-y divide-white/5 text-sm">
             <div className="flex justify-between py-3"><dt className="text-mist">Phone</dt><dd className="font-semibold">{me.phone_number ?? "—"} {me.phone_verified_at && <span className="ml-1 rounded-full bg-emerald-300/15 px-2 py-0.5 text-[10px] font-bold text-emerald-100">Verified ✓</span>}</dd></div>
             <div className="flex justify-between py-3"><dt className="text-mist">Email</dt><dd className="font-semibold">{me.email ?? "Not set"}</dd></div>
+            <div className="flex justify-between py-3"><dt className="text-mist">Date of birth</dt><dd className="font-semibold">{me.date_of_birth ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${me.date_of_birth}T00:00:00Z`)) : "Not added yet"}</dd></div>
             <div className="flex justify-between py-3"><dt className="text-mist">Log in with</dt><dd className="font-semibold">Phone number + password</dd></div>
           </dl>
+          {!me.date_of_birth && (
+            <div className="mt-4 rounded-2xl border border-amber-200/30 bg-amber-200/10 p-4">
+              <p className="mb-2 text-sm font-bold text-amber-50">Add your date of birth (18+ only). You can only set it once.</p>
+              <DobForm />
+            </div>
+          )}
           <p className="mt-4 text-xs text-mist">Your confirmed phone number is your identity on GebetaSoccer. To change it, contact support on Telegram.</p>
         </section>
 

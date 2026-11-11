@@ -3,12 +3,38 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
+import { LANG_HEADER, isTranslatable, stripLang } from "@/lib/i18n";
 
 const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates", "/leagues", "/join", "/challenges"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // Amharic pages: /am/how-to-play is served by /how-to-play with x-gs-lang: am.
+  const rawPath = request.nextUrl.pathname;
+  const amPath = rawPath === "/am" || rawPath.startsWith("/am/");
+  if (amPath && !isTranslatable(stripLang(rawPath))) {
+    // No Amharic version of this page yet: show the English one.
+    const url = request.nextUrl.clone();
+    url.pathname = stripLang(rawPath);
+    return NextResponse.redirect(url);
+  }
+  const makeResponse = () => {
+    if (!amPath) return NextResponse.next({ request });
+    const headers = new Headers(request.headers);
+    headers.set(LANG_HEADER, "am");
+    const url = request.nextUrl.clone();
+    url.pathname = stripLang(rawPath);
+    return NextResponse.rewrite(url, { request: { headers } });
+  };
+  // A visitor can't pretend to be on an Amharic page by sending the header themselves.
+  if (!amPath && request.headers.has(LANG_HEADER)) {
+    try {
+      request.headers.delete(LANG_HEADER);
+    } catch {
+      /* read-only headers: nothing to remove */
+    }
+  }
+  let response = makeResponse();
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
@@ -17,7 +43,7 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = makeResponse();
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options)
         );
@@ -30,7 +56,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
+  const path = stripLang(request.nextUrl.pathname);
 
   const verified = user?.app_metadata?.phone_verified === true;
 

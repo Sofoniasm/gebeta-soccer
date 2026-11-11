@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Banner } from "@/components/ui";
 import { Crest, dayOf, timeOf } from "@/components/MatchLine";
 import { TrophyIcon, UsersIcon } from "@/components/icons";
+import { Avatar } from "@/components/Avatar";
 import { formatKickoff } from "@/lib/format";
 import { etbLabel, unitsLabel } from "@/lib/money";
 import { SITE_URL } from "@/lib/site";
@@ -54,6 +55,8 @@ export default async function ChallengePage({ params, searchParams }: { params: 
   const url = `${SITE_URL}/challenges/${c.code}`;
   const tgLink = TELEGRAM_BOT_USERNAME ? `https://t.me/${TELEGRAM_BOT_USERNAME}?start=c_${c.code}` : null;
   const winners = c.entries.filter((e) => e.rank === 1 && (e.payout_units ?? 0) > 0);
+  const { data: avatarRows } = await supabase.rpc("get_avatars", { p_usernames: c.entries.map((e) => e.username) });
+  const avatarOf = new Map(((avatarRows ?? []) as { username: string; avatar_url: string }[]).map((a) => [a.username, a.avatar_url]));
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-5 sm:p-6";
   const pill =
     c.status === "settled" ? ["Finished", "bg-white/10 text-mist"] :
@@ -158,6 +161,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
           {c.entries.map((e, i) => (
             <li key={e.username} className={`flex items-center gap-3 py-2.5 ${e.is_me ? "font-bold text-white" : ""}`}>
               <span className="w-6 text-center text-sm font-extrabold text-mist">{c.locked ? e.rank ?? i + 1 : i + 1}</span>
+              <Avatar name={e.username} src={avatarOf.get(e.username)} size={30} />
               <span className="min-w-0 flex-1 truncate text-sm">{e.username}{e.is_me && " (you)"}</span>
               {c.locked && <span className="text-sm font-extrabold">{e.points ?? 0} pts</span>}
               {(e.payout_units ?? 0) > 0 && <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-bold text-emerald-200">+{etbLabel(e.payout_units ?? 0)}</span>}

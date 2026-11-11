@@ -369,4 +369,47 @@ do $$ declare r record; begin
 end $$;
 reset role;
 
+-- ---------- age, photos -----------------------------------------------------
+reset role;
+do $$ begin
+  begin insert into auth.users (id, raw_user_meta_data) values
+          ('11111111-0000-0000-0000-0000000000aa', jsonb_build_object('username', 'kid', 'phone_number', '+251911000099',
+            'date_of_birth', to_char(now() - interval '17 years', 'YYYY-MM-DD')));
+        raise exception 'FAIL: an under-18 account was created';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+insert into auth.users (id, raw_user_meta_data) values
+  ('11111111-0000-0000-0000-0000000000ab', jsonb_build_object('username', 'grownup', 'phone_number', '+251911000098', 'date_of_birth', '1990-05-01'));
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000003', false) \g /dev/null
+do $$ begin
+  if (select date_of_birth from public.profiles where username = 'grownup') is not null then
+    raise exception 'FAIL: players can read other players'' date of birth';
+  end if;
+  begin perform public.set_my_date_of_birth((now() - interval '10 years')::date);
+        raise exception 'FAIL: a player set an under-18 date of birth';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  perform public.set_my_date_of_birth(date '1995-01-01');
+  begin perform public.set_my_date_of_birth(date '1980-01-01');
+        raise exception 'FAIL: date of birth could be changed after it was set';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin update public.profiles set avatar_url = 'https://evil.example/x.png' where id = auth.uid();
+        raise exception 'FAIL: a player set their picture URL directly';
+  exception when insufficient_privilege then null; end;
+  raise notice 'ok  age: under-18 blocked at sign-up, date of birth set once; pictures only via the server';
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  begin perform public.get_avatars(array['alice']);
+        raise exception 'FAIL: visitors can list player pictures';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+  if (select date_of_birth from public.profiles where username = 'grownup') <> date '1990-05-01' then
+    raise exception 'FAIL: date of birth not saved at sign-up';
+  end if;
+end $$;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

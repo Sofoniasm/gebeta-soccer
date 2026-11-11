@@ -31,6 +31,9 @@ export function GET() {
 - ${SITE_URL}/predictions lists this week's matches with GebetaSoccer score tips and kickoff times in Ethiopia time (EAT).
 - Each match has its own page at ${SITE_URL}/predictions/<home>-vs-<away>-<id> with our predicted score, a short reason, and (after kickoff) how GebetaSoccer players predicted it.
 
+## Languages
+- English at ${SITE_URL}, Amharic (አማርኛ) at ${SITE_URL}/am for the home page, ${SITE_URL}/am/how-to-play, ${SITE_URL}/am/terms and all match predictions (${SITE_URL}/am/predictions).
+
 ## Private challenges
 - Any player can create a challenge: pick 1-10 upcoming matches, set a stake per player (200 to 1,000,000 ETB) and share an invite link or code (GC-XXXXXX).
 - Everyone who joins pays the same stake from their wallet and predicts the same matches (same 3 / 1.5 / 1 scoring). Picks are hidden until the first kickoff.

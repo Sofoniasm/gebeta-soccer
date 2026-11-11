@@ -1,5 +1,6 @@
 "use server";
 
+import { dobError } from "@/lib/age";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -81,6 +82,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   const emailInput = String(formData.get("email") ?? "").trim().toLowerCase();
   const phoneRaw = String(formData.get("phone") ?? "");
   const password = String(formData.get("password") ?? "");
+  const dob = String(formData.get("date_of_birth") ?? "").trim();
 
   const phone = normalizeEthiopianPhone(phoneRaw);
   if (!phone) return { error: "Enter a valid Ethiopian mobile number, e.g. 0911 223 344." };
@@ -89,6 +91,8 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     return { error: "Display name: 3–24 letters, numbers or _ (no spaces) — or leave it empty." };
   }
   if (emailInput && !/^\S+@\S+\.\S+$/.test(emailInput)) return { error: "That email doesn't look right (or leave it empty)." };
+  const dobProblem = dobError(dob);
+  if (dobProblem) return { error: dobProblem };
   if (formData.get("age_ok") !== "on") {
     return { error: "You must be 18 or older and accept the Terms to play GebetaSoccer." };
   }
@@ -119,7 +123,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     email: loginEmail,
     password,
     email_confirm: true,
-    user_metadata: { username, phone_number: phone, age_confirmed_18: true, terms_accepted_at: new Date().toISOString() },
+    user_metadata: { username, phone_number: phone, date_of_birth: dob, age_confirmed_18: true, terms_accepted_at: new Date().toISOString() },
   });
 
   if (createError) {
@@ -127,6 +131,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     if (m.includes("already") && m.includes("registered")) {
       return { error: emailInput ? "That email is already registered. Try logging in." : "That phone number is already registered." };
     }
+    if (m.includes("18 or older")) return { error: "You must be 18 or older to play GebetaSoccer." };
     if (m.includes("database error")) return { error: "That username or phone number is already taken." };
     if (m.includes("password")) return { error: "Please choose a stronger password (at least 8 characters)." };
     return { error: "Could not create your account. Please try again." };

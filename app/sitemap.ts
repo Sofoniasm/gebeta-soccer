@@ -4,6 +4,7 @@ import { SITE_URL } from "@/lib/site";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/env";
 import { absoluteImage } from "@/lib/news";
 import { predictionPath } from "@/lib/predictions";
+import { isTranslatable, localPath } from "@/lib/i18n";
 
 export const revalidate = 3600; // rebuilt at most once an hour
 
@@ -74,5 +75,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch {
     /* sitemap still works without the news list */
   }
-  return entries;
+
+  // Pages with an Amharic version: list both and link them (hreflang).
+  const withLanguages: MetadataRoute.Sitemap = [];
+  for (const e of entries) {
+    const path = e.url.slice(SITE_URL.length) || "/";
+    if (!isTranslatable(path)) {
+      withLanguages.push(e);
+      continue;
+    }
+    const enUrl = e.url;
+    const amUrl = `${SITE_URL}${localPath(path, "am")}`;
+    const alternates = { languages: { en: enUrl, am: amUrl } };
+    withLanguages.push({ ...e, alternates }, { ...e, url: amUrl, alternates, priority: Math.max(0.1, (e.priority ?? 0.5) - 0.1) });
+  }
+  return withLanguages;
 }

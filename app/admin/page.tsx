@@ -5,7 +5,8 @@ import { getRoundPool, type MatchRow, type RoundRow } from "@/lib/rounds";
 import { computeSlipSettlement } from "@/lib/slip-settle";
 import { formatKickoff } from "@/lib/format";
 import { formatUnits, etbLabel } from "@/lib/money";
-import { assignMatches, createRound, removeMatch, setRoundStatus, setScore, settle, syncNow } from "./actions";
+import { assignMatches, createRound, removeMatch, setAutoSettle, setRoundStatus, setScore, settle, syncNow } from "./actions";
+import { RoundNameField } from "./RoundNameField";
 import { AppShell } from "@/components/AppShell";
 import { Banner, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { RefreshIcon, TrophyIcon } from "@/components/icons";
@@ -32,14 +33,24 @@ function Step({ n, title, children, done = false }: { n: number; title: string; 
   );
 }
 
-export default async function RoundsAdminPage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+export default async function RoundsAdminPage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string; round?: string; new?: string }> }) {
   await requireAdminId("/admin");
-  const { msg, err } = await searchParams;
+  const { msg, err, round: roundParam, new: isNew } = await searchParams;
   const admin = createAdminClient();
 
-  const { data: activeRound } = await admin
-    .from("rounds").select("*").in("status", ["draft", "open", "locked"]).order("id", { ascending: false }).limit(1).maybeSingle();
-  const round = activeRound as RoundRow | null;
+  // Daily rounds: several can be open at once. ?round=<id> picks one, ?new=1 shows "create".
+  const { data: activeData } = await admin.from("rounds").select("*").in("status", ["draft", "open", "locked"]).order("id", { ascending: false }).limit(20);
+  const activeRounds = (activeData ?? []) as RoundRow[];
+  const { data: lockRows } = activeRounds.length
+    ? await admin.from("matches").select("round_id, kickoff_at").in("round_id", activeRounds.map((r) => r.id)).not("status", "in", "(postponed,cancelled)")
+    : { data: [] };
+  const lockOf = new Map<number, string>();
+  for (const m of (lockRows ?? []) as { round_id: number; kickoff_at: string }[]) {
+    const cur = lockOf.get(m.round_id);
+    if (!cur || m.kickoff_at < cur) lockOf.set(m.round_id, m.kickoff_at);
+  }
+  const round: RoundRow | null = isNew ? null : activeRounds.find((r) => String(r.id) === roundParam) ?? activeRounds[0] ?? null;
+  const lockAt = round ? lockOf.get(round.id) ?? null : null;
 
   const roundMatches: MatchRow[] = round
     ? (((await admin.from("matches").select("*").eq("round_id", round.id).order("kickoff_at")).data ?? []) as MatchRow[])
@@ -48,7 +59,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
 
   const { data: upcomingData } = await admin
     .from("matches").select("*").is("round_id", null).eq("status", "scheduled")
-    .gt("kickoff_at", new Date().toISOString()).order("kickoff_at").limit(80);
+    .gt("kickoff_at", new Date().toISOString()).order("kickoff_at").limit(300);
   const upcoming = (upcomingData ?? []) as MatchRow[];
 
   const { data: recentData } = await admin.from("rounds").select("*").order("id", { ascending: false }).limit(8);
@@ -82,6 +93,30 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
         {err && <Banner kind="error">{err}</Banner>}
       </div>
 
+      {/* Active rounds (daily rounds can run side by side) */}
+      <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+        {activeRounds.map((r) => {
+          const on = round?.id === r.id;
+          const lk = lockOf.get(r.id);
+          return (
+            <Link
+              key={r.id}
+              href={`/admin?round=${r.id}`}
+              className={`shrink-0 rounded-2xl border px-4 py-2.5 text-left ${on ? "border-lilac bg-lilac/15" : "border-white/10 bg-card/60 hover:border-white/30"}`}
+            >
+              <span className="block max-w-[14rem] truncate text-sm font-extrabold">{r.name}</span>
+              <span className="block text-[11px] text-mist">
+                {r.status === "draft" ? "Draft" : r.status === "open" && lk && new Date(lk).getTime() > Date.now() ? `Open · locks ${formatKickoff(lk)}` : r.status === "open" ? "Live" : r.status}
+                {r.auto_settle ? " · auto" : ""}
+              </span>
+            </Link>
+          );
+        })}
+        <Link href="/admin?new=1" className={`flex shrink-0 items-center rounded-2xl border border-dashed px-4 py-2.5 text-sm font-extrabold ${!round ? "border-lilac bg-lilac/15 text-white" : "border-white/20 text-lilac hover:border-lilac/50"}`}>
+          + New round
+        </Link>
+      </div>
+
       <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
         <div className="space-y-5">
           {/* STEP 1 — sync */}
@@ -99,15 +134,27 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
           {/* STEP 2 — create round */}
           {!round ? (
             <Step n={2} title="Create a round">
-              <form action={createRound} className="grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end">
-                <label className="space-y-1.5">
-                  <span className="text-xs font-semibold text-mist">Round name</span>
-                  <input name="name" required placeholder="Week 1" className={inputClass} />
+              <form action={createRound} className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-mist">Round name</span>
+                    <RoundNameField />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-mist">Entry (units)</span>
+                    <input name="entryFee" type="number" step="0.5" min="0.5" defaultValue="1" className={inputClass} />
+                  </label>
+                </div>
+                <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-ink/40 p-3 text-sm">
+                  <input type="checkbox" name="autoSettle" defaultChecked className="mt-0.5 h-4 w-4 accent-violet-300" />
+                  <span>
+                    <b className="text-white">Settle automatically</b>
+                    <span className="block text-xs text-mist">When the last match ends, the next match sync pays the winners by itself (same rules as the Settle button).</span>
+                  </span>
                 </label>
-                <label className="space-y-1.5">
-                  <span className="text-xs font-semibold text-mist">Entry (units)</span>
-                  <input name="entryFee" type="number" step="0.5" min="0.5" defaultValue="1" className={inputClass} />
-                </label>
+                <p className="text-xs text-mist">
+                  You can run several rounds at the same time (for example a morning and an evening round). Each one locks at its own first kickoff.
+                </p>
                 <SubmitButton className={`${primaryButtonClass} sm:w-auto`}>Create round</SubmitButton>
               </form>
             </Step>
@@ -115,6 +162,12 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
             <>
               {/* STEP 2 — pick matches */}
               <Step n={2} title={`Pick 10 matches for ${round.name}`} done={roundMatches.length === 10}>
+                {lockAt && (
+                  <p className="mb-3 rounded-2xl bg-ink/50 px-4 py-2.5 text-sm">
+                    🔒 Locks at the first kickoff: <b className="text-white">{formatKickoff(lockAt)}</b>
+                    {new Date(lockAt).getTime() <= Date.now() && <span className="ml-2 text-amber-200">(already locked)</span>}
+                  </p>
+                )}
                 <div className="mb-3 flex flex-wrap items-center gap-3">
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
                     <div className={`h-full rounded-full ${roundMatches.length === 10 ? "bg-emerald-300" : "bg-lilac"}`} style={{ width: `${roundMatches.length * 10}%` }} />
@@ -147,7 +200,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                   <MatchPicker
                     roundId={round.id}
                     room={10 - roundMatches.length}
-                    matches={upcoming.map((m) => ({ id: m.id, label: `${m.home_team} vs ${m.away_team}`, when: formatKickoff(m.kickoff_at), competition: m.competition }))}
+                    matches={upcoming.map((m) => ({ id: m.id, label: `${m.home_team} vs ${m.away_team}`, when: formatKickoff(m.kickoff_at), competition: m.competition, kickoff: m.kickoff_at }))}
                     action={assignMatches}
                   />
                 )}
@@ -156,7 +209,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
               {/* STEP 3 — results */}
               <Step n={3} title="Enter results" done={allDone}>
                 <p className="mb-3 text-sm text-mist">
-                  Scores sync automatically once a day. You can also type or correct them here. <b className="text-white">{finishedCount}/{roundMatches.length}</b> finished.
+                  Scores come in with every match sync. You can also type or correct them here. <b className="text-white">{finishedCount}/{roundMatches.length}</b> finished.
                 </p>
                 <div className="space-y-2">
                   {roundMatches.length === 0 && <p className="text-sm text-mist">No matches in this round yet.</p>}
@@ -192,6 +245,16 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
 
               {/* STEP 4 — settle */}
               <Step n={4} title="Settle & pay winners">
+                <form action={setAutoSettle} className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-ink/40 p-3 text-sm">
+                  <input type="hidden" name="roundId" value={round.id} />
+                  <input type="hidden" name="on" value={round.auto_settle ? "0" : "1"} />
+                  <span className="text-mist">
+                    {round.auto_settle
+                      ? <><b className="text-emerald-200">Automatic:</b> settles by itself at the first sync after the last match ends.</>
+                      : <><b className="text-white">Manual:</b> you press Settle when all results are in.</>}
+                  </span>
+                  <SubmitButton className={secondaryButtonClass}>{round.auto_settle ? "Switch to manual" : "Settle automatically"}</SubmitButton>
+                </form>
                 {!allDone ? (
                   <p className="text-sm text-mist">Available once every match has a final score (or is marked postponed).</p>
                 ) : (
@@ -322,7 +385,11 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
               <ul className="divide-y divide-white/5 text-sm">
                 {recent.map((r) => (
                   <li key={r.id} className="flex items-center justify-between py-2.5">
-                    <span className="font-semibold">{r.name}</span>
+                    {["draft", "open", "locked"].includes(r.status) ? (
+                      <Link href={`/admin?round=${r.id}`} className="font-semibold hover:text-lilac">{r.name}</Link>
+                    ) : (
+                      <span className="font-semibold">{r.name}</span>
+                    )}
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${r.status === "settled" ? "bg-emerald-300/15 text-emerald-100" : "bg-white/10 text-mist"}`}>{r.status}</span>
                   </li>
                 ))}

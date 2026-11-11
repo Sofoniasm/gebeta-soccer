@@ -4,20 +4,24 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
 import { JsonLd } from "@/components/JsonLd";
-import { Crest, dayKeyOf, dayOf, timeOf } from "@/components/MatchLine";
+import { Crest, dayKeyOf, timeOf } from "@/components/MatchLine";
 import { breadcrumbJsonLd, pageMeta } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
 import { MATCH_COLS, predictionPath, type PredictionMatch } from "@/lib/predictions";
+import { getLang } from "@/lib/i18n-server";
+import { localPath } from "@/lib/i18n";
+import { PRED, dateFmt } from "@/lib/i18n/predictions";
 
-export const metadata = pageMeta({
-  title: "Football Predictions & Score Tips This Week",
-  description:
-    "Free football score predictions for this week's Premier League and top European matches, with kickoff times in Ethiopia (EAT) and how GebetaSoccer players are predicting each game.",
-  path: "/predictions",
-});
+export async function generateMetadata() {
+  const lang = await getLang();
+  return pageMeta({ title: PRED[lang].hubMetaTitle, description: PRED[lang].hubMetaDescription, path: "/predictions", lang, translated: true });
+}
 export const dynamic = "force-dynamic";
 
 export default async function PredictionsPage() {
+  const lang = await getLang();
+  const t = PRED[lang];
+  const f = dateFmt(lang);
   const { supabase, loggedIn } = await getPublicContext();
   const from = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
   const to = new Date(Date.now() + 8 * 86400 * 1000).toISOString();
@@ -25,7 +29,7 @@ export default async function PredictionsPage() {
   const [{ data: previewed }, { data: roundRows }] = await Promise.all([
     supabase
       .from("matches")
-      .select(`${MATCH_COLS}, match_previews!inner(pick_home, pick_away, verdict)`)
+      .select(`${MATCH_COLS}, match_previews!inner(pick_home, pick_away, verdict, verdict_am)`)
       .gte("kickoff_at", from)
       .lte("kickoff_at", to)
       .order("kickoff_at")
@@ -37,7 +41,7 @@ export default async function PredictionsPage() {
     ? await supabase.from("matches").select(MATCH_COLS).in("round_id", roundIds).order("kickoff_at")
     : { data: [] };
 
-  type Row = PredictionMatch & { match_previews?: { pick_home: number; pick_away: number; verdict: string } | null };
+  type Row = PredictionMatch & { match_previews?: { pick_home: number; pick_away: number; verdict: string; verdict_am?: string | null } | null };
   const byId = new Map<number, Row>();
   for (const m of (roundMatches ?? []) as Row[]) byId.set(m.id, m);
   for (const m of (previewed ?? []) as unknown as Row[]) {
@@ -53,41 +57,41 @@ export default async function PredictionsPage() {
   const tipped = all.filter((m) => m.match_previews);
   return (
     <div className="relative">
-      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "" }, { name: "Predictions", path: "/predictions" }])} />
+      <JsonLd data={breadcrumbJsonLd([{ name: t.home, path: lang === "am" ? "/am" : "" }, { name: t.predictions, path: localPath("/predictions", lang) }])} />
       {all.length > 0 && (
         <JsonLd
           data={{
             "@context": "https://schema.org",
             "@type": "ItemList",
-            name: "Football predictions this week",
-            itemListElement: all.map((m, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE_URL}${predictionPath(m)}`, name: `${m.home_team} vs ${m.away_team} prediction` })),
+            name: t.hubListName,
+            itemListElement: all.map((m, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE_URL}${localPath(predictionPath(m), lang)}`, name: t.hubItem(m) })),
           }}
         />
       )}
       <SiteHeader loggedIn={loggedIn} />
-      <PageHero title="Football predictions" subtitle="This week's big matches, our score tips and kickoff times in Ethiopia." image="/stadium.webp" />
+      <PageHero title={t.hubTitle} subtitle={t.hubSubtitle} image="/stadium.webp" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <p className="mb-6 text-sm leading-relaxed text-mist">
           {tipped.length > 0
-            ? `This week we tip ${tipped.slice(0, 3).map((m) => `${m.home_team} ${m.match_previews!.pick_home}-${m.match_previews!.pick_away} ${m.away_team}`).join(", ")}${tipped.length > 3 ? ` and ${tipped.length - 3} more` : ""}. `
+            ? t.hubTipped(tipped.slice(0, 3).map((m) => `${m.home_team} ${m.match_previews!.pick_home}-${m.match_previews!.pick_away} ${m.away_team}`).join(lang === "am" ? "፣ " : ", "), tipped.length - 3)
             : ""}
-          All times are Ethiopia time (EAT). Predict the exact score on GebetaSoccer: 3 points for the exact score, 1.5 for close, 1 for the right result.
+          {t.hubIntro}
         </p>
 
-        {all.length === 0 && <p className="rounded-2xl bg-card/60 p-6 text-center text-mist">New predictions are published before each round. Check back soon.</p>}
+        {all.length === 0 && <p className="rounded-2xl bg-card/60 p-6 text-center text-mist">{t.hubEmpty}</p>}
 
         <div className="space-y-6">
           {[...days.values()].map((ms) => (
             <section key={ms[0].kickoff_at}>
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-lilac">{dayOf(ms[0].kickoff_at)}</h2>
+              <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-lilac">{f.day(ms[0].kickoff_at)}</h2>
               <ul className="space-y-2">
                 {ms.map((m) => {
                   const p = m.match_previews;
                   const done = m.status === "finished" && m.actual_home_score !== null;
                   return (
                     <li key={m.id}>
-                      <Link href={predictionPath(m)} className="block rounded-2xl border border-white/5 bg-card/50 px-3 py-3 transition hover:border-lilac/40 sm:px-4">
+                      <Link href={localPath(predictionPath(m), lang)} className="block rounded-2xl border border-white/5 bg-card/50 px-3 py-3 transition hover:border-lilac/40 sm:px-4">
                         <div className="grid grid-cols-[3rem_1fr_auto_1fr] items-center gap-2">
                           <span className="text-xs font-bold text-mist">{timeOf(m.kickoff_at)}</span>
                           <span className="flex min-w-0 items-center justify-end gap-2 text-right">
@@ -102,7 +106,7 @@ export default async function PredictionsPage() {
                             <span className="truncate text-sm font-semibold">{m.away_team}</span>
                           </span>
                         </div>
-                        {p && !done && <p className="mt-2 line-clamp-2 pl-[3.5rem] text-xs text-mist">{p.verdict}</p>}
+                        {p && !done && <p className="mt-2 line-clamp-2 pl-[3.5rem] text-xs text-mist">{(lang === "am" && p.verdict_am) || p.verdict}</p>}
                       </Link>
                     </li>
                   );
@@ -112,7 +116,7 @@ export default async function PredictionsPage() {
           ))}
         </div>
 
-        <p className="mt-10 text-xs text-mist/70">Predictions are opinions for entertainment, not guarantees. 18+ only. Play responsibly.</p>
+        <p className="mt-10 text-xs text-mist/70">{t.disclaimer}</p>
       </main>
       <SiteFooter />
     </div>

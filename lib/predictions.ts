@@ -26,6 +26,8 @@ export interface MatchPreview {
   confidence: "low" | "medium" | "high";
   verdict: string;
   body: string;
+  verdict_am?: string | null;
+  body_am?: string | null;
   is_published?: boolean;
   updated_at: string;
   created_at?: string;

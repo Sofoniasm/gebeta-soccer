@@ -4,6 +4,7 @@ import { getTodo } from "@/lib/todo";
 import { etbLabel, unitsLabel } from "@/lib/money";
 import { signOut } from "@/app/(auth)/actions";
 import { Logo } from "./Logo";
+import { Avatar } from "./Avatar";
 import { FlowLines } from "./FlowLines";
 import { BottomNav, SideNav } from "./AppNav";
 import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
@@ -35,7 +36,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
           <Bell unread={unread} />
         </div>
         <Link href="/wallet" className="mt-6 block rounded-3xl border border-lilac/20 bg-gradient-to-br from-lilac/20 to-transparent p-4 hover:border-lilac/40">
-          <p className="truncate text-sm font-bold">{me.username}</p>
+          <p className="flex items-center gap-2 truncate text-sm font-bold"><Avatar name={me.username} src={me.avatar_url} size={28} /> <span className="truncate">{me.username}</span></p>
           <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-lilac"><WalletIcon size={12} /> Wallet</p>
           <p className="text-xl font-extrabold">{units}</p>
           <p className="text-xs text-mist">{etb}</p>
@@ -63,6 +64,9 @@ export async function AppShell({ children, title, next }: { children: React.Reac
             )}
             <Link href="/wallet" className="rounded-full bg-lilac px-3 py-1.5 text-xs font-extrabold text-ink">
               {units}
+            </Link>
+            <Link href="/profile" aria-label="Profile">
+              <Avatar name={me.username} src={me.avatar_url} size={32} />
             </Link>
           </div>
         </div>
