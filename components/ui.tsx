@@ -1,5 +1,5 @@
 // Shared UI pieces — plum & lavender theme.
-export { Logo, LogoMark } from "./Logo";
+export { Logo, LogoMark, Wordmark } from "./Logo";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-3xl border border-white/[0.06] bg-card/60 p-5 ${className}`}>{children}</div>;

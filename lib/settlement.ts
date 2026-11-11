@@ -11,8 +11,9 @@
  *   payout      = prize fund × winning percentage for that position
  *
  * Ranking
- *   1. Most total points
- *   2. Tie-break: most exact scores
+ *   1. Most total points (match points + Slam Points)
+ *   2. Tie-breaks, in order: most correct results → most exact scores
+ *      → most close picks → smallest total goals away
  *   3. Still tied: players share the prizes for the positions they
  *      occupy, split equally.
  *
@@ -21,7 +22,7 @@
  * leftover hundredths stay with the house.
  */
 
-import { calculateMatchPoints, isExactScore } from "./scoring";
+import { calculateMatchPoints, goalsAway, gradePick, slamPoints } from "./scoring";
 import { DEFAULT_HOUSE_CUT } from "./money";
 
 export interface PredictionInput {
@@ -57,8 +58,13 @@ export interface SettlementInput {
 export interface Standing {
   userId: string;
   rank: number; // 1 = first; tied players share a rank
-  totalPoints: number;
+  totalPoints: number; // match points + slam points
+  matchPoints: number;
+  slamPoints: number;
+  correctResults: number;
   exactScores: number;
+  closePicks: number;
+  goalsAway: number; // tie-break: lower is better
 }
 
 export interface Payout {
@@ -74,6 +80,8 @@ export interface SettlementResult {
   payouts: Payout[];
   /** Points for every prediction, ready for settle_round(). */
   pointsByPrediction: { predictionId: number; points: number }[];
+  /** Slam Points per player (only players who earned some). */
+  slams: { userId: string; slamPoints: number }[];
 }
 
 const toCents = (units: number) => Math.round(units * 100);
@@ -92,51 +100,76 @@ export function settleRound(input: SettlementInput): SettlementResult {
   const resultByMatch = new Map(input.results.map((r) => [r.matchId, r]));
 
   // ---- 1. Score every prediction ------------------------------------
-  const totals = new Map<string, { points: number; exact: number }>();
-  for (const id of entrants) totals.set(id, { points: 0, exact: 0 });
+  type Tally = { points: number; correct: number; exact: number; close: number; away: number };
+  const totals = new Map<string, Tally>();
+  for (const id of entrants) totals.set(id, { points: 0, correct: 0, exact: 0, close: 0, away: 0 });
 
   const pointsByPrediction: SettlementResult["pointsByPrediction"] = [];
 
   for (const p of input.predictions) {
     if (!entrants.has(p.userId)) continue; // ignore non-entrants defensively
     const r = resultByMatch.get(p.matchId);
-    // Postponed / cancelled matches score 0 for everyone.
-    const points = r
-      ? calculateMatchPoints(p.predictedHome, p.predictedAway, r.homeScore, r.awayScore)
-      : 0;
-    const exact = r
-      ? isExactScore(p.predictedHome, p.predictedAway, r.homeScore, r.awayScore)
-      : false;
-
+    if (!r) {
+      // Postponed / cancelled: 0 for everyone, doesn't count toward slams.
+      pointsByPrediction.push({ predictionId: p.predictionId, points: 0 });
+      continue;
+    }
+    const grade = gradePick(p.predictedHome, p.predictedAway, r.homeScore, r.awayScore);
+    const points = calculateMatchPoints(p.predictedHome, p.predictedAway, r.homeScore, r.awayScore);
     pointsByPrediction.push({ predictionId: p.predictionId, points });
+
     const t = totals.get(p.userId)!;
     t.points += points;
-    if (exact) t.exact += 1;
+    if (grade !== "wrong") t.correct += 1;
+    if (grade === "exact") t.exact += 1;
+    if (grade === "close") t.close += 1;
+    t.away += goalsAway(p.predictedHome, p.predictedAway, r.homeScore, r.awayScore);
   }
 
-  // ---- 2. Rank: points desc, then exact scores desc -------------------
+  // Missing picks count as maximally far for the closeness tie-break.
+  for (const [userId, t] of totals) {
+    const picked = new Set(input.predictions.filter((p) => p.userId === userId).map((p) => p.matchId));
+    for (const r of input.results) if (!picked.has(r.matchId)) t.away += 20;
+  }
+
+  // ---- 2. Rank ---------------------------------------------------------
   const sorted = [...totals.entries()]
-    .map(([userId, t]) => ({ userId, totalPoints: t.points, exactScores: t.exact }))
+    .map(([userId, t]) => {
+      const slam = slamPoints(t.correct);
+      return {
+        userId,
+        totalPoints: t.points + slam,
+        matchPoints: t.points,
+        slamPoints: slam,
+        correctResults: t.correct,
+        exactScores: t.exact,
+        closePicks: t.close,
+        goalsAway: t.away,
+      };
+    })
     .sort(
       (a, b) =>
         b.totalPoints - a.totalPoints ||
+        b.correctResults - a.correctResults ||
         b.exactScores - a.exactScores ||
+        b.closePicks - a.closePicks ||
+        a.goalsAway - b.goalsAway ||
         a.userId.localeCompare(b.userId) // stable order only; not a tie-break
     );
 
-  // Group players who are still level after the tie-break.
+  const sameRank = (a: (typeof sorted)[number], b: (typeof sorted)[number]) =>
+    a.totalPoints === b.totalPoints &&
+    a.correctResults === b.correctResults &&
+    a.exactScores === b.exactScores &&
+    a.closePicks === b.closePicks &&
+    a.goalsAway === b.goalsAway;
+
+  // Group players who are still level after every tie-break.
   const groups: (typeof sorted)[] = [];
-  for (const s of sorted) {
+  for (const st of sorted) {
     const last = groups[groups.length - 1];
-    if (
-      last &&
-      last[0].totalPoints === s.totalPoints &&
-      last[0].exactScores === s.exactScores
-    ) {
-      last.push(s);
-    } else {
-      groups.push([s]);
-    }
+    if (last && sameRank(last[0], st)) last.push(st);
+    else groups.push([st]);
   }
 
   // ---- 3. Money -------------------------------------------------------
@@ -174,5 +207,6 @@ export function settleRound(input: SettlementInput): SettlementResult {
     standings,
     payouts,
     pointsByPrediction,
+    slams: sorted.filter((x) => x.slamPoints > 0).map((x) => ({ userId: x.userId, slamPoints: x.slamPoints })),
   };
 }

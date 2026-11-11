@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Logo } from "./Logo";
+import { Wordmark } from "./Logo";
 
 export function SiteFooter() {
   return (
     <footer className="relative border-t border-white/5 bg-ink">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:px-10 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
-          <Logo size="sm" />
+          <Wordmark className="text-2xl" />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-mist">
             Ethiopia&apos;s weekly football prediction game, inspired by Gebeta — the board game of strategy we all grew up with.
           </p>

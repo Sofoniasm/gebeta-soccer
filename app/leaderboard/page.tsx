@@ -14,6 +14,8 @@ interface Row {
   exact_scores: number;
   is_me: boolean;
   predicted?: number;
+  correct_results?: number;
+  slam_points?: number;
   rounds_played?: number;
   wins?: number;
 }
@@ -62,7 +64,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
       </div>
 
       {tab !== "all" && round && round.status !== "settled" && (
-        <p className="mb-4 text-xs text-mist">Live — points update as matches finish. Ties are split by most exact scores.</p>
+        <p className="mb-4 text-xs text-mist">Live — points update as matches finish, including Slam Points. Ties: correct results → exact scores → close picks.</p>
       )}
 
       {rows.length === 0 ? (
@@ -94,7 +96,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                   {Number(r.exact_scores)} exact
                   {tab === "all"
                     ? ` · ${Number(r.rounds_played ?? 0)} rounds · ${Number(r.wins ?? 0)} wins`
-                    : ` · ${Number(r.predicted ?? 0)} predicted`}
+                    : ` · ${Number(r.correct_results ?? 0)} correct${Number(r.slam_points ?? 0) > 0 ? ` · +${Number(r.slam_points)} slam` : ""}`}
                 </p>
               </div>
               <p className="text-right text-xl font-extrabold text-lilac-soft">{Number(r.points)}</p>

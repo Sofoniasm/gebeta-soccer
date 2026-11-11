@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
-import { calculateMatchPoints } from "@/lib/scoring";
+import { calculateMatchPoints, slamPoints } from "@/lib/scoring";
 import { formatKickoff, formatEtb } from "@/lib/format";
 import { formatUnits, unitsToEtb } from "@/lib/money";
 import type { MatchRow, RoundRow } from "@/lib/rounds";
@@ -76,7 +76,9 @@ export default async function ResultsPage() {
                   : null;
             return { m, p, finished, pts };
           });
-          const total = rows.reduce((s, x) => s + (x.pts ?? 0), 0);
+          const correct = rows.filter((x) => (x.pts ?? 0) > 0).length;
+          const slam = slamPoints(correct);
+          const total = rows.reduce((s, x) => s + (x.pts ?? 0), 0) + slam;
           const won = payoutByRound.get(r.id);
 
           return (
@@ -110,6 +112,9 @@ export default async function ResultsPage() {
                   </div>
                 ))}
               </div>
+              {slam > 0 && (
+                <p className="border-t border-white/5 px-5 py-3 text-sm font-bold text-lilac-soft">+{slam} Slam Point{slam === 1 ? "" : "s"} for {correct} correct results</p>
+              )}
               {r.status === "settled" && !won && (
                 <p className="border-t border-white/5 px-5 py-3 text-xs text-mist">Not a winner this time — entry was {formatUnits(Number(r.entry_fee_units))}.</p>
               )}

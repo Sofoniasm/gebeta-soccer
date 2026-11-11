@@ -1,15 +1,19 @@
 /**
- * GebetaSoccer scoring rules
+ * GebetaSoccer scoring rules (Superbru-style)
  * ---------------------------------------------------------------
- *   3   points  Exact score                         (pred 2-1, real 2-1)
- *   1.5 points  Correct result AND "close":
- *                 - same goal difference            (pred 3-1, real 2-0)
- *                 - or only one goal away in total  (pred 2-0, real 3-0)
- *   1   point   Correct result, not close           (pred 4-0, real 1-0)
- *   0   points  Wrong result                        (pred 1-0, real 0-2)
+ * Per match:
+ *   3   Exact score                                   (pick 2-1, ends 2-1)
+ *   1.5 Close: right result AND
+ *         - only one goal away in total, or           (pick 2-0, ends 3-0)
+ *         - two goals away with the same goal         (pick 1-1, ends 2-2;
+ *           difference (both scores shifted by one)     pick 2-1, ends 3-2)
+ *   1   Right result, not close                        (pick 4-0, ends 1-0)
+ *   0   Wrong result                                   (pick 1-0, ends 0-2)
  *
- * "Result" means home win / draw / away win.
- * Pure function: no database, no side effects — easy to test.
+ * Per round — Slam Points for correct results (any of the above > 0):
+ *   5–7 correct → +1   ·   8–9 correct → +2   ·   10+ correct → +3
+ *
+ * "Result" = home win / draw / away win. Pure functions, easy to test.
  */
 
 export const POINTS = {
@@ -20,8 +24,8 @@ export const POINTS = {
 } as const;
 
 export type Outcome = "HOME" | "DRAW" | "AWAY";
+export type PickGrade = "exact" | "close" | "result" | "wrong";
 
-/** Home win, draw or away win for a scoreline. */
 export function outcomeOf(home: number, away: number): Outcome {
   if (home > away) return "HOME";
   if (home < away) return "AWAY";
@@ -34,46 +38,41 @@ function assertValidScore(n: number, label: string): void {
   }
 }
 
-/** Points a single prediction earns for a single finished match. */
-export function calculateMatchPoints(
-  predictedHome: number,
-  predictedAway: number,
-  actualHome: number,
-  actualAway: number
-): number {
-  assertValidScore(predictedHome, "predictedHome");
-  assertValidScore(predictedAway, "predictedAway");
-  assertValidScore(actualHome, "actualHome");
-  assertValidScore(actualAway, "actualAway");
-
-  // 1. Exact score
-  if (predictedHome === actualHome && predictedAway === actualAway) {
-    return POINTS.EXACT;
-  }
-
-  // 2. Wrong result → nothing
-  if (outcomeOf(predictedHome, predictedAway) !== outcomeOf(actualHome, actualAway)) {
-    return POINTS.WRONG;
-  }
-
-  // 3. Right result — is it "close"?
-  const sameGoalDifference =
-    predictedHome - predictedAway === actualHome - actualAway;
-  const goalsAway =
-    Math.abs(predictedHome - actualHome) + Math.abs(predictedAway - actualAway);
-
-  if (sameGoalDifference || goalsAway === 1) return POINTS.CLOSE;
-
-  // 4. Right result, not close
-  return POINTS.RESULT;
+/** Total goals between a pick and the real score, e.g. 2-1 vs 3-2 → 2. */
+export function goalsAway(ph: number, pa: number, ah: number, aa: number): number {
+  return Math.abs(ph - ah) + Math.abs(pa - aa);
 }
 
-/** True when the prediction is an exact score (used for tie-breaks). */
-export function isExactScore(
-  predictedHome: number,
-  predictedAway: number,
-  actualHome: number,
-  actualAway: number
-): boolean {
-  return predictedHome === actualHome && predictedAway === actualAway;
+/** Classify one prediction against a finished match. */
+export function gradePick(ph: number, pa: number, ah: number, aa: number): PickGrade {
+  assertValidScore(ph, "predictedHome");
+  assertValidScore(pa, "predictedAway");
+  assertValidScore(ah, "actualHome");
+  assertValidScore(aa, "actualAway");
+
+  if (ph === ah && pa === aa) return "exact";
+  if (outcomeOf(ph, pa) !== outcomeOf(ah, aa)) return "wrong";
+
+  const away = goalsAway(ph, pa, ah, aa);
+  const sameGoalDifference = ph - pa === ah - aa;
+  if (away === 1 || (away === 2 && sameGoalDifference)) return "close";
+  return "result";
+}
+
+/** Points one prediction earns for one finished match. */
+export function calculateMatchPoints(ph: number, pa: number, ah: number, aa: number): number {
+  const g = gradePick(ph, pa, ah, aa);
+  return g === "exact" ? POINTS.EXACT : g === "close" ? POINTS.CLOSE : g === "result" ? POINTS.RESULT : POINTS.WRONG;
+}
+
+export function isExactScore(ph: number, pa: number, ah: number, aa: number): boolean {
+  return ph === ah && pa === aa;
+}
+
+/** Slam Points for the number of correct results in a round. */
+export function slamPoints(correctResults: number): number {
+  if (correctResults >= 10) return 3;
+  if (correctResults >= 8) return 2;
+  if (correctResults >= 5) return 1;
+  return 0;
 }

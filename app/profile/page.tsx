@@ -1,7 +1,6 @@
 import { getMe } from "@/lib/me";
 import { signOut } from "@/app/(auth)/actions";
 import { AppShell } from "@/components/AppShell";
-import { LogoMark } from "@/components/ui";
 import { PasswordForm } from "./PasswordForm";
 import { LogOutIcon } from "@/components/icons";
 
@@ -43,7 +42,6 @@ export default async function ProfilePage() {
 
       <section className={`${card} mt-5 flex flex-wrap items-center justify-between gap-4`}>
         <div className="flex items-center gap-3">
-          <LogoMark className="h-10 w-10" tile />
           <p className="text-sm text-mist">18+ only. Play responsibly — only stake what you can afford to lose.</p>
         </div>
         <form action={signOut}>

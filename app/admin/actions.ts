@@ -215,6 +215,7 @@ export async function settle(formData: FormData) {
     p_points: result.pointsByPrediction.map((p) => ({ prediction_id: p.predictionId, points: p.points })),
     p_payouts: result.payouts.map((p) => ({ user_id: p.userId, units: p.units })),
     p_admin_id: adminId,
+    p_slams: result.slams.map((x) => ({ user_id: x.userId, slam_points: x.slamPoints })),
   });
   if (error) return done("err", error.message);
 

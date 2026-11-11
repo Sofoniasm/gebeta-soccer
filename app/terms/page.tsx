@@ -26,8 +26,9 @@ const sections: { title: string; body: string[] }[] = [
     title: "3. How rounds work",
     body: [
       "Each round has an entry fee. Predictions for a match lock at its kickoff time.",
-      "Scoring: exact score 3 points; correct result and close (same goal difference or one goal away) 1.5 points; correct result 1 point; wrong result 0 points.",
-      "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Ties are decided by most exact scores, and remaining ties share the prize equally.",
+      "Scoring: exact score 3 points; close (correct result and one goal away, or two goals away with the same goal difference, e.g. 1-1 vs 2-2) 1.5 points; correct result 1 point; wrong result 0 points.",
+      "Slam Points per round for correct results: 5–7 correct +1, 8–9 correct +2, 10 correct +3.",
+      "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Ties are decided by most correct results, then most exact scores, then most close picks, then the smallest total goal difference; remaining ties share the prize equally.",
       "Postponed or cancelled matches score 0 for everyone.",
     ],
   },

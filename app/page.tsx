@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentRound, getRoundPool } from "@/lib/rounds";
 import { unitsToEtb, ETB_PER_UNIT, DEFAULT_HOUSE_CUT } from "@/lib/money";
 import { POINTS } from "@/lib/scoring";
-import { LogoMark, SectionTitle } from "@/components/ui";
+import { SectionTitle } from "@/components/ui";
 import { formatKickoff } from "@/lib/format";
 import { CountUp } from "@/components/CountUp";
 import { FlowLines } from "@/components/FlowLines";
@@ -77,12 +77,13 @@ export default async function Home() {
       <section className="relative isolate overflow-hidden">
         <HeroScene />
         <div className="mx-auto flex max-w-5xl flex-col items-center px-6 pb-16 pt-14 text-center sm:pt-20 lg:pb-24">
-          <LogoMark tile className="h-24 w-24 drop-shadow-[0_10px_40px_rgba(169,156,240,0.55)] sm:h-32 sm:w-32" />
-          <p className="mt-5 text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
-            Gebeta<span className="text-lilac">Soccer</span>
-          </p>
-          <h1 className="mt-6 text-lg font-bold uppercase tracking-[0.25em] text-white/90 sm:text-2xl">
+          <p className="inline-flex items-center gap-2 rounded-full border border-lilac/30 bg-black/30 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-lilac-soft backdrop-blur">
             Football Predictor Game
+          </p>
+          <h1 className="mt-7 text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-7xl">
+            <span className="text-lilac">Predict</span> the scores.
+            <br />
+            Win <span className="bg-gradient-to-r from-lilac-soft via-lilac to-[#8f80e6] bg-clip-text text-transparent">the Gebeta.</span>
           </h1>
           <p className="mt-5 flex flex-wrap items-baseline justify-center gap-x-3 text-white/80">
             {stats.players > 0 ? (
@@ -294,7 +295,7 @@ export default async function Home() {
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               [POINTS.EXACT, "Exact score", "You say 2-1, it ends 2-1"],
-              [POINTS.CLOSE, "Right result, close", "Same goal difference, or 1 goal off"],
+              [POINTS.CLOSE, "Close", "Right result and 1 goal away (or 1-1 vs 2-2)"],
               [POINTS.RESULT, "Right result", "Correct winner or draw"],
               [POINTS.WRONG, "Wrong result", "Better luck next match"],
             ].map(([pts, label, ex]) => (
@@ -305,6 +306,13 @@ export default async function Home() {
                 <p className="mt-1 text-sm text-mist">{ex}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-lilac/25 bg-gradient-to-r from-lilac/15 to-transparent p-6">
+            <div>
+              <p className="text-lg font-extrabold">Slam Points</p>
+              <p className="text-sm text-mist">Bonus for correct results in a round: 5–7 correct <b className="text-white">+1</b> · 8–9 correct <b className="text-white">+2</b> · 10 correct <b className="text-white">+3</b></p>
+            </div>
+            <p className="text-xs text-mist">Ties: most correct results → most exact scores → most close picks</p>
           </div>
         </section>
 
