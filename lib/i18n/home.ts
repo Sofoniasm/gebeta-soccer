@@ -5,13 +5,13 @@ export const HOME = {
   en: {
     metaTitle: "GebetaSoccer | Ethiopia's Football Score Predictor",
     metaDescription:
-      "GebetaSoccer is Ethiopia's weekly football score predictor. Predict 10 big matches from the Premier League and top European leagues, climb the leaderboard and win the prize pool in birr. Free private leagues with friends. 18+.",
+      "GebetaSoccer is Ethiopia's daily football score predictor. Predict 10 big matches from the Premier League and top European leagues, climb the leaderboard and win the prize pool in birr. Free private leagues with friends. 18+.",
     badge: "Football Predictor Game",
     h1: { a: "Predict", b: " the scores.", c: "Win ", d: "the Gebeta." },
     playedBefore: "played by",
     playedAfter: "football fans",
     tagline: "Predict the scores. Win the Gebeta.",
-    sub: (p: number) => `10 big matches every week · score over 15 to win ${p}% of the pool`,
+    sub: (p: number) => `New 10-match rounds every day · score over 15 to win ${p}% of the pool`,
     makePredictions: "Make predictions",
     createAccount: "Create free account",
     logIn: "Log in",
@@ -27,7 +27,7 @@ export const HOME = {
     introTop: "Introduction",
     introBottom: "To GebetaSoccer",
     intro:
-      "Every week we pick 10 big matches. You predict the exact score of each one before kickoff. Exact scores and correct results earn points, and the top slip wins the prize pool, as long as it scores more than 15 of the 30 match points. Like Gebeta, the board game of seeds and strategy we all grew up with, it rewards patience, knowledge and a little bit of nerve.",
+      "Every day we pick 10 big matches for a new round. You predict the exact score of each one before kickoff. Exact scores and correct results earn points, and the top slip wins the prize pool, as long as it scores more than 15 of the 30 match points. Like Gebeta, the board game of seeds and strategy we all grew up with, it rewards patience, knowledge and a little bit of nerve.",
     livePool: (name: string) => `${name} · live pool`,
     prizePool: "Prize pool",
     slipsPlaced: (n: number) => `${n} slip${n === 1 ? "" : "s"} placed · grows with every slip`,
@@ -48,7 +48,7 @@ export const HOME = {
     whyBottom: "With GebetaSoccer",
     why: "Built in Ethiopia for Ethiopian football fans. Simple on any phone, quick to top up, and completely transparent about where every birr goes.",
     cards: (p: number) => [
-      ["Predict", "10 big matches every week. Lock your scores before kickoff."],
+      ["Predict", "10 big matches in every round. Lock your scores before kickoff."],
       ["Compete", "Earn points for exact scores and correct results."],
       ["Win", `Top the table with over 15 points and take ${p}% of the pool.`],
       ["Trust", "Every deposit and payout is recorded and can't be edited."],
@@ -71,13 +71,13 @@ export const HOME = {
   am: {
     metaTitle: "GebetaSoccer (ገበጣሶከር) | የኢትዮጵያ የእግር ኳስ ውጤት ትንበያ ጨዋታ",
     metaDescription:
-      "ገበጣሶከር የኢትዮጵያ ሳምንታዊ የእግር ኳስ ውጤት ትንበያ ጨዋታ ነው። የፕሪሚየር ሊግና የአውሮፓ ታላላቅ ሊጎችን 10 ጨዋታዎች ይገምቱ፣ በደረጃ ሰንጠረዡ ከፍ ይበሉ፣ የሽልማት ገንዳውን በብር ያሸንፉ። ከጓደኞች ጋር ነጻ የግል ሊጎች። 18+።",
+      "ገበጣሶከር የኢትዮጵያ ዕለታዊ የእግር ኳስ ውጤት ትንበያ ጨዋታ ነው። የፕሪሚየር ሊግና የአውሮፓ ታላላቅ ሊጎችን 10 ጨዋታዎች ይገምቱ፣ በደረጃ ሰንጠረዡ ከፍ ይበሉ፣ የሽልማት ገንዳውን በብር ያሸንፉ። ከጓደኞች ጋር ነጻ የግል ሊጎች። 18+።",
     badge: "የእግር ኳስ ትንበያ ጨዋታ",
     h1: { a: "ውጤቱን", b: " ይገምቱ።", c: "", d: "ገበጣውን ያሸንፉ።" },
     playedBefore: "",
     playedAfter: "የእግር ኳስ አፍቃሪዎች ተቀላቅለዋል",
     tagline: "ውጤቱን ይገምቱ። ገበጣውን ያሸንፉ።",
-    sub: (p: number) => `በየሳምንቱ 10 ታላላቅ ጨዋታዎች · ከ15 በላይ ነጥብ አስመዝግበው የገንዳውን ${p}% ያሸንፉ`,
+    sub: (p: number) => `በየቀኑ አዲስ የ10 ጨዋታ ዙሮች · ከ15 በላይ ነጥብ አስመዝግበው የገንዳውን ${p}% ያሸንፉ`,
     makePredictions: "ትንበያ ይስጡ",
     createAccount: "በነጻ ይመዝገቡ",
     logIn: "ይግቡ",
@@ -93,7 +93,7 @@ export const HOME = {
     introTop: "መግቢያ",
     introBottom: "ስለ ገበጣሶከር",
     intro:
-      "በየሳምንቱ 10 ታላላቅ ጨዋታዎችን እንመርጣለን። እርስዎ ጨዋታው ከመጀመሩ በፊት የእያንዳንዱን ትክክለኛ ውጤት ይገምታሉ። ትክክለኛ ውጤትና ትክክለኛ አሸናፊ መገመት ነጥብ ያስገኛል፤ ከ30 የጨዋታ ነጥብ ከ15 በላይ ያስመዘገበው ቀዳሚ ስሊፕ የሽልማት ገንዳውን ያሸንፋል። ሁላችንም ባደግንበት የዘርና የስልት ጨዋታ እንደ ገበጣ፣ ትዕግስትን፣ እውቀትንና ትንሽ ድፍረትን ይሸልማል።",
+      "በየቀኑ ለአዲስ ዙር 10 ታላላቅ ጨዋታዎችን እንመርጣለን። እርስዎ ጨዋታው ከመጀመሩ በፊት የእያንዳንዱን ትክክለኛ ውጤት ይገምታሉ። ትክክለኛ ውጤትና ትክክለኛ አሸናፊ መገመት ነጥብ ያስገኛል፤ ከ30 የጨዋታ ነጥብ ከ15 በላይ ያስመዘገበው ቀዳሚ ስሊፕ የሽልማት ገንዳውን ያሸንፋል። ሁላችንም ባደግንበት የዘርና የስልት ጨዋታ እንደ ገበጣ፣ ትዕግስትን፣ እውቀትንና ትንሽ ድፍረትን ይሸልማል።",
     livePool: (name: string) => `${name} · የቀጥታ ገንዳ`,
     prizePool: "የሽልማት ገንዳ",
     slipsPlaced: (n: number) => `${n} ስሊፕ ገብቷል · በእያንዳንዱ ስሊፕ ያድጋል`,
@@ -114,7 +114,7 @@ export const HOME = {
     whyBottom: "ከገበጣሶከር ጋር?",
     why: "በኢትዮጵያ ውስጥ ለኢትዮጵያውያን የእግር ኳስ አፍቃሪዎች የተሰራ። በማንኛውም ስልክ ቀላል፣ በፍጥነት የሚሞላ፣ እና እያንዳንዱ ብር የት እንደሚሄድ ሙሉ በሙሉ ግልጽ።",
     cards: (p: number) => [
-      ["ይገምቱ", "በየሳምንቱ 10 ታላላቅ ጨዋታዎች። ጨዋታው ከመጀመሩ በፊት ውጤትዎን ያስገቡ።"],
+      ["ይገምቱ", "በእያንዳንዱ ዙር 10 ታላላቅ ጨዋታዎች። ጨዋታው ከመጀመሩ በፊት ውጤትዎን ያስገቡ።"],
       ["ይወዳደሩ", "ለትክክለኛ ውጤትና ለትክክለኛ አሸናፊ ነጥብ ያግኙ።"],
       ["ያሸንፉ", `ከ15 በላይ ነጥብ ይዘው ሰንጠረዡን ይምሩ፤ የገንዳውን ${p}% ይውሰዱ።`],
       ["እምነት", "እያንዳንዱ ገቢና ክፍያ ይመዘገባል፤ ሊቀየር አይችልም።"],

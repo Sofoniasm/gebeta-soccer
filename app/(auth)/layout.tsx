@@ -21,7 +21,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               Win <span className="text-lilac">the Gebeta.</span>
             </h2>
             <ul className="mt-8 space-y-3 text-sm text-mist">
-              {["10 big matches every week", "Score over 15 of 30 to win 70% of the pool", "Top up easily with Telebirr"].map((t) => (
+              {["New 10-match rounds every day", "Score over 15 of 30 to win 70% of the pool", "Top up easily with Telebirr"].map((t) => (
                 <li key={t} className="flex items-center gap-3">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-lilac/20 text-lilac">
                     <CheckIcon size={14} />

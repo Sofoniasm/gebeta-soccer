@@ -9,7 +9,7 @@ import { localPath, type Lang } from "@/lib/i18n";
 
 export const BRAND = "GebetaSoccer";
 export const DEFAULT_DESCRIPTION =
-  "GebetaSoccer is Ethiopia's weekly football score predictor. Predict 10 big matches from the Premier League and top European leagues, climb the leaderboard and win the prize pool in birr. Free private leagues with friends. 18+.";
+  "GebetaSoccer is Ethiopia's daily football score predictor. Predict 10 big matches from the Premier League and top European leagues, climb the leaderboard and win the prize pool in birr. Free private leagues with friends. 18+.";
 
 export function pageMeta({
   title,
@@ -89,7 +89,7 @@ export function siteJsonLd() {
         applicationCategory: "GameApplication",
         operatingSystem: "Web, Android, iOS, Telegram",
         description:
-          "Weekly football prediction game: predict the score of 10 matches. Exact score 3 points, close 1.5, correct result 1, plus Slam Points. The top slip with more than 15 of 30 points takes 70% of the pool. Private challenges against friends on 1 to 10 matches.",
+          "Daily football prediction game: predict the score of 10 matches. Exact score 3 points, close 1.5, correct result 1, plus Slam Points. The top slip with more than 15 of 30 points takes 70% of the pool. Private challenges against friends on 1 to 10 matches.",
         audience: { "@type": "PeopleAudience", suggestedMinAge: 18 },
         areaServed: { "@type": "Country", name: "Ethiopia" },
         offers: { "@type": "Offer", price: "200", priceCurrency: "ETB", description: "Typical entry: 1 Unit = 200 ETB per round" },

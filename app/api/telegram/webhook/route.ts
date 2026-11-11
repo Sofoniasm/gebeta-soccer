@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       if (!token) {
         await sendMessage(
           chatId,
-          `👋 Welcome to <b>GebetaSoccer</b>!\n\nPredict 10 big matches every week and win the pot. Tap the button to play right here in Telegram 👇`,
+          `👋 Welcome to <b>GebetaSoccer</b>!\n\nPredict 10 big matches in today's round and win the pot. Tap the button to play right here in Telegram 👇`,
           playButton,
         );
         return NextResponse.json({ ok: true });

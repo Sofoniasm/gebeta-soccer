@@ -9,7 +9,7 @@ export const COMMON = {
     join: "Join",
     openMenu: "Open menu",
     closeMenu: "Close menu",
-    footerTagline: "Ethiopia's weekly football prediction game, inspired by Gebeta, the board game of strategy we all grew up with.",
+    footerTagline: "Ethiopia's daily football prediction game, inspired by Gebeta, the board game of strategy we all grew up with.",
     playResponsibly: "18+ · Play responsibly",
     cols: { play: "Play", learn: "Learn", company: "Company" },
     links: {
@@ -35,7 +35,7 @@ export const COMMON = {
     join: "ይመዝገቡ",
     openMenu: "ምናሌ ክፈት",
     closeMenu: "ምናሌ ዝጋ",
-    footerTagline: "የኢትዮጵያ ሳምንታዊ የእግር ኳስ ትንበያ ጨዋታ፤ ሁላችንም ባደግንበት የስልት ጨዋታ ገበጣ ተመስጦ የተሰራ።",
+    footerTagline: "የኢትዮጵያ ዕለታዊ የእግር ኳስ ትንበያ ጨዋታ፤ ሁላችንም ባደግንበት የስልት ጨዋታ ገበጣ ተመስጦ የተሰራ።",
     playResponsibly: "18+ · በኃላፊነት ይጫወቱ",
     cols: { play: "ጨዋታ", learn: "ይማሩ", company: "ድርጅት" },
     links: {

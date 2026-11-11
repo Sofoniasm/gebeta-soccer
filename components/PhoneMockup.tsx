@@ -15,7 +15,7 @@ export function PhoneMockup({ className = "" }: { className?: string }) {
           <Wordmark className="text-[12px]" />
           <span className="rounded-full bg-lilac/20 px-2 py-0.5 text-[10px] font-bold text-lilac-soft">2 Units</span>
         </div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-mist">Week 1 · 10 matches</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-mist">Today’s 10 · 10 matches</p>
         <div className="mt-2 space-y-2">
           {sample.map((m) => (
             <div key={m.home} className="rounded-2xl bg-card/80 p-2.5">

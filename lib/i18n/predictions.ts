@@ -43,7 +43,7 @@ export const PRED = {
     splitHidden: (n: number) => `${n} predictions so far. The split is revealed at kickoff.`,
     analysis: "Analysis",
     ctaTitle: "Think you know the score?",
-    ctaRound: "Predict this match in our weekly round and win the pool in birr.",
+    ctaRound: "Predict this match in today's round and win the pool in birr.",
     ctaChallenge: "Challenge your friends on this match and win their stakes.",
     predictThis: "Predict this match",
     joinFree: "Join GebetaSoccer free",
@@ -62,7 +62,7 @@ export const PRED = {
     aHow: (inRound: boolean) =>
       `Create a free GebetaSoccer account and predict the score. An exact score earns 3 points, a close score 1.5 and the right result 1. ${
         inRound
-          ? "This match is part of our weekly 10-match round, where the top slip with more than 15 points wins 70% of the pool."
+          ? "This match is part of one of our daily 10-match rounds, where the top slip with more than 15 points wins 70% of the pool."
           : "You can also put it in a private challenge against friends; the winner takes 90% of the stakes."
       }`,
     more: "More predictions",
@@ -110,7 +110,7 @@ export const PRED = {
     splitHidden: (n: number) => `እስካሁን ${n} ግምቶች። ክፍፍሉ ጨዋታው ሲጀምር ይገለጣል።`,
     analysis: "ትንታኔ",
     ctaTitle: "ውጤቱን የሚያውቁ ይመስልዎታል?",
-    ctaRound: "ይህን ጨዋታ በሳምንታዊ ዙራችን ይገምቱና ገንዳውን በብር ያሸንፉ።",
+    ctaRound: "ይህን ጨዋታ በዕለቱ ዙራችን ይገምቱና ገንዳውን በብር ያሸንፉ።",
     ctaChallenge: "በዚህ ጨዋታ ጓደኞችዎን ይግጠሙና ውርርዳቸውን ያሸንፉ።",
     predictThis: "ይህን ጨዋታ ይገምቱ",
     joinFree: "ገበጣሶከርን በነጻ ይቀላቀሉ",
@@ -129,7 +129,7 @@ export const PRED = {
     aHow: (inRound: boolean) =>
       `በነጻ የገበጣሶከር መለያ ይክፈቱና ውጤቱን ይገምቱ። ትክክለኛ ውጤት 3 ነጥብ፣ ቅርብ ውጤት 1.5 እና ትክክለኛ አሸናፊ 1 ነጥብ ያስገኛል። ${
         inRound
-          ? "ይህ ጨዋታ የሳምንታዊው የ10 ጨዋታ ዙራችን አካል ነው፤ ከ15 በላይ ነጥብ ያለው ቀዳሚ ስሊፕ የገንዳውን 70% ያሸንፋል።"
+          ? "ይህ ጨዋታ ከዕለታዊ የ10 ጨዋታ ዙሮቻችን የአንዱ አካል ነው፤ ከ15 በላይ ነጥብ ያለው ቀዳሚ ስሊፕ የገንዳውን 70% ያሸንፋል።"
           : "በግል ቻሌንጅም ከጓደኞችዎ ጋር መወዳደር ይችላሉ፤ አሸናፊው ከውርርዱ 90% ይወስዳል።"
       }`,
     more: "ተጨማሪ ትንበያዎች",

@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   // a bot send messages until then), so tell them exactly what to do.
   await tg("setMyDescription", {
     description:
-      "👋 Welcome to GebetaSoccer, Ethiopia's weekly football prediction game.\n\n" +
+      "👋 Welcome to GebetaSoccer, Ethiopia's daily football prediction game.\n\n" +
       "To confirm your phone number:\n1️⃣ Tap START below\n2️⃣ Tap “Share my phone number”\n3️⃣ Go back to the website. You're in!\n\nIt's free and takes 5 seconds.",
   });
   await tg("setMyShortDescription", {

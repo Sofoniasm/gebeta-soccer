@@ -1,13 +1,15 @@
 import { SITE_URL } from "@/lib/site";
-import { TELEGRAM_URL } from "@/lib/config";
+import { getSiteSettings } from "@/lib/site-settings";
 
-export const dynamic = "force-static";
+// Rebuilt at most every hour so admin changes (Telegram link) show up.
+export const revalidate = 3600;
 
 /** /llms.txt — a plain summary of GebetaSoccer for AI assistants (llmstxt.org format). */
-export function GET() {
+export async function GET() {
+  const TELEGRAM_URL = (await getSiteSettings()).telegram_support;
   const body = `# GebetaSoccer
 
-> GebetaSoccer (${SITE_URL}) is a weekly football score-prediction game for players in Ethiopia (18+). Each round has exactly 10 big matches (Premier League and other top competitions). Players predict the score of every match, earn points for accuracy, and the best player wins the prize pool, paid in Ethiopian birr (ETB).
+> GebetaSoccer (${SITE_URL}) is a daily football score-prediction game for players in Ethiopia (18+). Each round has exactly 10 big matches (Premier League and other top competitions), with new rounds every day. Players predict the score of every match, earn points for accuracy, and the best slip with more than half the points wins the prize pool, paid in Ethiopian birr (ETB).
 
 ## How it works
 - Each round has exactly 10 matches. Players fill a slip with a score for all 10 matches and pay the entry fee when placing it. Several slips per round are allowed; each is paid and ranked separately.

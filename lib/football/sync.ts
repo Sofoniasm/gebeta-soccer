@@ -2,6 +2,7 @@
  * Shared match-sync logic — used by the daily cron (/api/sync-matches)
  * and the "Sync matches now" button in the admin panel.
  */
+import { getSiteSettings } from "@/lib/site-settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFootballProvider } from "@/lib/football";
 
@@ -24,13 +25,9 @@ export interface SyncResult {
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
 export async function syncMatches(opts: SyncOptions = {}): Promise<SyncResult> {
+  // Leagues come from Admin -> Site (falls back to FOOTBALL_COMPETITIONS).
   const competitions =
-    opts.competitions && opts.competitions.length > 0
-      ? opts.competitions
-      : (process.env.FOOTBALL_COMPETITIONS ?? "PL")
-          .split(",")
-          .map((c) => c.trim().toUpperCase())
-          .filter(Boolean);
+    opts.competitions && opts.competitions.length > 0 ? opts.competitions : (await getSiteSettings()).competitions;
 
   const daysBack = Math.min(Math.max(opts.daysBack ?? 3, 0), 10);
   const daysAhead = Math.min(Math.max(opts.daysAhead ?? 7, 0), 10 - daysBack);

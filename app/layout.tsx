@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "GebetaSoccer", statusBarStyle: "black-translucent" },
   openGraph: {
     title: "GebetaSoccer | Predict the scores. Win the Gebeta.",
-    description: "Predict 10 football matches every week and win the prize pool.",
+    description: "Predict 10 football matches in daily rounds and win the prize pool.",
     images: [{ url: "/og.png", width: 1080, height: 1080 }],
   },
 };

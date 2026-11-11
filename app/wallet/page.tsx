@@ -3,7 +3,7 @@ import { getMe } from "@/lib/me";
 import { getCareer } from "@/lib/career";
 import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS, etbLabel, formatUnits, unitsLabel } from "@/lib/money";
 import { formatKickoff } from "@/lib/format";
-import { TELEGRAM_HANDLE, TELEGRAM_URL } from "@/lib/config";
+import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { AppShell } from "@/components/AppShell";
 import { WithdrawForm } from "./WalletForms";
 import { SendIcon, WalletIcon } from "@/components/icons";
@@ -28,6 +28,7 @@ const STATUS_STYLE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = { pending: "Pending", paid: "Paid", rejected: "Rejected · refunded" };
 
 export default async function WalletPage() {
+  const site = await getSiteSettings();
   const me = await getMe("/wallet");
   const supabase = await createClient();
 
@@ -131,12 +132,12 @@ export default async function WalletPage() {
             <p className="mt-1 text-lg font-extrabold text-lilac-soft">{me.username}</p>
           </div>
           <a
-            href={TELEGRAM_URL}
+            href={site.telegram_support}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-lilac px-6 py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-lg shadow-lilac/20 transition hover:bg-lilac-soft sm:w-auto"
           >
-            <SendIcon size={16} /> Message {TELEGRAM_HANDLE}
+            <SendIcon size={16} /> Message {telegramHandle(site.telegram_support)}
           </a>
         </section>
 

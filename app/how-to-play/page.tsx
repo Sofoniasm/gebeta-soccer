@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getPublicContext } from "@/lib/public";
 import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS } from "@/lib/money";
-import { TELEGRAM_URL } from "@/lib/config";
+import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
@@ -108,6 +108,7 @@ export async function generateMetadata() {
 }
 
 export default async function HowToPlayPage() {
+  const site = await getSiteSettings();
   const lang = await getLang();
   const t = T[lang];
   const { loggedIn } = await getPublicContext();
@@ -163,7 +164,7 @@ export default async function HowToPlayPage() {
             ))}
           </div>
           <p className="mt-8 text-sm text-mist">
-            {t.stuck} <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-lilac">{t.message}</a> {t.orRead}{" "}
+            {t.stuck} <a href={site.telegram_support} target="_blank" rel="noopener noreferrer" className="font-semibold text-lilac">{t.message}</a> {t.orRead}{" "}
             <Link href={localPath("/terms", lang)} className="font-semibold text-lilac">{t.fullRules}</Link>.
           </p>
         </section>

@@ -1,3 +1,4 @@
+import { getSiteSettings } from "@/lib/site-settings";
 import Link from "next/link";
 import { getPublicContext } from "@/lib/public";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -14,14 +15,15 @@ export const metadata = pageMeta({
 export const dynamic = "force-dynamic";
 
 const CARDS = [
-  { title: "A Game", color: "text-lilac-soft", body: "A weekly football predictor: 10 big matches, one score per match, points for accuracy and a prize pool for the best. Simple to start, hard to master." },
-  { title: "A Community", color: "text-[#f0b4c8]", body: "Football is better with friends. GebetaSoccer gives fans across Ethiopia something to argue about, celebrate and come back to every weekend." },
-  { title: "Rooted in Gebeta", color: "text-[#9fd8c0]", body: "Our name and logo come from Gebeta — the board of pits and seeds that rewards patience and strategy. We built the same spirit into a football game." },
-  { title: "Fair & Transparent", color: "text-[#f5c98a]", body: "70% of every pool goes to the winners. Every deposit, entry and payout is recorded in a ledger that can't be edited, and the rules are public." },
+  { title: "A Game", color: "text-lilac-soft", body: "A daily football predictor: rounds of 10 big matches, one score per match, points for accuracy and a prize pool for the best. Plus private challenges and leagues with friends. Simple to start, hard to master." },
+  { title: "A Community", color: "text-[#f0b4c8]", body: "Football is better with friends. GebetaSoccer gives fans across Ethiopia something to argue about, celebrate and come back to every matchday." },
+  { title: "Rooted in Gebeta", color: "text-[#9fd8c0]", body: "Our name and logo come from Gebeta, the board of pits and seeds that rewards patience and strategy. We built the same spirit into a football game." },
+  { title: "Fair & Transparent", color: "text-[#f5c98a]", body: "70% of every pool goes to the winning slip (more than 15 of 30 points needed). Every deposit, entry and payout is recorded in a ledger that can't be edited, and the rules are public." },
 ];
 
 export default async function AboutPage() {
   const { loggedIn, stats } = await getPublicContext();
+  const site = await getSiteSettings();
   return (
     <div className="relative">
       <SiteHeader loggedIn={loggedIn} />
@@ -40,7 +42,8 @@ export default async function AboutPage() {
           </div>
         </section>
 
-        {/* Numbers */}
+        {/* Numbers (admin switches this on in Admin -> Site once they look good) */}
+        {site.show_public_stats && (
         <section className="relative overflow-hidden py-16">
           <div className="absolute inset-0 bg-gradient-to-r from-[#3a3166] via-[#4a3f86] to-[#2c2740]" />
           <div className="relative mx-auto max-w-6xl px-6 text-center">
@@ -59,13 +62,14 @@ export default async function AboutPage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Story */}
         <section className="mx-auto max-w-3xl px-6 py-16">
           <h2 className="text-2xl font-extrabold">Our story</h2>
           <div className="mt-6 space-y-4 leading-relaxed text-mist">
             <p>
-              Every weekend, groups of friends across Ethiopia argue about football scores — in cafés, on Telegram and over coffee. GebetaSoccer
+              Every matchday, groups of friends across Ethiopia argue about football scores, in cafés, on Telegram and over coffee. GebetaSoccer
               started from a simple idea: turn those arguments into a fair, well-run game with a real leaderboard and a real prize.
             </p>
             <p>
@@ -73,8 +77,8 @@ export default async function AboutPage() {
               predicting football rewards knowledge, patience and timing.
             </p>
             <p>
-              GebetaSoccer is built and run in Ethiopia, for Ethiopian fans. We&apos;re just getting started — more leagues, private leagues for
-              friends and more ways to play are on the way.
+              GebetaSoccer is built and run in Ethiopia, for Ethiopian fans, in English and Amharic. Daily rounds, private challenges and leagues
+              with friends are live, and more ways to play are on the way.
             </p>
           </div>
           <div className="mt-10 flex flex-wrap gap-3">

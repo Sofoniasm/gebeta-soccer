@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { TELEGRAM_URL } from "@/lib/config";
+import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { pageMeta } from "@/lib/seo";
 import { getLang } from "@/lib/i18n-server";
 import { localPath, type Lang } from "@/lib/i18n";
@@ -159,6 +159,7 @@ export async function generateMetadata() {
 }
 
 export default async function TermsPage() {
+  const site = await getSiteSettings();
   const lang = await getLang();
   const t = T[lang];
   return (
@@ -179,7 +180,7 @@ export default async function TermsPage() {
           ))}
         </div>
         <p className="mt-10 text-sm text-mist">
-          {t.questions} <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-lilac">{t.message}</a> ·{" "}
+          {t.questions} <a href={site.telegram_support} target="_blank" rel="noopener noreferrer" className="font-semibold text-lilac">{t.message}</a> ·{" "}
           <Link href="/register" className="font-semibold text-lilac">{t.create}</Link>
         </p>
       </main>

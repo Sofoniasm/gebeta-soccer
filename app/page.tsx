@@ -18,6 +18,7 @@ import { pageMeta, siteJsonLd } from "@/lib/seo";
 import { getLang } from "@/lib/i18n-server";
 import { localPath } from "@/lib/i18n";
 import { HOME } from "@/lib/i18n/home";
+import { getSiteSettings } from "@/lib/site-settings";
 import { JsonLd } from "@/components/JsonLd";
 
 export async function generateMetadata() {
@@ -33,6 +34,7 @@ const pill =
 export default async function Home() {
   const lang = await getLang();
   const t = HOME[lang];
+  const site = await getSiteSettings();
   const supabase = await createClient();
   // Daily rounds: feature the round closing soonest (or the one in play).
   const [{ data: auth }, active] = await Promise.all([supabase.auth.getUser(), getActiveRounds(supabase)]);
@@ -101,7 +103,7 @@ export default async function Home() {
             {t.h1.c}<span className="bg-gradient-to-r from-lilac-soft via-lilac to-[#8f80e6] bg-clip-text text-transparent">{t.h1.d}</span>
           </h1>
           <p className="mt-5 flex flex-wrap items-baseline justify-center gap-x-3 text-white/80">
-            {stats.players > 0 ? (
+            {site.show_public_stats && stats.players > 0 ? (
               <>
                 {t.playedBefore} <span className="text-4xl font-extrabold tabular-nums text-white sm:text-5xl"><CountUp value={Number(stats.players)} suffix="" /></span> {t.playedAfter}
               </>

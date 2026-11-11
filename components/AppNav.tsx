@@ -14,6 +14,7 @@ import {
   VersusIcon,
   ShieldIcon,
   StarIcon,
+  SettingsIcon,
   TrophyIcon,
   UsersIcon,
   WalletIcon,
@@ -48,6 +49,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/challenges", label: "Challenges", icon: VersusIcon },
   { href: "/admin/previews", label: "Previews", icon: StarIcon },
   { href: "/admin/news", label: "News", icon: NewsIcon },
+  { href: "/admin/site", label: "Site", icon: SettingsIcon },
 ];
 
 /** Mobile bottom bar: the five most used places. "Me" opens Career, which links to the rest. */

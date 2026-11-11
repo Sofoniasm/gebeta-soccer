@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPublicContext } from "@/lib/public";
-import { TELEGRAM_URL } from "@/lib/config";
+import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
@@ -35,6 +35,7 @@ function Steps({ title, steps }: { title: string; steps: string[] }) {
 }
 
 export default async function AppsPage() {
+  const site = await getSiteSettings();
   const { loggedIn } = await getPublicContext();
   return (
     <div className="relative">
@@ -50,11 +51,18 @@ export default async function AppsPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-lilac/25 bg-gradient-to-r from-lilac/15 to-transparent p-6">
             <div>
               <p className="text-lg font-extrabold">Join us on Telegram</p>
-              <p className="text-sm text-mist">Deposits, help and round announcements — all in one chat.</p>
+              <p className="text-sm text-mist">Deposits and help in one chat{site.telegram_channel ? ", round announcements in our channel" : ""}. You can also play inside Telegram with our bot.</p>
             </div>
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-lilac px-6 py-3 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
-              <SendIcon size={14} /> Open Telegram
-            </a>
+            <div className="flex flex-wrap gap-2">
+              <a href={site.telegram_support} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-lilac px-6 py-3 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
+                <SendIcon size={14} /> Support chat
+              </a>
+              {site.telegram_channel && (
+                <a href={site.telegram_channel} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-white/60 px-6 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10">
+                  Announcements
+                </a>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href={loggedIn ? "/dashboard" : "/register"} className="inline-flex rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">

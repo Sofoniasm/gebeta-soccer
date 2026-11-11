@@ -60,7 +60,7 @@ export function idFromSlug(slug: string): number | null {
 
 /**
  * Only pages with real content are indexed: a written preview, or a match in
- * one of our weekly rounds (it then has player picks and results). Every
+ * one of our rounds (it then has player picks and results). Every
  * other fixture page still works for visitors but tells Google "noindex".
  */
 export function isIndexable(m: PredictionMatch, preview: MatchPreview | null, roundIsLive: boolean): boolean {

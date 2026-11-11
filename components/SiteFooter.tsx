@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { Wordmark } from "./Logo";
-import { TELEGRAM_URL } from "@/lib/config";
+import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { getLang } from "@/lib/i18n-server";
 import { localPath } from "@/lib/i18n";
 import { COMMON } from "@/lib/i18n/common";
 
 export async function SiteFooter() {
+  const site = await getSiteSettings();
   const lang = await getLang();
   const t = COMMON[lang];
   const L = t.links;
   const cols: { title: string; links: [string, string][] }[] = [
     { title: t.cols.play, links: [[L.createAccount, "/register"], [L.logIn, "/login"], [L.myPredictions, "/dashboard"], [L.tournaments, "/tournaments"]] },
     { title: t.cols.learn, links: [[L.predictions, "/predictions"], [L.howToPlay, "/how-to-play"], [L.news, "/news"], [L.getApp, "/apps"], [L.terms, "/terms"]] },
-    { title: t.cols.company, links: [[L.about, "/about"], [L.business, "/business"], [L.telegram, TELEGRAM_URL]] },
+    { title: t.cols.company, links: [[L.about, "/about"], [L.business, "/business"], [L.telegram, site.telegram_support]] },
   ];
   return (
     <footer className="relative border-t border-white/5 bg-ink">
