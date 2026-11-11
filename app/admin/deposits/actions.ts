@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdminId } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
+import { pushNotifications } from "@/lib/notify";
 import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS, formatUnits } from "@/lib/money";
 
 export interface FoundPlayer {
@@ -13,7 +14,7 @@ export interface FoundPlayer {
   balance_units: number;
 }
 export type LookupState = { player?: FoundPlayer; error?: string } | undefined;
-export type DepositState = { ok?: boolean; message?: string } | undefined;
+export type DepositState = { ok?: boolean; message?: string; userId?: string; newBalance?: number } | undefined;
 
 /** Find one player by phone number or username. */
 export async function findPlayer(_prev: LookupState, formData: FormData): Promise<LookupState> {
@@ -55,7 +56,16 @@ export async function recordDeposit(_prev: DepositState, formData: FormData): Pr
   });
   if (error) return { ok: false, message: error.message };
 
+  const admin = createAdminClient();
+  const { data: after } = await admin.from("profiles").select("username, balance_units").eq("id", userId).single();
+  await pushNotifications([userId]);
+
   revalidatePath("/admin/deposits");
   revalidatePath("/wallet");
-  return { ok: true, message: `Added ${formatUnits(units)}.` };
+  return {
+    ok: true,
+    userId,
+    newBalance: Number(after?.balance_units ?? 0),
+    message: `Added ${formatUnits(units)} to ${after?.username ?? "the player"}.`,
+  };
 }

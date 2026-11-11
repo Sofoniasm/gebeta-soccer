@@ -30,3 +30,13 @@ export const getMe = cache(async (next = "/dashboard"): Promise<Me> => {
 
   return { ...data, balance_units: Number(data.balance_units) } as Me;
 });
+
+/** How many unread notifications the signed-in player has (cached per request). */
+export const getUnreadCount = cache(async (): Promise<number> => {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .is("read_at", null);
+  return count ?? 0;
+});

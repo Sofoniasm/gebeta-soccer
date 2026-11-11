@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { findPlayer, recordDeposit, type DepositState, type LookupState } from "./actions";
 import { Banner, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { SpinnerIcon, CheckIcon } from "@/components/icons";
@@ -13,9 +13,21 @@ export function DepositForm() {
   const [result, depositAction, saving] = useActionState<DepositState, FormData>(recordDeposit, undefined);
   const [etb, setEtb] = useState("");
 
+  const noteRef = useRef<HTMLInputElement>(null);
+
+  // After a successful deposit: clear the amount so the same deposit can't be
+  // submitted twice by accident. The player card shows the new balance.
+  useEffect(() => {
+    if (result?.ok) {
+      setEtb("");
+      if (noteRef.current) noteRef.current.value = "";
+    }
+  }, [result]);
+
   const units = Number(etb) > 0 ? Math.round((Number(etb) / ETB_PER_UNIT) * 100) / 100 : 0;
   const valid = units >= 1 && units <= 50;
   const p = lookup?.player;
+  const balance = p && result?.ok && result.userId === p.id && result.newBalance !== undefined ? result.newBalance : p?.balance_units;
 
   return (
     <div className="space-y-5">
@@ -42,7 +54,7 @@ export function DepositForm() {
           </div>
           <div className="text-right">
             <p className="text-[10px] font-bold uppercase tracking-widest text-mist">Balance</p>
-            <p className="font-extrabold">{p.balance_units} Units</p>
+            <p className="font-extrabold">{balance} Units</p>
           </div>
         </div>
       )}
@@ -88,11 +100,12 @@ export function DepositForm() {
             <p className={`text-3xl font-extrabold ${valid ? "text-lilac-soft" : "text-mist/50"}`}>{units || 0} Units</p>
             {etb && !valid && <p className="mt-1 text-xs text-rose-200">Must be 200 – 10,000 ETB (1 – 50 Units)</p>}
           </div>
-          <input name="note" placeholder="Note (optional, e.g. Telebirr ref)" className={inputClass} autoComplete="off" />
+          <input ref={noteRef} name="note" placeholder="Note (optional, e.g. Telebirr ref)" className={inputClass} autoComplete="off" />
           {result?.message && (
             <Banner kind={result.ok ? "success" : "error"}>
               {result.ok && <CheckIcon size={14} className="mr-1 inline" />}
-              {result.message} {result.ok && `→ ${p.username}`}
+              {result.message}
+              {result.ok && result.newBalance !== undefined && ` New balance: ${result.newBalance} Units.`}
             </Banner>
           )}
           <button disabled={saving || !valid} className={primaryButtonClass}>

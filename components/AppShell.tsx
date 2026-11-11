@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { getMe } from "@/lib/me";
+import { getMe, getUnreadCount } from "@/lib/me";
 import { etbLabel, unitsLabel } from "@/lib/money";
 import { signOut } from "@/app/(auth)/actions";
 import { Logo } from "./Logo";
 import { FlowLines } from "./FlowLines";
 import { BottomNav, SideNav } from "./AppNav";
-import { LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
+import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
 
 /**
  * Logged-in app layout:
@@ -14,6 +14,7 @@ import { LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
  */
 export async function AppShell({ children, title, next }: { children: React.ReactNode; title?: string; next?: string }) {
   const me = await getMe(next);
+  const unread = await getUnreadCount();
   const units = unitsLabel(me.balance_units);
   const etb = etbLabel(me.balance_units);
 
@@ -28,7 +29,10 @@ export async function AppShell({ children, title, next }: { children: React.Reac
 
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-white/5 bg-[#0b0912]/90 p-5 backdrop-blur-xl lg:flex">
-        <Logo size="sm" href="/dashboard" />
+        <div className="flex items-center justify-between">
+          <Logo size="sm" href="/dashboard" />
+          <Bell unread={unread} />
+        </div>
         <Link href="/wallet" className="mt-6 block rounded-3xl border border-lilac/20 bg-gradient-to-br from-lilac/20 to-transparent p-4 hover:border-lilac/40">
           <p className="truncate text-sm font-bold">{me.username}</p>
           <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-lilac"><WalletIcon size={12} /> Wallet</p>
@@ -50,6 +54,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
         <div className="flex items-center justify-between px-4 py-3">
           <Logo size="sm" href="/dashboard" />
           <div className="flex items-center gap-2">
+            <Bell unread={unread} />
             {me.is_admin && (
               <Link href="/admin" className="rounded-full bg-lilac/15 p-2 text-lilac" aria-label="Admin panel">
                 <ShieldIcon size={16} />
@@ -71,5 +76,22 @@ export async function AppShell({ children, title, next }: { children: React.Reac
 
       <BottomNav />
     </div>
+  );
+}
+
+function Bell({ unread }: { unread: number }) {
+  return (
+    <Link
+      href="/notifications"
+      className="relative rounded-full bg-white/5 p-2 text-mist transition hover:bg-white/10 hover:text-white"
+      aria-label={unread ? `Notifications (${unread} new)` : "Notifications"}
+    >
+      <BellIcon size={18} />
+      {unread > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-extrabold text-white ring-2 ring-[#0b0912]">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      )}
+    </Link>
   );
 }

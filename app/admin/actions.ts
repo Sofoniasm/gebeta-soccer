@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { syncMatches } from "@/lib/football/sync";
 import { settleRound } from "@/lib/settlement";
 import { formatUnits } from "@/lib/money";
+import { pushNotifications } from "@/lib/notify";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -69,6 +70,7 @@ export async function adjustUnits(formData: FormData) {
   if (error) {
     return done("err", error.message.includes("insufficient") ? "Player doesn't have that many units." : error.message, back);
   }
+  await pushNotifications([userId]);
   return done("msg", op === "deduct" ? `Deducted ${formatUnits(units)}.` : `Added ${formatUnits(units)}.`, back);
 }
 
@@ -239,6 +241,22 @@ export async function settle(formData: FormData) {
   });
   if (error) return done("err", error.message);
 
+  // Everyone who played gets their result; winners already got "You won!" from the wallet.
+  const winnerIds = new Set(result.payouts.map((p) => p.userId));
+  const total = result.standings.length;
+  const roundName = (round.name as string) || `Round ${roundId}`;
+  const notes = result.standings
+    .filter((s) => !winnerIds.has(s.userId))
+    .map((s) => ({
+      user_id: s.userId,
+      kind: "round_result",
+      title: `📊 ${roundName} results`,
+      body: `You finished #${s.rank} of ${total} with ${s.totalPoints} points (${s.exactScores} exact, ${s.correctResults} correct). Better luck next round!`,
+      link: "/results",
+    }));
+  if (notes.length) await admin.from("notifications").insert(notes);
+  await pushNotifications(result.standings.map((s) => s.userId));
+
   const winners = result.payouts.length;
   const paid = result.payouts.reduce((sum, p) => sum + p.units, 0);
   return done(
@@ -254,6 +272,7 @@ export async function markWithdrawalPaid(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim() || null;
   const { error } = await createAdminClient().rpc("admin_mark_withdrawal_paid", { p_request_id: id, p_note: note, p_admin_id: adminId });
   if (error) return done("err", error.message);
+  await pushNotifications();
   return done("msg", `Withdrawal #${id} marked as paid.`);
 }
 
@@ -263,5 +282,6 @@ export async function rejectWithdrawal(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim() || "Rejected";
   const { error } = await createAdminClient().rpc("admin_reject_withdrawal", { p_request_id: id, p_note: note, p_admin_id: adminId });
   if (error) return done("err", error.message);
+  await pushNotifications();
   return done("msg", `Withdrawal #${id} rejected and units refunded.`);
 }
