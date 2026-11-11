@@ -200,7 +200,11 @@ export default async function Home() {
         <section id="prize" className="grid scroll-mt-24 items-center gap-12 lg:grid-cols-2">
           <div className="relative mx-auto w-full max-w-md">
             <div className="absolute inset-0 -rotate-3 rounded-[3.5rem] bg-gradient-to-br from-[#5f539c]/70 to-lilac/50" />
-            <div className="relative rounded-[3.5rem] border border-white/10 bg-gradient-to-br from-card to-ink px-8 py-12 text-center">
+            <div className="relative overflow-hidden rounded-[3.5rem] border border-white/10 bg-ink px-8 py-12 text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/ball.webp" alt="" loading="lazy" className="animate-pitch-zoom absolute inset-0 h-full w-full object-cover object-[50%_70%]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0b0912]/85 via-[#0b0912]/55 to-[#0b0912]/20" />
+              <div className="relative">
               <p className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-lilac">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac opacity-70" />
@@ -218,7 +222,8 @@ export default async function Home() {
                     ? "Be the first to join this round"
                     : "Next round opens soon"}
               </p>
-              <LogoMark className="mx-auto mt-8 h-20 w-20" tile />
+              <div className="h-40" />
+              </div>
             </div>
           </div>
 
@@ -250,6 +255,9 @@ export default async function Home() {
 
       {/* ------------------------------------------------ Why play (full-width dark band) */}
       <section className="relative mt-20 overflow-hidden bg-[#16121f] py-20">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/crowd.webp" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-bottom opacity-70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-plum via-[#0b0912]/70 to-[#0b0912]/90" />
         <div className="animate-glow pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-lilac/15 blur-3xl" />
         <div className="animate-glow pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-[#6c5fb3]/20 blur-3xl [animation-delay:2.5s]" />
         <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
@@ -302,7 +310,11 @@ export default async function Home() {
 
         {/* ------------------------------------------------ CTA */}
         {!loggedIn && (
-          <section className="animate-shimmer mb-20 overflow-hidden rounded-[3rem] bg-[linear-gradient(110deg,#5f539c,#9d8fe6,#5f539c,#9d8fe6)] bg-[length:200%_100%] px-6 py-16 text-center">
+          <section className="relative mb-20 overflow-hidden rounded-[3rem] px-6 py-20 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/stadium.webp" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="animate-shimmer absolute inset-0 bg-[linear-gradient(110deg,rgba(95,83,156,0.85),rgba(157,143,230,0.6),rgba(95,83,156,0.85),rgba(157,143,230,0.6))] bg-[length:200%_100%]" />
+            <div className="relative">
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Ready to play?</h2>
             <p className="mt-3 text-white/80">Sign up with just your phone number. It takes 30 seconds.</p>
             <Link
@@ -311,6 +323,7 @@ export default async function Home() {
             >
               Create free account
             </Link>
+            </div>
           </section>
         )}
       </div>
