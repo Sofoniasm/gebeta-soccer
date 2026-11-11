@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getMe } from "@/lib/me";
-import { formatUnits } from "@/lib/money";
+import { etbLabel, unitsLabel } from "@/lib/money";
 import { signOut } from "@/app/(auth)/actions";
 import { Logo } from "./Logo";
 import { FlowLines } from "./FlowLines";
@@ -14,7 +14,8 @@ import { LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
  */
 export async function AppShell({ children, title, next }: { children: React.ReactNode; title?: string; next?: string }) {
   const me = await getMe(next);
-  const [units, etb] = formatUnits(me.balance_units).split(" / ");
+  const units = unitsLabel(me.balance_units);
+  const etb = etbLabel(me.balance_units);
 
   return (
     <div className="relative min-h-dvh overflow-x-hidden">

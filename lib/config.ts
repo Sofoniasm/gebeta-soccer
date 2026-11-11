@@ -1,10 +1,7 @@
 /**
- * Payment & contact details shown to players.
- * Set these in Vercel → Settings → Environment Variables (then redeploy):
- *   NEXT_PUBLIC_TELEBIRR_NUMBER   e.g. 0911 223 344
- *   NEXT_PUBLIC_TELEBIRR_NAME     name shown on the Telebirr account
- *   NEXT_PUBLIC_TELEGRAM_URL      e.g. https://t.me/gebetasoccer
+ * Where players send deposits and get help.
+ * Set NEXT_PUBLIC_TELEGRAM_URL in Vercel (e.g. https://t.me/your_admin_username),
+ * or replace the fallback below.
  */
-export const TELEBIRR_NUMBER = process.env.NEXT_PUBLIC_TELEBIRR_NUMBER ?? "";
-export const TELEBIRR_NAME = process.env.NEXT_PUBLIC_TELEBIRR_NAME ?? "GebetaSoccer";
-export const TELEGRAM_URL = process.env.NEXT_PUBLIC_TELEGRAM_URL ?? "";
+export const TELEGRAM_URL = process.env.NEXT_PUBLIC_TELEGRAM_URL ?? "https://t.me/";
+export const TELEGRAM_HANDLE = TELEGRAM_URL.replace(/^https?:\/\/t\.me\//, "@").replace(/^@$/, "our Telegram admin");

@@ -6,22 +6,6 @@ import { normalizeEthiopianPhone } from "@/lib/phone";
 
 export type FormState = { ok?: boolean; message?: string } | undefined;
 
-export async function requestDeposit(_prev: FormState, formData: FormData): Promise<FormState> {
-  const amount = Number(formData.get("amount"));
-  const reference = String(formData.get("reference") ?? "").trim().toUpperCase();
-  if (!Number.isFinite(amount) || amount < 1) return { ok: false, message: "Enter the amount you sent in ETB." };
-  if (!/^[A-Z0-9-]{4,64}$/.test(reference)) return { ok: false, message: "Enter the Telebirr transaction ID from your SMS receipt." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("deposit_requests").insert({ amount_etb: amount, method: "telebirr", reference });
-  if (error) {
-    if (error.code === "23505") return { ok: false, message: "That transaction ID has already been submitted." };
-    return { ok: false, message: "Could not submit. Please try again." };
-  }
-  revalidatePath("/wallet");
-  return { ok: true, message: "Deposit submitted. We'll credit your wallet as soon as we confirm the payment." };
-}
-
 export async function requestWithdrawal(_prev: FormState, formData: FormData): Promise<FormState> {
   const units = Number(formData.get("units"));
   const phone = normalizeEthiopianPhone(String(formData.get("phone") ?? ""));

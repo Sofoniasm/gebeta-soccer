@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoundPool, type MatchRow, type RoundRow } from "@/lib/rounds";
 import { formatKickoff, formatEtb } from "@/lib/format";
 import { formatUnits, unitsToEtb } from "@/lib/money";
-import { addUnits, approveDeposit, assignMatches, createRound, markWithdrawalPaid, rejectDeposit, rejectWithdrawal, removeMatch, setRoundStatus, setScore, settle, syncNow } from "./actions";
+import { adjustUnits, assignMatches, createRound, markWithdrawalPaid, rejectWithdrawal, removeMatch, setRoundStatus, setScore, settle, syncNow } from "./actions";
 import { ETB_PER_UNIT } from "@/lib/money";
 import { Banner, Card, Logo, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { RefreshIcon } from "@/components/icons";
@@ -75,10 +75,11 @@ export default async function AdminPage({
 
   const { data: recentRounds } = await admin.from("rounds").select("*").order("id", { ascending: false }).limit(5);
 
-  const [{ data: pendingDeposits }, { data: pendingWithdrawals }] = await Promise.all([
-    admin.from("deposit_requests").select("id, amount_etb, reference, created_at, profiles(username, phone_number)").eq("status", "pending").order("created_at"),
-    admin.from("withdrawal_requests").select("id, units, payout_phone, created_at, profiles(username)").eq("status", "pending").order("created_at"),
-  ]);
+  const { data: pendingWithdrawals } = await admin
+    .from("withdrawal_requests")
+    .select("id, units, payout_phone, created_at, profiles(username)")
+    .eq("status", "pending")
+    .order("created_at");
 
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
@@ -97,43 +98,21 @@ export default async function AdminPage({
 
       {/* -------------------------------------------- pending requests */}
       <Card className="space-y-4">
-        <h2 className="text-lg font-bold">Pending requests</h2>
-        {(pendingDeposits ?? []).length === 0 && (pendingWithdrawals ?? []).length === 0 && (
-          <p className="text-sm text-mist">Nothing waiting. 🎉</p>
-        )}
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {(pendingDeposits ?? []).map((d: any) => (
-          <div key={`d${d.id}`} className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-sm font-semibold">
-              Deposit #{d.id} · {d.profiles?.username} <span className="text-mist">({d.profiles?.phone_number})</span>
-            </p>
-            <p className="text-xs text-mist">{Number(d.amount_etb)} ETB · Telebirr ref <b className="text-white">{d.reference}</b> · {formatKickoff(d.created_at)}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <form action={approveDeposit} className="flex gap-2">
-                <input type="hidden" name="requestId" value={d.id} />
-                <input name="units" type="number" step="0.5" min="0.5" defaultValue={Math.floor((Number(d.amount_etb) / ETB_PER_UNIT) * 2) / 2} className={`${small} w-20`} aria-label="Units to credit" />
-                <SubmitButton className={secondaryButtonClass}>Approve</SubmitButton>
-              </form>
-              <form action={rejectDeposit} className="flex gap-2">
-                <input type="hidden" name="requestId" value={d.id} />
-                <input name="note" placeholder="Reason" className={`${small} w-32`} />
-                <SubmitButton className="text-xs text-rose-300 hover:text-rose-200">Reject</SubmitButton>
-              </form>
-            </div>
-          </div>
-        ))}
+        <h2 className="text-lg font-bold">Pending withdrawals</h2>
+        <p className="text-xs text-mist">The units are already taken from the player. Send the cash, then click Approve.</p>
+        {(pendingWithdrawals ?? []).length === 0 && <p className="text-sm text-mist">Nothing waiting.</p>}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {(pendingWithdrawals ?? []).map((w: any) => (
           <div key={`w${w.id}`} className="rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-sm font-semibold">Withdrawal #{w.id} · {w.profiles?.username}</p>
             <p className="text-xs text-mist">
-              Send <b className="text-white">{Number(w.units) * ETB_PER_UNIT} ETB</b> ({formatUnits(Number(w.units))}) to Telebirr <b className="text-white">{w.payout_phone}</b> · {formatKickoff(w.created_at)}
+              Pay <b className="text-white">{(Number(w.units) * ETB_PER_UNIT).toLocaleString("en-US")} ETB</b> · {formatUnits(Number(w.units))} · phone <b className="text-white">{w.payout_phone}</b> · {formatKickoff(w.created_at)}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <form action={markWithdrawalPaid} className="flex gap-2">
                 <input type="hidden" name="requestId" value={w.id} />
-                <input name="note" placeholder="Telebirr txn ID" className={`${small} w-36`} />
-                <SubmitButton className={secondaryButtonClass} confirm="Have you sent the money? Mark as paid?">Mark paid</SubmitButton>
+                <input name="note" placeholder="Note (optional)" className={`${small} w-36`} />
+                <SubmitButton className={secondaryButtonClass} confirm="Have you sent the cash? Approve this withdrawal?">Approve</SubmitButton>
               </form>
               <form action={rejectWithdrawal} className="flex gap-2">
                 <input type="hidden" name="requestId" value={w.id} />
@@ -147,7 +126,8 @@ export default async function AdminPage({
 
       {/* -------------------------------------------- users & deposits */}
       <Card className="space-y-4">
-        <h2 className="text-lg font-bold">Players & deposits</h2>
+        <h2 className="text-lg font-bold">User management</h2>
+        <p className="text-xs text-mist">Manual Telegram deposits: 1–50 units (200–10,000 ETB) per transaction. 1 Unit = 200 ETB.</p>
         <form className="flex gap-2">
           <input name="q" defaultValue={q ?? ""} placeholder="Phone, username or email" className={inputClass} />
           <button className={secondaryButtonClass}>Search</button>
@@ -163,12 +143,15 @@ export default async function AdminPage({
                 <p className="text-sm text-lilac">{formatUnits(Number(u.balance_units))}</p>
               </div>
               <p className="text-xs text-mist">{u.phone_number ?? "no phone"} · {u.email ?? "no email"}</p>
-              <form action={addUnits} className="mt-3 flex flex-wrap gap-2">
+              <form action={adjustUnits} className="mt-3 flex flex-wrap items-center gap-2">
                 <input type="hidden" name="userId" value={u.id} />
                 <input type="hidden" name="q" value={q ?? ""} />
-                <input name="units" type="number" step="0.5" min="0.5" defaultValue="1" className={`${small} w-20`} aria-label="Units" />
-                <input name="reference" required placeholder="Telebirr txn ID" className={`${small} min-w-0 flex-1`} />
-                <SubmitButton className={secondaryButtonClass}>Add units</SubmitButton>
+                <input name="units" type="number" step="0.5" min="1" max="50" defaultValue="1" required className={`${small} w-20`} aria-label="Units (1–50)" />
+                <input name="note" placeholder="Note (optional)" className={`${small} min-w-0 flex-1`} />
+                <SubmitButton name="op" value="add" className={secondaryButtonClass}>Add units</SubmitButton>
+                <SubmitButton name="op" value="deduct" className="inline-flex items-center gap-2 rounded-full border border-rose-300/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-200 hover:bg-rose-400/10" confirm="Deduct these units from the player?">
+                  Deduct units
+                </SubmitButton>
               </form>
             </div>
           ))}

@@ -32,24 +32,30 @@ function done(kind: "msg" | "err", text: string, extra = ""): never {
 }
 
 // ------------------------------------------------------------ wallets
-export async function addUnits(formData: FormData) {
+/** Manual Telegram deposit / deduction: 1–50 units per transaction. */
+export async function adjustUnits(formData: FormData) {
   const adminId = await requireAdmin();
   const userId = String(formData.get("userId") ?? "");
+  const op = String(formData.get("op") ?? "add");
   const units = Number(formData.get("units"));
-  const reference = String(formData.get("reference") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim();
   const q = String(formData.get("q") ?? "");
+  const back = q ? `&q=${encodeURIComponent(q)}` : "";
 
-  if (!userId || !Number.isFinite(units) || units <= 0) done("err", "Enter a positive number of units.");
-  if (!reference) done("err", "Add a reference (e.g. Telebirr transaction ID).");
+  if (!userId) done("err", "No player selected.", back);
+  if (!Number.isFinite(units) || units <= 0 || units > 50) done("err", "Enter between 1 and 50 units.", back);
 
-  const { error } = await createAdminClient().rpc("admin_add_units", {
+  const reference = note ? `Manual Telegram Adjustment — ${note}` : "Manual Telegram Adjustment";
+  const { error } = await createAdminClient().rpc(op === "deduct" ? "admin_deduct_units" : "admin_add_units", {
     p_user_id: userId,
     p_units: units,
     p_reference: reference,
     p_admin_id: adminId,
   });
-  if (error) done("err", error.message);
-  done("msg", `Added ${formatUnits(units)}.`, q ? `&q=${encodeURIComponent(q)}` : "");
+  if (error) {
+    done("err", error.message.includes("insufficient") ? "Player doesn't have that many units." : error.message, back);
+  }
+  done("msg", op === "deduct" ? `Deducted ${formatUnits(units)}.` : `Added ${formatUnits(units)}.`, back);
 }
 
 // ------------------------------------------------------------ matches
@@ -206,26 +212,7 @@ export async function settle(formData: FormData) {
   );
 }
 
-// ------------------------------------------------- deposit / withdrawal requests
-export async function approveDeposit(formData: FormData) {
-  const adminId = await requireAdmin();
-  const id = Number(formData.get("requestId"));
-  const units = Number(formData.get("units"));
-  if (!Number.isFinite(units) || units <= 0) done("err", "Units must be positive.");
-  const { error } = await createAdminClient().rpc("admin_approve_deposit", { p_request_id: id, p_units: units, p_admin_id: adminId });
-  if (error) done("err", error.message);
-  done("msg", `Deposit #${id} approved: ${formatUnits(units)} credited.`);
-}
-
-export async function rejectDeposit(formData: FormData) {
-  const adminId = await requireAdmin();
-  const id = Number(formData.get("requestId"));
-  const note = String(formData.get("note") ?? "").trim() || "Payment not found";
-  const { error } = await createAdminClient().rpc("admin_reject_deposit", { p_request_id: id, p_note: note, p_admin_id: adminId });
-  if (error) done("err", error.message);
-  done("msg", `Deposit #${id} rejected.`);
-}
-
+// ------------------------------------------------- withdrawal requests
 export async function markWithdrawalPaid(formData: FormData) {
   const adminId = await requireAdmin();
   const id = Number(formData.get("requestId"));

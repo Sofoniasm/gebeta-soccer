@@ -8,15 +8,21 @@ export function SubmitButton({
   children,
   className,
   confirm,
+  name,
+  value,
 }: {
   children: React.ReactNode;
   className?: string;
   confirm?: string;
+  name?: string;
+  value?: string;
 }) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
+      name={name}
+      value={value}
       disabled={pending}
       className={className}
       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
