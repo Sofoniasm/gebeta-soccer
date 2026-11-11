@@ -26,6 +26,7 @@ const sections: { title: string; body: string[] }[] = [
     title: "3. How rounds work",
     body: [
       "Each round has an entry fee. Predictions for a match lock at its kickoff time.",
+      "If you joined a round but did not pick a match before kickoff, you receive a default pick: the most popular score among other players for that match (1-0 to the home team if nobody picked). Default picks score points like normal picks. Everyone's picks become visible once a match kicks off.",
       "Scoring: exact score 3 points; close (correct result and one goal away, or two goals away with the same goal difference, e.g. 1-1 vs 2-2) 1.5 points; correct result 1 point; wrong result 0 points.",
       "Slam Points per round for correct results: 5–7 correct +1, 8–9 correct +2, 10 correct +3.",
       "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Ties are decided by most correct results, then most exact scores, then most close picks, then the smallest total goal difference; remaining ties share the prize equally.",

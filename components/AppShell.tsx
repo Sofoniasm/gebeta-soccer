@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getMe, getUnreadCount } from "@/lib/me";
+import { getTodo } from "@/lib/todo";
 import { etbLabel, unitsLabel } from "@/lib/money";
 import { signOut } from "@/app/(auth)/actions";
 import { Logo } from "./Logo";
@@ -14,7 +15,7 @@ import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
  */
 export async function AppShell({ children, title, next }: { children: React.ReactNode; title?: string; next?: string }) {
   const me = await getMe(next);
-  const unread = await getUnreadCount();
+  const [unread, todo] = await Promise.all([getUnreadCount(), getTodo()]);
   const units = unitsLabel(me.balance_units);
   const etb = etbLabel(me.balance_units);
 
@@ -39,8 +40,8 @@ export async function AppShell({ children, title, next }: { children: React.Reac
           <p className="text-xl font-extrabold">{units}</p>
           <p className="text-xs text-mist">{etb}</p>
         </Link>
-        <div className="mt-6 flex-1">
-          <SideNav isAdmin={me.is_admin} />
+        <div className="mt-6 flex-1 overflow-y-auto">
+          <SideNav isAdmin={me.is_admin} todoCount={todo.count} />
         </div>
         <form action={signOut}>
           <button className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-mist hover:bg-white/5 hover:text-white">
@@ -74,7 +75,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
         </div>
       </main>
 
-      <BottomNav />
+      <BottomNav todoCount={todo.count} />
     </div>
   );
 }

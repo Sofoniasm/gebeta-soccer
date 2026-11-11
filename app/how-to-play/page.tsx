@@ -27,6 +27,8 @@ const SCORING = [
 
 const FAQ = [
   ["When do predictions lock?", "Each match locks at its own kickoff time. You can still predict later matches in the round."],
+  ["What if I forget a match?", "You get a default pick — the most popular score among the other players for that match — so you're never left on zero. Check your To-do list to see which picks you still need."],
+  ["Can I see other players' picks?", "Yes. Once a match kicks off, open it from Fixtures or Live & Results to see everyone's picks and how the players split between home win, draw and away win."],
   ["What if a match is postponed?", "A postponed or cancelled match scores 0 for everyone and doesn't count towards Slam Points."],
   ["How are ties decided?", "Most correct results, then most exact scores, then most close picks, then the smallest total goal difference. Players still level share the prize equally."],
   ["How fast are withdrawals?", "Units are held from your wallet straight away, and the admin sends the money to your phone — usually within 24 hours."],

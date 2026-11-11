@@ -7,14 +7,21 @@ import { formatEtb } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Countdown } from "@/components/Countdown";
 import PredictionBoard, { type SavedPrediction } from "./PredictionBoard";
-import { TrophyIcon, UsersIcon } from "@/components/icons";
+import { ClockIcon, TrophyIcon, UsersIcon } from "@/components/icons";
+import { getTodo, picksNeededWithin } from "@/lib/todo";
+import { MatchLine, PointsChip, groupByDay } from "@/components/MatchLine";
+import type { MatchRow } from "@/lib/rounds";
+import { calculateMatchPoints } from "@/lib/scoring";
 
 export const metadata = { title: "Predict · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const me = await getMe("/dashboard");
   const supabase = await createClient();
+  const { tab: tabParam } = await searchParams;
+  const tab = tabParam === "results" ? "results" : "upcoming";
+  const todo = await getTodo();
 
   const round = await getCurrentRound(supabase);
   const matches = round ? await getRoundMatches(supabase, round.id) : [];
@@ -44,12 +51,125 @@ export default async function DashboardPage() {
     }
   }
 
+  // ---- Live & Results: matches that kicked off in the last 14 days
+  let recent: MatchRow[] = [];
+  const myPick = new Map<number, { h: number; a: number; pts: number | null; def: boolean }>();
+  if (tab === "results") {
+    const { data: rec } = await supabase
+      .from("matches")
+      .select("*")
+      .lte("kickoff_at", new Date().toISOString())
+      .gte("kickoff_at", new Date(Date.now() - 14 * 86_400_000).toISOString())
+      .not("round_id", "is", null)
+      .order("kickoff_at", { ascending: false })
+      .limit(60);
+    recent = (rec ?? []) as MatchRow[];
+    if (recent.length) {
+      const { data: mp } = await supabase
+        .from("predictions")
+        .select("match_id, predicted_home_score, predicted_away_score, points_earned, is_default")
+        .eq("user_id", me.id)
+        .in("match_id", recent.map((m) => m.id));
+      for (const p of (mp ?? []) as { match_id: number; predicted_home_score: number; predicted_away_score: number; points_earned: number | null; is_default: boolean }[]) {
+        const m = recent.find((x) => x.id === p.match_id)!;
+        const pts =
+          p.points_earned !== null
+            ? Number(p.points_earned)
+            : m.status === "finished" && m.actual_home_score !== null && m.actual_away_score !== null
+              ? calculateMatchPoints(p.predicted_home_score, p.predicted_away_score, m.actual_home_score, m.actual_away_score)
+              : null;
+        myPick.set(p.match_id, { h: p.predicted_home_score, a: p.predicted_away_score, pts, def: p.is_default });
+      }
+    }
+  }
+
   const nextKickoff = matches.find((m) => m.status === "scheduled" && new Date(m.kickoff_at).getTime() > Date.now())?.kickoff_at;
   const predictedCount = saved.length;
 
   return (
     <AppShell next="/dashboard">
-      {round ? (
+      {/* Superbru-style "picks needed" countdown chips */}
+      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
+        {[24, 48, 72].map((h) => {
+          const n = picksNeededWithin(todo, h);
+          return (
+            <Link
+              key={h}
+              href="/todo"
+              className={`rounded-2xl border px-3 py-3 transition hover:border-lilac/50 ${
+                n > 0 ? "border-rose-300/30 bg-rose-400/10" : "border-white/5 bg-card/50"
+              }`}
+            >
+              <p className="flex items-center gap-1.5 text-xs font-bold text-mist">
+                <ClockIcon size={13} /> {h} hours
+              </p>
+              <p className={`mt-0.5 text-sm font-extrabold ${n > 0 ? "text-rose-100" : "text-emerald-200"}`}>
+                {n} pick{n === 1 ? "" : "s"} needed
+              </p>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-5 inline-flex rounded-full border border-white/10 bg-ink/60 p-1">
+        {[
+          { key: "upcoming", label: "Upcoming" },
+          { key: "results", label: "Live & Results" },
+        ].map((t) => (
+          <Link
+            key={t.key}
+            href={t.key === "upcoming" ? "/dashboard" : "/dashboard?tab=results"}
+            className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition ${
+              tab === t.key ? "bg-lilac text-ink" : "text-mist hover:text-white"
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </div>
+
+      {tab === "results" ? (
+        recent.length === 0 ? (
+          <div className="rounded-[2rem] border border-white/5 bg-card/60 p-10 text-center">
+            <p className="text-lg font-bold">No results yet</p>
+            <p className="mt-1 text-sm text-mist">Matches from your rounds appear here once they kick off.</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {groupByDay(recent).map((g) => (
+              <section key={g.key}>
+                <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-[0.15em] text-lilac">{g.label}</h2>
+                <div className="space-y-2">
+                  {g.matches.map((m) => {
+                    const p = myPick.get(m.id);
+                    return (
+                      <MatchLine
+                        key={m.id}
+                        m={m}
+                        right={
+                          p ? (
+                            <>
+                              <span className="font-bold text-white">
+                                {p.h}–{p.a}
+                                {p.def && <span className="ml-1 text-[10px] text-amber-200" title="Default pick">D</span>}
+                              </span>
+                              <PointsChip points={p.pts} />
+                            </>
+                          ) : (
+                            <span className="text-mist/60">no pick</span>
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+            <p className="text-center text-xs text-mist">Tap a match to see everyone&apos;s picks.</p>
+          </div>
+        )
+      ) : round ? (
         <>
           {/* Round hero */}
           <section className="relative mb-5 overflow-hidden rounded-[2rem] border border-white/5 bg-gradient-to-br from-[#3a3166] via-card to-ink p-6">

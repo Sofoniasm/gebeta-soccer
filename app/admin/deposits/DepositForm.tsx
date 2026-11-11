@@ -14,15 +14,20 @@ export function DepositForm() {
   const [etb, setEtb] = useState("");
 
   const noteRef = useRef<HTMLInputElement>(null);
+  const [confirming, setConfirming] = useState(false);
 
   // After a successful deposit: clear the amount so the same deposit can't be
   // submitted twice by accident. The player card shows the new balance.
   useEffect(() => {
+    setConfirming(false);
     if (result?.ok) {
       setEtb("");
       if (noteRef.current) noteRef.current.value = "";
     }
   }, [result]);
+
+  // Picking a different player cancels a half-finished confirmation.
+  useEffect(() => setConfirming(false), [lookup]);
 
   const units = Number(etb) > 0 ? Math.round((Number(etb) / ETB_PER_UNIT) * 100) / 100 : 0;
   const valid = units >= 5 && units <= 50;
@@ -63,9 +68,6 @@ export function DepositForm() {
       {p && (
         <form
           action={depositAction}
-          onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-            if (!window.confirm(`Add ${units} Units (${Number(etb).toLocaleString("en-US")} ETB) to ${p.username}?`)) e.preventDefault();
-          }}
           className="space-y-3"
         >
           <input type="hidden" name="userId" value={p.id} />
@@ -79,7 +81,10 @@ export function DepositForm() {
             step={100}
             required
             value={etb}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEtb(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setEtb(e.target.value);
+              setConfirming(false);
+            }}
             placeholder="e.g. 5000"
             className={`${inputClass} text-2xl font-extrabold`}
           />
@@ -88,7 +93,10 @@ export function DepositForm() {
               <button
                 type="button"
                 key={q}
-                onClick={() => setEtb(String(q))}
+                onClick={() => {
+                  setEtb(String(q));
+                  setConfirming(false);
+                }}
                 className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-mist hover:border-lilac hover:text-white"
               >
                 {q.toLocaleString("en-US")}
@@ -108,9 +116,31 @@ export function DepositForm() {
               {result.ok && result.newBalance !== undefined && ` New balance: ${result.newBalance} Units.`}
             </Banner>
           )}
-          <button disabled={saving || !valid} className={primaryButtonClass}>
-            {saving && <SpinnerIcon size={16} />} Confirm deposit
-          </button>
+          {confirming && valid ? (
+            <div className="space-y-3 rounded-2xl border border-amber-200/30 bg-amber-200/10 p-4">
+              <p className="text-sm text-amber-50">
+                Add <b className="text-white">{units} Units ({Number(etb).toLocaleString("en-US")} ETB)</b> to{" "}
+                <b className="text-white">{p.username}</b> <span className="text-mist">({p.phone_number ?? "no phone"})</span>?
+              </p>
+              <div className="flex gap-2">
+                <button disabled={saving} className={`${primaryButtonClass} flex-1`}>
+                  {saving && <SpinnerIcon size={16} />} Yes, add
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setConfirming(false)}
+                  className={`${secondaryButtonClass} flex-1 justify-center`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" disabled={!valid} onClick={() => setConfirming(true)} className={primaryButtonClass}>
+              Confirm deposit
+            </button>
+          )}
         </form>
       )}
     </div>

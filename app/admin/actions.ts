@@ -210,6 +210,10 @@ export async function settle(formData: FormData) {
   const missing = list.filter((m: Row) => m.status === "finished" && (m.actual_home_score === null || m.actual_away_score === null));
   if (missing.length > 0) return done("err", `${missing.length} finished match(es) have no score. Enter them first.`);
 
+  // Superbru-style default picks for anyone who forgot a match (most popular pick).
+  const { error: defErr } = await admin.rpc("apply_default_picks", { p_round_id: roundId });
+  if (defErr) return done("err", `Default picks failed: ${defErr.message}`);
+
   const { data: entries } = await admin.from("round_entries").select("user_id").eq("round_id", roundId);
   const { data: preds } = await admin
     .from("predictions")
