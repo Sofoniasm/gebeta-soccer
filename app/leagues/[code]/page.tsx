@@ -56,8 +56,10 @@ export default async function LeaguePage({
   const me = await getMe(`/leagues/${code}`);
   const supabase = await createClient();
 
-  const { data } = await supabase.from("leagues").select("*, rounds(name, status)").eq("code", code).maybeSingle();
-  const league = data as League | null;
+  // Only members can list leagues; anyone signed in can open one by its exact code.
+  const { data } = await supabase.rpc("get_league_by_code", { p_code: code }).maybeSingle();
+  const row = data as (Omit<League, "rounds"> & { round_name: string; round_status: string }) | null;
+  const league: League | null = row ? { ...row, rounds: { name: row.round_name, status: row.round_status } } : null;
   if (!league) {
     return (
       <AppShell title="League not found" next="/leagues">

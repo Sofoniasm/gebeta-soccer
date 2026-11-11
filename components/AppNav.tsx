@@ -35,6 +35,7 @@ const ME: Item[] = [
 ];
 
 const ADMIN_ITEMS: Item[] = [
+  { href: "/admin/overview", label: "Overview", icon: ChartIcon },
   { href: "/admin", label: "Rounds", icon: ShieldIcon },
   { href: "/admin/players", label: "Players", icon: UsersIcon },
   { href: "/admin/leagues", label: "Leagues", icon: FlagIcon },

@@ -99,7 +99,8 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   const userChose = Boolean(username);
   for (let attempt = 0; attempt < 6; attempt++) {
     const candidate = userChose ? username : `player_${phone.slice(-4)}${attempt ? Math.floor(Math.random() * 90 + 10) : ""}`;
-    const { data: avail, error: availError } = await supabase
+    // Server-only check (the browser can't ask "is this phone registered?").
+    const { data: avail, error: availError } = await createAdminClient()
       .rpc("check_signup_available", { p_username: candidate, p_phone: phone })
       .single();
     if (availError) return { error: "Could not check availability. Please try again." };

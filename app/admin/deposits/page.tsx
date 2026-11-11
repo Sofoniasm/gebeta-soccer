@@ -169,7 +169,7 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
                     <tr key={pl.id} className="align-top hover:bg-white/[0.03]">
                       <td className="py-3 pr-3">
                         <p className="font-bold">
-                          {pl.username}
+                          <Link href={`/admin/players/${pl.id}`} className="hover:text-lilac">{pl.username}</Link>
                           {!pl.phone_verified_at && <span className="ml-1.5 rounded-full bg-amber-200/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-100">Unverified</span>}
                         </p>
                         <p className="text-xs text-mist">{pl.phone_number ?? "no phone"}</p>

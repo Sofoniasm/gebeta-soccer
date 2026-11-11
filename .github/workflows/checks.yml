@@ -1,0 +1,52 @@
+# Automatic checks on every push and pull request.
+#  1. App: type-check + unit tests (scoring, 70/30 payouts, money, phones)
+#  2. Database: build a fresh database from every migration, then try to
+#     break in (security tests). Any failure turns the commit red on GitHub.
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    name: Type-check & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  database:
+    name: Database security tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply all migrations to a fresh database
+        run: |
+          psql -v ON_ERROR_STOP=1 -q -f supabase/tests/00_supabase_stub.sql
+          for f in supabase/migrations/0*.sql; do
+            echo "→ $f"
+            psql -v ON_ERROR_STOP=1 -q -f "$f" > /dev/null
+          done
+      - name: Security tests
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/security.test.sql

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdminId } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatKickoff } from "@/lib/format";
@@ -111,7 +112,7 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lilac/20 font-extrabold text-lilac-soft">{u.username.slice(0, 1).toUpperCase()}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-bold">
-                      {u.username} {u.is_admin && <span className="ml-1 rounded-full bg-lilac/15 px-2 py-0.5 text-[10px] font-bold uppercase text-lilac-soft">Admin</span>}
+                      <Link href={`/admin/players/${u.id}`} className="hover:text-lilac">{u.username}</Link> {u.is_admin && <span className="ml-1 rounded-full bg-lilac/15 px-2 py-0.5 text-[10px] font-bold uppercase text-lilac-soft">Admin</span>}
                       {u.phone_verified_at ? (
                         <span className="ml-1 rounded-full bg-emerald-300/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-100">Verified</span>
                       ) : (
