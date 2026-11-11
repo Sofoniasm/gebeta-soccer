@@ -2,7 +2,7 @@ import { requireAdminId } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatKickoff } from "@/lib/format";
 import { ETB_PER_UNIT, formatUnits } from "@/lib/money";
-import { adjustUnits, markWithdrawalPaid, rejectWithdrawal } from "../actions";
+import { adjustUnits, markWithdrawalPaid, rejectWithdrawal, unlockLogin } from "../actions";
 import { AppShell } from "@/components/AppShell";
 import { Banner, inputClass, secondaryButtonClass } from "@/components/ui";
 import { SubmitButton } from "../SubmitButton";
@@ -135,6 +135,13 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
                     confirm="Deduct these units from the player?"
                   >
                     Deduct units
+                  </SubmitButton>
+                </form>
+                <form action={unlockLogin} className="mt-2">
+                  <input type="hidden" name="userId" value={u.id} />
+                  <input type="hidden" name="q" value={q} />
+                  <SubmitButton className="text-xs font-bold uppercase tracking-wider text-mist hover:text-white">
+                    Unlock login (after too many wrong passwords)
                   </SubmitButton>
                 </form>
               </div>

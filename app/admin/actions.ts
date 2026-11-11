@@ -72,6 +72,26 @@ export async function adjustUnits(formData: FormData) {
   return done("msg", op === "deduct" ? `Deducted ${formatUnits(units)}.` : `Added ${formatUnits(units)}.`, back);
 }
 
+// ------------------------------------------------------- login lock
+/** Clear a player's wrong-password lock (phone, username and email logins). */
+export async function unlockLogin(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const q = String(formData.get("q") ?? "");
+  const back = q ? `&q=${encodeURIComponent(q)}` : "";
+  if (!userId) return done("err", "No player selected.", back);
+
+  const admin = createAdminClient();
+  const { data: p } = await admin.from("profiles").select("username, phone_number, email").eq("id", userId).single();
+  if (!p) return done("err", "Player not found.", back);
+  const keys = [p.phone_number, p.username?.toLowerCase(), p.email?.toLowerCase()].filter(Boolean) as string[];
+  for (const key of keys) {
+    const { error } = await admin.rpc("clear_login_lock", { p_key: key });
+    if (error) return done("err", error.message, back);
+  }
+  return done("msg", `Login unlocked for ${p.username}.`, back);
+}
+
 // ------------------------------------------------------------ matches
 export async function syncNow() {
   await requireAdmin();

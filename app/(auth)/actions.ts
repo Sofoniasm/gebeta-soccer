@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
+import { checkLoginLock, clientIp, loginKey, recordLoginAttempt } from "@/lib/login-lock";
 
 export type AuthState = { error?: string; success?: string } | undefined;
 
@@ -46,9 +47,20 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   const password = String(formData.get("password") ?? "");
   if (!identifier.trim() || !password) return { error: "Enter your phone number and password." };
 
+  // Brute-force protection: 5 wrong passwords per login, or too many from one
+  // network, locks it for 15 minutes. Checked before the password is tried.
+  const key = loginKey(identifier);
+  const ip = await clientIp();
+  const locked = await checkLoginLock(key, ip);
+  if (locked) return { error: locked };
+
   const email = await resolveLoginEmail(identifier);
   // Same message whether the user exists or not — don't reveal who is registered.
-  if (!email) return { error: "Wrong phone number or password." };
+  // Unknown logins count as wrong tries too, so guessing usernames is throttled.
+  if (!email) {
+    await recordLoginAttempt(key, ip, false);
+    return { error: "Wrong phone number or password." };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -56,8 +68,10 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     const m = error.message.toLowerCase();
     if (m.includes("email not confirmed")) return { error: "Please confirm your email first — check your inbox (and spam)." };
     if (m.includes("disabled")) return { error: "Logins are temporarily unavailable. Please try again soon." };
+    await recordLoginAttempt(key, ip, false);
     return { error: "Wrong phone number or password." };
   }
+  await recordLoginAttempt(key, ip, true);
   redirect(safeNext(formData.get("next")));
 }
 
