@@ -119,9 +119,9 @@ export async function createRound(formData: FormData) {
 
   const { error } = await createAdminClient()
     .from("rounds")
-    .insert({ name, entry_fee_units: fee, status: "open" });
+    .insert({ name, entry_fee_units: fee, status: "draft" });
   if (error) return done("err", error.message);
-  return done("msg", `Round “${name}” created and open.`);
+  return done("msg", `Round “${name}” created as a draft. Add exactly 10 matches, then open it for players.`);
 }
 
 export async function setRoundStatus(formData: FormData) {
@@ -135,9 +135,12 @@ export async function setRoundStatus(formData: FormData) {
     .from("rounds")
     .update({ status })
     .eq("id", roundId)
-    .in("status", ["open", "locked"]);
-  if (error) return done("err", error.message);
-  return done("msg", `Round is now ${status}.`);
+    .in("status", ["draft", "open", "locked"]);
+  if (error) {
+    const m = error.message.match(/needs exactly 10 matches to open \(it has (\d+)\)/);
+    return done("err", m ? `A round needs exactly 10 matches to open — this one has ${m[1]}.` : error.message);
+  }
+  return done("msg", status === "open" ? "Round is open — players can now join and predict." : `Round is now ${status}.`);
 }
 
 export async function assignMatches(formData: FormData) {
@@ -145,6 +148,12 @@ export async function assignMatches(formData: FormData) {
   const roundId = Number(formData.get("roundId"));
   const ids = formData.getAll("matchId").map(Number).filter(Number.isFinite);
   if (ids.length === 0) return done("err", "Tick at least one match.");
+
+  const { count } = await createAdminClient().from("matches").select("id", { count: "exact", head: true }).eq("round_id", roundId);
+  const room = 10 - (count ?? 0);
+  if (ids.length > room) {
+    return done("err", room <= 0 ? "This round already has 10 matches." : `A round has exactly 10 matches — you can add ${room} more (you ticked ${ids.length}).`);
+  }
 
   const { error } = await createAdminClient()
     .from("matches")

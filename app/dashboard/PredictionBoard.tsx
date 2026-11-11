@@ -92,6 +92,9 @@ export default function PredictionBoard({ roundId, roundOpen, entered, leagueNam
     return !s || String(s.predicted_home_score) !== d.home || String(s.predicted_away_score) !== d.away;
   });
 
+  // Slip progress: matches with both scores filled in (saved or typed)
+  const picked = matches.filter((m) => draft[m.id]?.home !== "" && draft[m.id]?.away !== "").length;
+
   const totalPoints = saved.reduce((sum, s) => sum + Number(s.points_earned ?? 0), 0);
 
   function update(id: number, side: "home" | "away", v: string) {
@@ -143,7 +146,7 @@ export default function PredictionBoard({ roundId, roundOpen, entered, leagueNam
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-      {matches.map((m) => {
+      {matches.map((m, i) => {
         const s = savedByMatch.get(m.id);
         const open = canEdit && isOpen(m);
         const finished = m.status === "finished" && m.actual_home_score !== null && m.actual_away_score !== null;
@@ -157,6 +160,7 @@ export default function PredictionBoard({ roundId, roundOpen, entered, leagueNam
           <div key={m.id} className="rounded-3xl border border-white/[0.06] bg-card/60 p-4">
             <div className="mb-3 flex items-center justify-between text-xs text-mist">
               <span className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-extrabold text-white">{i + 1}</span>
                 <ClockIcon size={14} /> {formatKickoff(m.kickoff_at)}
               </span>
               {m.status === "live" && <span className="rounded-full bg-rose-400/20 px-2 py-0.5 font-semibold text-rose-200">LIVE</span>}
@@ -210,10 +214,23 @@ export default function PredictionBoard({ roundId, roundOpen, entered, leagueNam
 
       {canEdit && editable.length > 0 && (
         <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-white/10 bg-[#0b0912]/90 p-3 backdrop-blur-xl lg:bottom-0 lg:left-72 lg:p-4">
-          <div className="mx-auto max-w-md">
-            <button onClick={onSave} disabled={pending || changed.length === 0} className={primaryButtonClass}>
+          <div className="mx-auto flex max-w-2xl items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">Your slip</p>
+              <p className="text-sm font-extrabold">
+                {picked}/{matches.length} picked
+                {changed.length > 0 && <span className="ml-1.5 text-xs font-bold text-amber-200">· {changed.length} not saved</span>}
+              </p>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full transition-all ${picked === matches.length ? "bg-emerald-300" : "bg-lilac"}`}
+                  style={{ width: `${matches.length ? (picked / matches.length) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+            <button onClick={onSave} disabled={pending || changed.length === 0} className={`${primaryButtonClass.replace("w-full ", "")} shrink-0`}>
               {pending && <SpinnerIcon size={18} />}
-              {changed.length === 0 ? "All predictions saved" : `Submit ${changed.length} prediction${changed.length === 1 ? "" : "s"}`}
+              {changed.length === 0 ? "All saved ✓" : `Submit ${changed.length}`}
             </button>
           </div>
         </div>

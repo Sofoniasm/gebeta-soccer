@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { Banner, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { RefreshIcon, TrophyIcon } from "@/components/icons";
 import { SubmitButton } from "./SubmitButton";
+import { MatchPicker } from "./MatchPicker";
 
 export const metadata = { title: "Rounds · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
   const admin = createAdminClient();
 
   const { data: activeRound } = await admin
-    .from("rounds").select("*").in("status", ["open", "locked"]).order("id", { ascending: false }).limit(1).maybeSingle();
+    .from("rounds").select("*").in("status", ["draft", "open", "locked"]).order("id", { ascending: false }).limit(1).maybeSingle();
   const round = activeRound as RoundRow | null;
 
   const roundMatches: MatchRow[] = round
@@ -115,32 +116,48 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                   <span className="text-xs font-semibold text-mist">Entry (units)</span>
                   <input name="entryFee" type="number" step="0.5" min="0.5" defaultValue="1" className={inputClass} />
                 </label>
-                <SubmitButton className={`${primaryButtonClass} sm:w-auto`}>Create & open</SubmitButton>
+                <SubmitButton className={`${primaryButtonClass} sm:w-auto`}>Create round</SubmitButton>
               </form>
             </Step>
           ) : (
             <>
               {/* STEP 2 — pick matches */}
-              <Step n={2} title={`Pick matches for ${round.name}`} done={roundMatches.length >= 10}>
-                <p className="mb-3 text-sm text-mist">
-                  <b className="text-white">{roundMatches.length}/10</b> selected. Tick matches and add them. Players can predict each match until its kickoff.
-                </p>
-                {upcoming.length === 0 ? (
+              <Step n={2} title={`Pick 10 matches for ${round.name}`} done={roundMatches.length === 10}>
+                <div className="mb-3 flex flex-wrap items-center gap-3">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+                    <div className={`h-full rounded-full ${roundMatches.length === 10 ? "bg-emerald-300" : "bg-lilac"}`} style={{ width: `${roundMatches.length * 10}%` }} />
+                  </div>
+                  <span className={`text-sm font-extrabold ${roundMatches.length === 10 ? "text-emerald-200" : "text-white"}`}>{roundMatches.length}/10 matches</span>
+                </div>
+                {round.status === "draft" && (
+                  <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${roundMatches.length === 10 ? "border-emerald-300/30 bg-emerald-300/10" : "border-white/10 bg-ink/40"}`}>
+                    <p className="text-sm text-mist">
+                      {roundMatches.length === 10
+                        ? "All 10 matches picked. Open the round so players can join and predict."
+                        : `Draft — players can't see this round yet. Add ${10 - roundMatches.length} more match${10 - roundMatches.length === 1 ? "" : "es"}.`}
+                    </p>
+                    <form action={setRoundStatus}>
+                      <input type="hidden" name="roundId" value={round.id} />
+                      <input type="hidden" name="status" value="open" />
+                      {roundMatches.length === 10 ? (
+                        <SubmitButton className={`${primaryButtonClass} sm:w-auto`} confirm={`Open ${round.name} for players with these 10 matches?`}>
+                          Open round for players
+                        </SubmitButton>
+                      ) : (
+                        <button type="button" disabled className={`${primaryButtonClass} cursor-not-allowed opacity-40 sm:w-auto`}>Open round (needs 10)</button>
+                      )}
+                    </form>
+                  </div>
+                )}
+                {roundMatches.length >= 10 ? null : upcoming.length === 0 ? (
                   <p className="text-sm text-mist">No upcoming matches available — press <b>Sync matches</b> above.</p>
                 ) : (
-                  <form action={assignMatches} className="space-y-3">
-                    <input type="hidden" name="roundId" value={round.id} />
-                    <div className="max-h-80 space-y-1 overflow-y-auto rounded-2xl border border-white/5 bg-ink/40 p-2">
-                      {upcoming.map((m) => (
-                        <label key={m.id} className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5">
-                          <input type="checkbox" name="matchId" value={m.id} className="h-4 w-4 accent-violet-300" />
-                          <span className="flex-1 text-sm font-semibold">{m.home_team} <span className="text-mist">vs</span> {m.away_team}</span>
-                          <span className="text-xs text-mist">{formatKickoff(m.kickoff_at)}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <SubmitButton className={`${primaryButtonClass} sm:w-auto`}>Add selected to round</SubmitButton>
-                  </form>
+                  <MatchPicker
+                    roundId={round.id}
+                    room={10 - roundMatches.length}
+                    matches={upcoming.map((m) => ({ id: m.id, label: `${m.home_team} vs ${m.away_team}`, when: formatKickoff(m.kickoff_at), competition: m.competition }))}
+                    action={assignMatches}
+                  />
                 )}
               </Step>
 
@@ -238,7 +255,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                 <input type="hidden" name="roundId" value={round.id} />
                 <input type="hidden" name="status" value={round.status === "open" ? "locked" : "open"} />
                 <SubmitButton className={`${secondaryButtonClass} w-full`}>
-                  {round.status === "open" ? "Lock round (stop new entries)" : "Reopen round"}
+                  {round.status === "open" ? "Lock round (stop new entries)" : round.status === "draft" ? "Open round (needs 10 matches)" : "Reopen round"}
                 </SubmitButton>
               </form>
             </section>

@@ -43,10 +43,26 @@ insert into auth.users (id, raw_user_meta_data) values
   ('11111111-0000-0000-0000-000000000002', '{"username":"bob","phone_number":"+251911000002"}'),
   ('11111111-0000-0000-0000-000000000003', '{"username":"mallory","phone_number":"+251911000003"}');
 update public.profiles set phone_verified_at = now();
-insert into public.rounds (name, status) values ('Test week', 'open');
+insert into public.rounds (name, status) values ('Test week', 'draft');
 insert into public.matches (round_id, home_team, away_team, kickoff_at) values
   ((select max(id) from public.rounds), 'Home FC', 'Away FC', now() + interval '1 day'),
   ((select max(id) from public.rounds), 'Past FC', 'Old FC',  now() - interval '1 hour');
+insert into public.matches (round_id, home_team, away_team, kickoff_at)
+  select (select max(id) from public.rounds), 'Team ' || g, 'Other ' || g, now() + interval '2 days'
+    from generate_series(3, 10) g;
+
+-- every round has exactly 10 matches
+do $$ begin
+  begin insert into public.rounds (name, status) values ('Sneaky', 'open');
+        raise exception 'FAIL: a round opened without 10 matches';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin insert into public.matches (round_id, home_team, away_team, kickoff_at)
+        values ((select max(id) from public.rounds), 'Eleventh', 'Match', now() + interval '2 days');
+        raise exception 'FAIL: an 11th match was added to a round';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  raise notice 'ok  rounds hold exactly 10 matches';
+end $$;
+update public.rounds set status = 'open' where id = (select max(id) from public.rounds);
 select public.admin_add_units('11111111-0000-0000-0000-000000000001', 10, 'test', null);
 select public.admin_add_units('11111111-0000-0000-0000-000000000002', 10, 'test', null);
 
