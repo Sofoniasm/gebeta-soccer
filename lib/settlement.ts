@@ -17,6 +17,10 @@
  *   3. Still tied: players share the prizes for the positions they
  *      occupy, split equally.
  *
+ * Winning bar (optional, main pool): only entrants whose MATCH points are
+ * strictly above `minMatchPoints` can win. If nobody clears it, nobody is
+ * paid and the house keeps the whole pool.
+ *
  * All money maths is done in hundredths of a unit (integers) and
  * rounded DOWN, so payouts can never exceed the prize fund. Any
  * leftover hundredths stay with the house.
@@ -53,6 +57,8 @@ export interface SettlementInput {
    * [1] = winner takes all (default). [0.6, 0.3, 0.1] = top 3 paid.
    */
   prizeSplit?: number[];
+  /** Winning bar: match points must be strictly greater than this to win. */
+  minMatchPoints?: number;
 }
 
 export interface Standing {
@@ -82,6 +88,12 @@ export interface SettlementResult {
   pointsByPrediction: { predictionId: number; points: number }[];
   /** Slam Points per player (only players who earned some). */
   slams: { userId: string; slamPoints: number }[];
+  /** The bar used (null = no bar). */
+  winningBar: number | null;
+  /** Did at least one entrant clear the bar? (true when there is no bar) */
+  barMet: boolean;
+  /** Best match points of any entrant (Slam not included). */
+  topMatchPoints: number;
 }
 
 const toCents = (units: number) => Math.round(units * 100);
@@ -180,12 +192,18 @@ export function settleRound(input: SettlementInput): SettlementResult {
   const payouts: Payout[] = [];
   let paidCents = 0;
   let position = 0; // 0-based finishing position of the group's first player
+  let prizePosition = 0; // positions among entrants who cleared the winning bar
+  const bar = input.minMatchPoints ?? null;
+  // A group shares totals and correct results, so it shares match points too.
+  const clears = (g: (typeof sorted)[number][]) => bar === null || g[0].matchPoints > bar + 1e-9;
 
   for (const group of groups) {
     // Prize % for the positions this group occupies, shared equally.
-    const share = prizeSplit
-      .slice(position, position + group.length)
-      .reduce((a, b) => a + b, 0);
+    // Below the winning bar a group is ranked but never paid.
+    const share = clears(group)
+      ? prizeSplit.slice(prizePosition, prizePosition + group.length).reduce((a, b) => a + b, 0)
+      : 0;
+    if (clears(group)) prizePosition += group.length;
     // + 1e-6 absorbs float error (0.6 + 0.3 + 0.1 = 0.9999999999999999)
     const groupCents = Math.floor(prizeFundCents * share + 1e-6);
     const eachCents = Math.floor(groupCents / group.length);
@@ -208,5 +226,8 @@ export function settleRound(input: SettlementInput): SettlementResult {
     payouts,
     pointsByPrediction,
     slams: sorted.filter((x) => x.slamPoints > 0).map((x) => ({ userId: x.userId, slamPoints: x.slamPoints })),
+    winningBar: bar,
+    barMet: bar === null || sorted.some((x) => x.matchPoints > bar + 1e-9),
+    topMatchPoints: sorted.reduce((m, x) => Math.max(m, x.matchPoints), 0),
   };
 }

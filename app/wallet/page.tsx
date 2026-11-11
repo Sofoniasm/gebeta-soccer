@@ -56,8 +56,25 @@ export default async function WalletPage() {
     rounds: { name: string } | null;
     leagues: { name: string } | null;
   };
+  // Challenge names (wallet rows only carry the code in the reference)
+  const { data: myCh } = await supabase.rpc("get_my_challenges");
+  const chTitle = new Map(((myCh ?? []) as { code: string; title: string }[]).map((c) => [c.code, c.title]));
+  const challengeOf = (t: Tx) => {
+    const m = (t.reference ?? "").match(/^Challenge (GC-[A-Z0-9]{6})/);
+    return m ? { code: m[1], title: chTitle.get(m[1]) ?? m[1] } : null;
+  };
+
   const describe = (t: Tx): { title: string; note: string } => {
     const amt = Number(t.amount_units);
+    const ch = challengeOf(t);
+    if (ch) {
+      if (t.kind === "entry_fee") return { title: `Challenge stake: ${ch.title}`, note: ch.code };
+      if (t.kind === "payout") return { title: `Won challenge: ${ch.title}`, note: "90% of the pot" };
+      if (t.kind === "refund") {
+        const why = (t.reference ?? "").includes("cancelled") ? "Cancelled" : (t.reference ?? "").includes("called off") ? "Matches called off" : "Nobody joined";
+        return { title: `Challenge refund: ${ch.title}`, note: why };
+      }
+    }
     const round = t.rounds?.name ?? (t.round_id ? `Round ${t.round_id}` : "");
     const league = t.leagues?.name;
     switch (t.kind) {

@@ -7,6 +7,8 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { syncMatches } from "@/lib/football/sync";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { pushNotifications } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +25,10 @@ export async function GET(req: NextRequest) {
       daysBack: p.has("daysBack") ? Number(p.get("daysBack")) : undefined,
       daysAhead: p.has("daysAhead") ? Number(p.get("daysAhead")) : undefined,
     });
-    return NextResponse.json(result, { status: result.ok ? 200 : 207 });
+    // Private challenges whose matches are over get paid (or refunded) right away.
+    const { data: settled } = await createAdminClient().rpc("settle_due_challenges");
+    if (Number(settled) > 0) await pushNotifications();
+    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0) }, { status: result.ok ? 200 : 207 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

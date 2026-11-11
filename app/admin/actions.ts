@@ -96,10 +96,21 @@ export async function unlockLogin(formData: FormData) {
 }
 
 // ------------------------------------------------------------ matches
+/** Pay out / refund private challenges whose matches are over. Never blocks the caller. */
+async function settleChallenges() {
+  try {
+    const { data } = await createAdminClient().rpc("settle_due_challenges");
+    if (Number(data) > 0) await pushNotifications();
+  } catch (e) {
+    console.error("settle_due_challenges:", (e as Error).message);
+  }
+}
+
 export async function syncNow() {
   await requireAdmin();
   try {
     const r = await syncMatches({ daysBack: 3, daysAhead: 7 });
+    await settleChallenges();
     if (!r.ok) return done("err", `Sync finished with errors: ${r.errors.join(" | ")}`);
     return done("msg", `Synced ${r.upserted} matches (${r.competitions.join(", ")}, ${r.window.dateFrom} → ${r.window.dateTo}).`);
   } catch (e) {
@@ -200,6 +211,7 @@ export async function setScore(formData: FormData) {
     )
     .eq("id", matchId);
   if (error) return done("err", error.message);
+  await settleChallenges();
   return done("msg", status === "finished" ? `Score saved: ${home} – ${away}.` : `Match marked ${status}.`);
 }
 
@@ -238,6 +250,7 @@ export async function settle(formData: FormData) {
   const winningSlips = new Set(payouts.map((p) => String(p.slip.id)));
   const total = result.standings.length;
   const roundName = (round.name as string) || `Round ${roundId}`;
+  const barNote = result.barMet ? "" : ` Nobody scored more than ${result.winningBar} match points, so there is no winner this round.`;
   const notes = result.standings
     .filter((s) => !winningSlips.has(s.userId))
     .map((s) => {
@@ -246,7 +259,7 @@ export async function settle(formData: FormData) {
         user_id: slip.user_id,
         kind: "round_result",
         title: `📊 ${roundName} results`,
-        body: `Slip #${slip.slip_no} finished #${s.rank} of ${total} with ${s.totalPoints} points (${s.exactScores} exact, ${s.correctResults} correct). Better luck next round!`,
+        body: `Slip #${slip.slip_no} finished #${s.rank} of ${total} with ${s.totalPoints} points (${s.matchPoints} match points, ${s.exactScores} exact, ${s.correctResults} correct).${barNote || " Better luck next round!"}`,
         link: "/results",
       };
     });
@@ -266,7 +279,9 @@ export async function settle(formData: FormData) {
   const paid = payouts.reduce((sum, p) => sum + p.units, 0);
   return done(
     "msg",
-    `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winning slip${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.` +
+    (result.barMet
+      ? `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winning slip${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.`
+      : `Round settled with no winner (best slip ${result.topMatchPoints}, bar more than ${result.winningBar}). House keeps the pool: ${formatUnits(result.houseUnits)}.`) +
       (leagueMsgs.length ? ` Leagues: ${leagueMsgs.join(" ")}` : "")
   );
 }

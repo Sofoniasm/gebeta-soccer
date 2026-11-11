@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
     // ---- /start <token>
     if (msg.text?.startsWith("/start")) {
       const token = msg.text.split(" ")[1]?.trim();
+      const ch = token?.match(/^c_(GC-[A-Z0-9]{6})$/);
+      if (ch) {
+        await sendMessage(chatId, `🤝 You've been challenged on <b>GebetaSoccer</b>! Tap below to see the matches and the stake.`, {
+          reply_markup: { inline_keyboard: [[{ text: `Open challenge ${ch[1]}`, web_app: { url: `${SITE}/tma?next=${encodeURIComponent(`/challenges/${ch[1]}`)}` } }]] },
+        });
+        return NextResponse.json({ ok: true });
+      }
       if (!token) {
         await sendMessage(
           chatId,

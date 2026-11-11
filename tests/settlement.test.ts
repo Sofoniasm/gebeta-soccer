@@ -89,3 +89,61 @@ test("multi-slip: each slip is an entrant; one player's two winning slips share 
   assert.equal(r.poolUnits, 3); // three slips paid
   assert.deepEqual(r.payouts, [{ userId: "1", units: 1.05 }, { userId: "2", units: 1.05 }]);
 });
+
+// ---- winning bar: more than half the match points (main pool) -----------
+const tenMatches = Array.from({ length: 10 }, (_, i) => ({ matchId: i + 1, homeScore: 1, awayScore: 0 }));
+// picks against 1-0: exact "1-0" = 3, close "2-0" = 1.5, result "3-0" = 1, wrong "0-1" = 0
+const slip = (user: string, kinds: ("exact" | "close" | "result" | "wrong")[], start = 0) =>
+  kinds.map((k, i) => {
+    const [h, a] = k === "exact" ? [1, 0] : k === "close" ? [2, 0] : k === "result" ? [3, 0] : [0, 1];
+    return pick(start + i + 1, user, i + 1, h, a);
+  });
+
+test("winning bar: exactly 15 of 30 is not enough, house keeps the whole pool", () => {
+  const r = settleRound({
+    entrantIds: ["a", "b"],
+    entryFeeUnits: 1,
+    minMatchPoints: 15,
+    results: tenMatches,
+    predictions: [
+      ...slip("a", ["exact", "exact", "exact", "exact", "exact", "wrong", "wrong", "wrong", "wrong", "wrong"]),
+      ...slip("b", Array(10).fill("wrong"), 100),
+    ],
+  });
+  assert.equal(r.standings[0].userId, "a");
+  assert.equal(r.standings[0].matchPoints, 15);
+  assert.equal(r.standings[0].totalPoints, 16); // +1 Slam, which does not count for the bar
+  assert.equal(r.barMet, false);
+  assert.deepEqual(r.payouts, []);
+  assert.equal(r.houseUnits, 2);
+});
+
+test("winning bar: 15.5 of 30 wins 70%", () => {
+  const r = settleRound({
+    entrantIds: ["a", "b"],
+    entryFeeUnits: 1,
+    minMatchPoints: 15,
+    results: tenMatches,
+    predictions: [
+      ...slip("a", ["exact", "exact", "exact", "exact", "close", "result", "result", "wrong", "wrong", "wrong"]),
+      ...slip("b", Array(10).fill("wrong"), 100),
+    ],
+  });
+  assert.equal(r.standings[0].matchPoints, 15.5);
+  assert.equal(r.barMet, true);
+  assert.deepEqual(r.payouts, [{ userId: "a", units: 1.4 }]);
+});
+
+test("winning bar: tied slips above the bar share; a cancelled match lowers the bar", () => {
+  const nine = tenMatches.slice(0, 9); // match 10 cancelled -> bar 13.5
+  const k: ("exact" | "close" | "result" | "wrong")[] = ["exact", "exact", "exact", "exact", "result", "result", "wrong", "wrong", "wrong", "wrong"]; // 14
+  const r = settleRound({
+    entrantIds: ["a", "b", "c"],
+    entryFeeUnits: 10,
+    minMatchPoints: 13.5,
+    results: nine,
+    predictions: [...slip("a", k), ...slip("b", k, 100), ...slip("c", Array(10).fill("wrong"), 200)],
+  });
+  assert.equal(r.barMet, true);
+  assert.deepEqual(r.payouts, [{ userId: "a", units: 10.5 }, { userId: "b", units: 10.5 }]);
+});

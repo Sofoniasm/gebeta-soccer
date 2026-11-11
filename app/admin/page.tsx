@@ -196,8 +196,22 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                   <p className="text-sm text-mist">Available once every match has a final score (or is marked postponed).</p>
                 ) : (
                   <div className="space-y-4">
+                    {slipCalc && slipCalc.result.winningBar !== null && slipCalc.slips.length > 0 && (
+                      <div
+                        className={`rounded-2xl border p-4 text-sm ${
+                          slipCalc.result.barMet ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-50" : "border-amber-200/30 bg-amber-200/10 text-amber-50"
+                        }`}
+                      >
+                        <p className="font-extrabold">
+                          {slipCalc.result.barMet ? "✓ Winning bar reached" : "✗ Nobody reached the winning bar: the house keeps the whole pool"}
+                        </p>
+                        <p className="mt-1 text-xs opacity-80">
+                          Bar: more than {slipCalc.result.winningBar} match points (half of {slipCalc.result.winningBar * 2}). Best slip: {slipCalc.result.topMatchPoints} match points (Slam Points not counted).
+                        </p>
+                      </div>
+                    )}
                     {previewTotals && (
-                      <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="grid grid-cols-3 gap-3">
                         <div className="rounded-2xl bg-ink/60 p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mist">Pool</p><p className="text-xl font-extrabold">{etbLabel(previewTotals.pool)}</p></div>
                         <div className="rounded-2xl bg-ink/60 p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mist">To winners</p><p className="text-xl font-extrabold text-lilac-soft">{etbLabel(previewTotals.prize)}</p></div>
                         <div className="rounded-2xl bg-ink/60 p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-mist">House</p><p className="text-xl font-extrabold">{etbLabel(previewTotals.house)}</p></div>
@@ -206,7 +220,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                     <div className="rounded-2xl border border-lilac/20 bg-lilac/10 p-4">
                       <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-lilac"><TrophyIcon size={14} /> Preview payouts</p>
                       {preview.length === 0 ? (
-                        <p className="text-sm text-mist">No payouts (no players in this round).</p>
+                        <p className="text-sm text-mist">{slipCalc && slipCalc.slips.length > 0 ? "No payouts: no slip passed the winning bar." : "No payouts (no players in this round)."}</p>
                       ) : (
                         <ul className="space-y-1 text-sm">
                           {preview.map((p) => (
@@ -217,7 +231,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                     </div>
                     <form action={settle}>
                       <input type="hidden" name="roundId" value={round.id} />
-                      <SubmitButton className={primaryButtonClass} confirm={`Settle ${round.name} and pay the winners? This cannot be undone.`}>
+                      <SubmitButton className={primaryButtonClass} confirm={slipCalc?.result.barMet === false ? `Settle ${round.name} with no winner? The house keeps the pool. This cannot be undone.` : `Settle ${round.name} and pay the winners? This cannot be undone.`}>
                         Settle round & pay winners
                       </SubmitButton>
                     </form>

@@ -119,7 +119,7 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
   return (
     <AppShell title="Deposits" next="/admin/deposits">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-mist">Record Telegram payments (1,000 – 10,000 ETB) and see every player&apos;s own balance. 1 Unit = {ETB_PER_UNIT} ETB.</p>
+        <p className="text-sm text-mist">Record Telegram payments (1,000 to 100,000 ETB) and see every player&apos;s own balance. 1 Unit = {ETB_PER_UNIT} ETB.</p>
         <Link href="/admin/players" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">Players →</Link>
       </div>
 

@@ -66,7 +66,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
       </div>
 
       {tab !== "all" && round && round.status !== "settled" && (
-        <p className="mb-4 text-xs text-mist">Live — points update as matches finish, including Slam Points. Ties: correct results → exact scores → close picks.</p>
+        <p className="mb-4 text-xs text-mist">Live: points update as matches finish, including Slam Points. To win, a slip needs more than half the match points (more than 15 of 30). Ties: correct results → exact scores → close picks.</p>
       )}
 
       {rows.length === 0 ? (

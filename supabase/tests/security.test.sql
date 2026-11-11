@@ -76,10 +76,10 @@ do $$ begin
   begin perform public.admin_add_units('11111111-0000-0000-0000-000000000001', 4, 'x', null);
         raise exception 'FAIL: deposit below 1,000 ETB accepted';
   exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
-  begin perform public.admin_add_units('11111111-0000-0000-0000-000000000001', 51, 'x', null);
-        raise exception 'FAIL: deposit above 10,000 ETB accepted';
+  begin perform public.admin_add_units('11111111-0000-0000-0000-000000000001', 501, 'x', null);
+        raise exception 'FAIL: deposit above 100,000 ETB accepted';
   exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
-  raise notice 'ok  deposits limited to 1,000-10,000 ETB';
+  raise notice 'ok  deposits limited to 1,000-100,000 ETB';
 end $$;
 
 -- the ledger can't be edited, even by the owner role
@@ -242,5 +242,109 @@ do $$ begin
   raise notice 'ok  news: drafts and scheduled articles hidden, only the server can write';
 end $$;
 reset role;
+
+-- ---------- private challenges ---------------------------------------------
+reset role;
+select public.admin_add_units('11111111-0000-0000-0000-000000000001', 100, 'test', null);
+select public.admin_add_units('11111111-0000-0000-0000-000000000002', 100, 'test', null);
+insert into public.matches (home_team, away_team, kickoff_at) values
+  ('Chal A', 'Chal B', now() + interval '1 day'), ('Chal C', 'Chal D', now() + interval '2 days');
+create table tests_ch_a as select jsonb_agg(jsonb_build_object('match_id', id, 'home', 2, 'away', 1) order by id) j from public.matches where home_team like 'Chal %';
+create table tests_ch_b as select jsonb_agg(jsonb_build_object('match_id', id, 'home', 0, 'away', 3) order by id) j from public.matches where home_team like 'Chal %';
+create table tests_ch_1 as select jsonb_build_array(j -> 0) j from tests_ch_a;
+create table tests_bal as select id, balance_units from public.profiles;
+grant select on tests_ch_a, tests_ch_b, tests_ch_1, tests_bal to authenticated;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', false) \g /dev/null
+select public.create_challenge('Derby bet', 30, null, (select j from tests_ch_a)) \g /dev/null
+select public.create_challenge('Lonely bet', 5, null, (select j from tests_ch_1)) \g /dev/null
+select public.create_challenge('Oops bet', 5, 2, (select j from tests_ch_1)) \g /dev/null
+do $$ begin
+  if (select balance_units from public.profiles where id = auth.uid()) <> (select balance_units from tests_bal where id = auth.uid()) - 40 then
+    raise exception 'FAIL: challenge stakes not taken from the creator';
+  end if;
+  begin perform 1 from public.challenges;
+        raise exception 'FAIL: challenges table readable directly';
+  exception when insufficient_privilege then null; end;
+  begin perform 1 from public.challenge_picks;
+        raise exception 'FAIL: challenge picks readable directly';
+  exception when insufficient_privilege then null; end;
+  begin perform public.create_challenge('Too big', 99999, null, (select j from tests_ch_a));
+        raise exception 'FAIL: stake above the limit accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.create_challenge('Odd stake', 1.1, null, (select j from tests_ch_a));
+        raise exception 'FAIL: stake not in 50 ETB steps accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.settle_due_challenges();
+        raise exception 'FAIL: a player can run challenge settlement';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+create table tests_codes as select code, title from public.challenges;
+grant select on tests_codes to authenticated;
+set role authenticated;
+select public.cancel_challenge((select code from tests_codes where title = 'Oops bet')) \g /dev/null
+
+-- bob joins the derby
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000002', false) \g /dev/null
+do $$ declare v jsonb; begin
+  begin perform public.join_challenge((select code from tests_codes where title = 'Derby bet'), (select j from tests_ch_1));
+        raise exception 'FAIL: joined a challenge without a score for every match';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  perform public.join_challenge((select code from tests_codes where title = 'Derby bet'), (select j from tests_ch_b));
+  begin perform public.join_challenge((select code from tests_codes where title = 'Derby bet'), (select j from tests_ch_b));
+        raise exception 'FAIL: joined the same challenge twice';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.cancel_challenge((select code from tests_codes where title = 'Derby bet'));
+        raise exception 'FAIL: a player cancelled someone else''s challenge';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.join_challenge((select code from tests_codes where title = 'Oops bet'), (select j from tests_ch_1));
+        raise exception 'FAIL: joined a cancelled challenge';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  v := public.get_challenge((select code from tests_codes where title = 'Derby bet'));
+  if exists (select 1 from jsonb_array_elements(v -> 'entries') e where not (e ->> 'is_me')::boolean and e -> 'picks' <> 'null'::jsonb) then
+    raise exception 'FAIL: other players'' challenge picks visible before kickoff';
+  end if;
+  if (v ->> 'players')::int <> 2 then raise exception 'FAIL: challenge should have 2 players'; end if;
+end $$;
+
+-- mallory can't join without the stake in her wallet
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000003', false) \g /dev/null
+do $$ begin
+  if (select balance_units from public.profiles where id = auth.uid()) >= 30 then raise exception 'FAIL: test setup: mallory has too much money'; end if;
+  begin perform public.join_challenge((select code from tests_codes where title = 'Derby bet'), (select j from tests_ch_b));
+        raise exception 'FAIL: joined a challenge without enough balance';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  raise notice 'ok  challenges: stake locked, scores for every match, picks hidden, no joining without the money';
+end $$;
+
+-- matches kick off and finish: Chal A 2-1 (alice exact 3), Chal C 1-0 (alice close 1.5); bob 0-3 wrong twice
+reset role;
+update public.matches set kickoff_at = now() - interval '3 hours', status = 'finished', actual_home_score = 2, actual_away_score = 1 where home_team = 'Chal A';
+update public.matches set kickoff_at = now() - interval '2 hours', status = 'finished', actual_home_score = 1, actual_away_score = 0 where home_team = 'Chal C';
+update public.challenges set lock_at = now() - interval '3 hours';
+select public.settle_due_challenges() \g /dev/null
+do $$ begin
+  if (select status from public.challenges c join tests_codes t using (code) where t.title = 'Derby bet') <> 'settled' then
+    raise exception 'FAIL: finished challenge not settled';
+  end if;
+  -- pot 60, 10% fee -> 54 to alice
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-000000000001')
+     <> (select balance_units from tests_bal where id = '11111111-0000-0000-0000-000000000001') - 30 + 54 then
+    raise exception 'FAIL: challenge winner not paid 90%% of the pot (or other stakes not refunded)';
+  end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-000000000002')
+     <> (select balance_units from tests_bal where id = '11111111-0000-0000-0000-000000000002') - 30 then
+    raise exception 'FAIL: challenge loser balance wrong';
+  end if;
+  if (select status from public.challenges c join tests_codes t using (code) where t.title = 'Lonely bet') <> 'refunded' then
+    raise exception 'FAIL: challenge nobody joined was not refunded';
+  end if;
+  if (select points from public.challenge_entries where user_id = '11111111-0000-0000-0000-000000000001'
+        and challenge_id = (select id from public.challenges where title = 'Derby bet')) <> 4.5 then
+    raise exception 'FAIL: challenge points wrong';
+  end if;
+  raise notice 'ok  challenges: winner gets 90%% of the pot, empty challenges refunded, cancel refunds';
+end $$;
 
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

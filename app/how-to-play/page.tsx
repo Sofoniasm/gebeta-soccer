@@ -21,7 +21,7 @@ const STEPS = [
   { t: "Fill your slip", d: "Each round has 10 big matches. Type a score for all 10 — a slip can only be placed when every match has a score." },
   { t: "Place your bet", d: "Placing a slip costs the round's entry fee (usually 1 Unit = 200 ETB). Want another go? Place more slips with different scores — each one is paid and competes on its own." },
   { t: "Watch the table move", d: "Points update live as matches finish. Check the leaderboard to see where you stand." },
-  { t: "Win and cash out", d: "When the round is settled, 70% of the pool goes to the winner. Withdraw from your wallet to your phone." },
+  { t: "Win and cash out", d: "Top the table with MORE than 15 of the 30 match points and you win 70% of the pool (ties share it). If nobody gets past 15, there is no winner that round. Withdraw winnings to your phone." },
 ];
 
 const SCORING = [
@@ -35,7 +35,9 @@ const FAQ = [
   ["When does betting close?", "The whole round locks at its first kickoff. Until then you can edit your slips for free and place new ones. After that, no new slips and no changes."],
   ["Can I place more than one slip?", "Yes. Every slip is paid separately and ranked separately (you appear as yourname #1, #2…). If two of your slips finish top, both win. Your Slip #1 is the one that counts in private leagues. Slips can't be refunded once placed."],
   ["Can I see other players' picks?", "Yes. Once a match kicks off, open it from Fixtures or Live & Results to see everyone's picks and how the players split between home win, draw and away win."],
-  ["What if a match is postponed?", "A postponed or cancelled match scores 0 for everyone and doesn't count towards Slam Points."],
+  ["What if a match is postponed?", "A postponed or cancelled match scores 0 for everyone and doesn't count towards Slam Points. It also lowers the winning bar: with 9 matches you need more than 13.5 points."],
+  ["What if nobody scores more than 15?", "Then nobody wins that round and the pool is kept by GebetaSoccer. The bar counts match points only (exact, close and result points), not Slam Points."],
+  ["What is a challenge?", "A private bet with friends. Pick 1 to 10 upcoming matches, enter your scores, set a stake (from 200 ETB, any amount up to 1,000,000 ETB) and share the link. Everyone who joins pays the same stake from their wallet and predicts the same matches. The highest score takes 90% of all stakes (ties share it); GebetaSoccer keeps 10%. If nobody joins before the first kickoff, your stake comes back."],
   ["How are ties decided?", "Most correct results, then most exact scores, then most close picks, then the smallest total goal difference. Players still level share the prize equally."],
   ["How fast are withdrawals?", "Units are held from your wallet straight away, and the admin sends the money to your phone — usually within 24 hours."],
   ["Is my phone number public?", "No. Other players only ever see your username and points."],

@@ -23,7 +23,7 @@ const sections: { title: string; body: string[] }[] = [
     title: "2. Units and payments",
     body: [
       "Your wallet holds Units. 1 Unit = 200 ETB.",
-      "Deposits are made manually through our Telegram admin (minimum 1,000 ETB, maximum 10,000 ETB per transaction) and are credited after we confirm the payment.",
+      "Deposits are made manually through our Telegram admin (minimum 1,000 ETB, maximum 100,000 ETB per transaction) and are credited after we confirm the payment.",
       "Withdrawals are requested in the app. The Units are held immediately and the money is sent to your phone number after review.",
     ],
   },
@@ -34,8 +34,17 @@ const sections: { title: string; body: string[] }[] = [
       "You can edit a placed slip free of charge until the round locks at its first kickoff. After that no slips can be placed or changed. Placed slips are not refundable. Everyone's slips become visible once the round locks.",
       "Scoring: exact score 3 points; close (correct result and one goal away, or two goals away with the same goal difference, e.g. 1-1 vs 2-2) 1.5 points; correct result 1 point; wrong result 0 points.",
       "Slam Points per round for correct results: 5–7 correct +1, 8–9 correct +2, 10 correct +3.",
-      "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Ties are decided by most correct results, then most exact scores, then most close picks, then the smallest total goal difference; remaining ties share the prize equally.",
+      "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Winning bar: to win, a slip must score MORE than half of the match points available (more than 15 of 30 for 10 matches; Slam Points do not count; a postponed or cancelled match lowers the bar to half of what is left, e.g. more than 13.5 for 9 matches). If no slip clears the bar, there is no winner for that round and the whole pool is kept by GebetaSoccer. Ties are decided by most correct results, then most exact scores, then most close picks, then the smallest total goal difference; remaining ties share the prize equally.",
       "Postponed or cancelled matches score 0 for everyone.",
+    ],
+  },
+  {
+    title: "3b. Private challenges",
+    body: [
+      "A player can create a challenge on 1 to 10 upcoming matches with a stake per player of 200 to 1,000,000 ETB. The stake is taken from the creator's wallet when the challenge is created and from each player's wallet when they join. A player can only join with enough Units in their wallet.",
+      "Scores can be changed free of charge until the first of the selected matches kicks off; after that nobody can join or change scores. Other players' scores are hidden until then.",
+      "Scoring is the same as in rounds (3 / 1.5 / 1 / 0, no Slam Points). Postponed or cancelled matches score 0 for everyone. The highest total wins; ties are decided by most correct results, most exact scores, most close picks and smallest total goal difference, and players still level share the prize equally.",
+      "The winner(s) receive 90% of all stakes; 10% is the GebetaSoccer fee. If nobody else joins before the first kickoff, or every selected match is called off, all stakes are refunded. The creator may cancel for a full refund while nobody else has joined. Stakes cannot otherwise be refunded.",
     ],
   },
   {

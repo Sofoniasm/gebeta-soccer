@@ -1,9 +1,12 @@
 /**
  * Settlement for multi-slip rounds (server only). Every SLIP is an entrant:
  * it pays one entry fee and competes on its own. Same scoring and tie-breaks
- * as before (lib/settlement.ts); winners' slips share 70% of the pool.
+ * as before (lib/settlement.ts); winners' slips share 70% of the pool, but
+ * only slips with MORE than half the match points can win. If none do,
+ * the house keeps the whole pool.
  */
 import { settleRound, type SettlementResult } from "@/lib/settlement";
+import { winningBar } from "@/lib/scoring";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
@@ -49,13 +52,16 @@ export async function computeSlipSettlement(admin: Admin, round: { id: number; e
     ? await admin.from("slip_picks").select("id, slip_id, match_id, home, away").in("slip_id", slips.map((s) => s.id))
     : { data: [] };
 
+  const results = matches
+    .filter((m) => m.status === "finished" && m.actual_home_score !== null && m.actual_away_score !== null)
+    .map((m) => ({ matchId: m.id, homeScore: m.actual_home_score!, awayScore: m.actual_away_score! }));
   const result = settleRound({
     entrantIds: slips.map((s) => String(s.id)),
     entryFeeUnits: Number(round.entry_fee_units),
     houseCut: Number(round.house_cut),
-    results: matches
-      .filter((m) => m.status === "finished" && m.actual_home_score !== null && m.actual_away_score !== null)
-      .map((m) => ({ matchId: m.id, homeScore: m.actual_home_score!, awayScore: m.actual_away_score! })),
+    // Main pool rule: more than half the match points available to win.
+    minMatchPoints: winningBar(results.length),
+    results,
     predictions: ((pickData ?? []) as { id: number; slip_id: number; match_id: number; home: number; away: number }[]).map((p) => ({
       predictionId: p.id,
       userId: String(p.slip_id),

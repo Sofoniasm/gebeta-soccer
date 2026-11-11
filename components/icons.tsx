@@ -153,3 +153,10 @@ export const NewsIcon = (p: IconProps) => (
     <path d="M17 9h3v8a2 2 0 0 1-2 2h-1M8 9h5M8 13h5M8 17h3" />
   </Svg>
 );
+
+export const VersusIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2" />
+    <path d="M9.5 6.5 12 4l1 1M3 21l5-5M6 18l-2-2" />
+  </Svg>
+);

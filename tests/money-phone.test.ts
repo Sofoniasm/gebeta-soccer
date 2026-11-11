@@ -2,11 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS, etbLabel, formatUnits, unitsLabel } from "../lib/money";
 import { normalizeEthiopianPhone as phone } from "../lib/phone";
+import { challengePrizeUnits, etbToUnits, stakeError } from "../lib/challenges";
 
-test("money rules: 1 Unit = 200 ETB, deposits 1,000-10,000 ETB", () => {
+test("money rules: 1 Unit = 200 ETB, deposits 1,000-100,000 ETB", () => {
   assert.equal(ETB_PER_UNIT, 200);
   assert.equal(MIN_DEPOSIT_UNITS * ETB_PER_UNIT, 1000);
-  assert.equal(MAX_DEPOSIT_UNITS * ETB_PER_UNIT, 10000);
+  assert.equal(MAX_DEPOSIT_UNITS * ETB_PER_UNIT, 100000);
 });
 
 test("labels", () => {
@@ -24,4 +25,15 @@ test("Ethiopian phone numbers", () => {
   for (const bad of ["", "12345", "0811223344", "+1 555 123 4567", "09112233445"]) {
     assert.equal(phone(bad), null, bad);
   }
+});
+
+test("challenges: winner gets 90% of all stakes; stake rules", () => {
+  assert.equal(challengePrizeUnits(50, 2), 90); // 10,000 ETB each, 2 players -> 18,000 ETB
+  assert.equal(challengePrizeUnits(1, 3), 2.7);
+  assert.equal(etbToUnits(10000), 50);
+  assert.equal(stakeError(200), null);
+  assert.equal(stakeError(250), null);
+  assert.notEqual(stakeError(150), null);
+  assert.notEqual(stakeError(230), null);
+  assert.notEqual(stakeError(2_000_000), null);
 });

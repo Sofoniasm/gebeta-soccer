@@ -69,6 +69,15 @@ export function isExactScore(ph: number, pa: number, ah: number, aa: number): bo
   return ph === ah && pa === aa;
 }
 
+/**
+ * Winning bar for the main pool: a slip must score MORE than half of the
+ * match points available (Slam Points not included). 10 matches -> more than
+ * 15 of 30. A cancelled/postponed match lowers it (9 matches -> more than 13.5).
+ */
+export function winningBar(countedMatches: number): number {
+  return (countedMatches * POINTS.EXACT) / 2;
+}
+
 /** Slam Points for the number of correct results in a round. */
 export function slamPoints(correctResults: number): number {
   if (correctResults >= 10) return 3;

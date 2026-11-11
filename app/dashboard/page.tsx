@@ -99,6 +99,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <AppShell next="/dashboard">
+      <Link
+        href="/challenges"
+        className="mb-4 flex items-center gap-3 rounded-2xl border border-lilac/25 bg-gradient-to-r from-lilac/15 to-transparent px-4 py-3 transition hover:border-lilac/50"
+      >
+        <span className="text-xl">🤝</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-extrabold text-white">Challenge a friend</span>
+          <span className="block truncate text-xs text-mist">Pick 1 to 10 matches, set your own stake, share the link</span>
+        </span>
+        <span className="text-xs font-bold uppercase tracking-wider text-lilac">Start →</span>
+      </Link>
       {/* Superbru-style "picks needed" countdown chips */}
       <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
         {[24, 48, 72].map((h) => {

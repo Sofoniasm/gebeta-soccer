@@ -103,7 +103,7 @@ export default async function Home() {
               <span className="text-lg">Predict the scores. Win the Gebeta.</span>
             )}
           </p>
-          <p className="mt-2 text-sm text-white/60">10 big matches every week · {prizePct}% of every pool goes to the winners</p>
+          <p className="mt-2 text-sm text-white/60">10 big matches every week · score over 15 to win {prizePct}% of the pool</p>
 
           <div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
             <Link href={ctaHref} className={`${pill} w-full sm:w-auto`}>
@@ -175,7 +175,7 @@ export default async function Home() {
             {[
               { icon: <WalletIcon size={26} />, title: "Top up with Telebirr", text: `1 unit = ${ETB_PER_UNIT} ETB` },
               { icon: <SendIcon size={26} />, title: "Confirmed on Telegram", text: "Send your receipt, we credit fast" },
-              { icon: <ShieldIcon size={26} />, title: "Fair & transparent", text: `${prizePct}% to winners, every round` },
+              { icon: <ShieldIcon size={26} />, title: "Fair & transparent", text: `${prizePct}% of the pool to the winner` },
             ].map((i) => (
               <div key={i.title} className="flex flex-col items-center gap-2 px-1 text-center sm:flex-row sm:justify-center sm:gap-4 sm:px-4 sm:text-left">
                 <span className="text-lilac-soft">{i.icon}</span>
@@ -194,7 +194,7 @@ export default async function Home() {
             <SectionTitle top="Introduction" bottom="To GebetaSoccer" />
             <p className="mt-6 text-sm leading-relaxed text-mist">
             Every week we pick 10 big matches. You predict the exact score of each one before kickoff. Exact scores and correct
-            results earn points, and the player with the most points wins the prize pool. Like Gebeta, the board game of seeds and
+            results earn points, and the top slip wins the prize pool, as long as it scores more than 15 of the 30 match points. Like Gebeta, the board game of seeds and
             strategy we all grew up with, it rewards patience, knowledge and a little bit of nerve.
           </p>
           </div>
@@ -240,7 +240,7 @@ export default async function Home() {
           <div>
             <SectionTitle top="About" bottom="The prize pool" />
             <p className="mt-6 text-sm leading-relaxed text-mist">
-              No hidden fees. {prizePct}% of every entry goes straight to the winners and {housePct}% runs GebetaSoccer. The pot grows
+              No hidden fees. {prizePct}% of every entry goes to the winning slip (more than 15 of 30 points needed) and {housePct}% runs GebetaSoccer. If nobody passes 15, the round has no winner. The pot grows
               with every player who joins, and you can see it live right here.
             </p>
             <div className="mt-6 flex h-3 overflow-hidden rounded-full bg-white/10">
@@ -282,7 +282,7 @@ export default async function Home() {
             {[
               { icon: <BallIcon size={30} />, title: "Predict", text: "10 big matches every week. Lock your scores before kickoff." },
               { icon: <TrophyIcon size={30} />, title: "Compete", text: "Earn points for exact scores and correct results." },
-              { icon: <StarIcon size={30} />, title: "Win", text: `Top the table and take ${prizePct}% of the pool.` },
+              { icon: <StarIcon size={30} />, title: "Win", text: `Top the table with over 15 points and take ${prizePct}% of the pool.` },
               { icon: <ShieldIcon size={30} />, title: "Trust", text: "Every deposit and payout is recorded and can't be edited." },
             ].map((c) => (
               <div key={c.title} className="rounded-[1.5rem] border border-white/5 bg-card/60 p-4 text-center transition sm:rounded-[2rem] sm:p-6 duration-300 hover:-translate-y-2 hover:border-lilac/30 hover:bg-card">
@@ -321,7 +321,7 @@ export default async function Home() {
               <p className="text-lg font-extrabold">Slam Points</p>
               <p className="text-sm text-mist">Bonus for correct results in a round: 5–7 correct <b className="text-white">+1</b> · 8–9 correct <b className="text-white">+2</b> · 10 correct <b className="text-white">+3</b></p>
             </div>
-            <p className="text-xs text-mist">Ties: most correct results → most exact scores → most close picks</p>
+            <p className="text-xs text-mist">To win you need more than 15 of 30 match points. Ties: most correct results → most exact scores → most close picks</p>
           </div>
         </section>
 
