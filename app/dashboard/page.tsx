@@ -6,7 +6,7 @@ import { formatUnits, unitsToEtb } from "@/lib/money";
 import { formatEtb } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Countdown } from "@/components/Countdown";
-import PredictionBoard, { type SavedPrediction } from "./PredictionBoard";
+import PredictionBoard, { type SlipData } from "./PredictionBoard";
 import { ClockIcon, TrophyIcon, UsersIcon } from "@/components/icons";
 import { getTodo, picksNeededWithin } from "@/lib/todo";
 import { MatchLine, PointsChip, groupByDay } from "@/components/MatchLine";
@@ -30,17 +30,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const matches = round ? await getRoundMatches(supabase, round.id) : [];
   const pool = round ? await getRoundPool(supabase, round.id) : null;
 
-  let entered = false;
   let leagueNames: string[] = [];
-  let saved: SavedPrediction[] = [];
+  let slips: SlipData[] = [];
   if (round) {
-    const { data: entry } = await supabase
-      .from("round_entries")
-      .select("round_id")
+    const { data: slipRows } = await supabase
+      .from("slips")
+      .select("id, slip_no, slip_picks(match_id, home, away, points_earned)")
       .eq("round_id", round.id)
       .eq("user_id", me.id)
-      .maybeSingle();
-    entered = !!entry;
+      .order("slip_no");
+    slips = ((slipRows ?? []) as unknown as {
+      id: number;
+      slip_no: number;
+      slip_picks: { match_id: number; home: number; away: number; points_earned: number | null }[];
+    }[]).map((sl) => ({
+      id: sl.id,
+      slip_no: sl.slip_no,
+      picks: Object.fromEntries(
+        sl.slip_picks.map((p) => [p.match_id, { home: p.home, away: p.away, points: p.points_earned === null ? null : Number(p.points_earned) }]),
+      ),
+    }));
 
     const { data: myLeagues } = await supabase
       .from("league_members")
@@ -49,19 +58,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .eq("status", "active")
       .eq("leagues.round_id", round.id);
     leagueNames = ((myLeagues ?? []) as unknown as { leagues: { name: string } }[]).map((l) => l.leagues.name);
-
-    if (matches.length > 0) {
-      const { data } = await supabase
-        .from("predictions")
-        .select("match_id, predicted_home_score, predicted_away_score, points_earned")
-        .eq("user_id", me.id)
-        .in("match_id", matches.map((m) => m.id));
-      saved = (data ?? []).map((p: SavedPrediction) => ({
-        ...p,
-        points_earned: p.points_earned === null ? null : Number(p.points_earned),
-      }));
-    }
   }
+  // The whole round locks at its first kickoff.
+  const kickoffs = matches.filter((m) => !["postponed", "cancelled"].includes(m.status)).map((m) => new Date(m.kickoff_at).getTime());
+  const lockAt = kickoffs.length ? new Date(Math.min(...kickoffs)).toISOString() : null;
+  const bettable = !!round && round.status === "open" && matches.length === 10 && !!lockAt && new Date(lockAt).getTime() > Date.now();
 
   // ---- Live & Results: matches that kicked off in the last 14 days
   let recent: MatchRow[] = [];
@@ -95,8 +96,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
   }
 
-  const nextKickoff = matches.find((m) => m.status === "scheduled" && new Date(m.kickoff_at).getTime() > Date.now())?.kickoff_at;
-  const predictedCount = saved.length;
 
   return (
     <AppShell next="/dashboard">
@@ -116,7 +115,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <ClockIcon size={13} /> {h} hours
               </p>
               <p className={`mt-0.5 text-sm font-extrabold ${n > 0 ? "text-rose-100" : "text-emerald-200"}`}>
-                {n} pick{n === 1 ? "" : "s"} needed
+                {n > 0 ? `${n} slip${n === 1 ? "" : "s"} to place` : "All set"}
               </p>
             </Link>
           );
@@ -203,16 +202,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </p>
                   <p className="text-3xl font-extrabold text-white">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
                   <p className="flex items-center justify-end gap-1 text-xs text-mist">
-                    <UsersIcon size={13} /> {pool.entrants} player{pool.entrants === 1 ? "" : "s"}
+                    <UsersIcon size={13} /> {pool.entrants} slip{pool.entrants === 1 ? "" : "s"} · {pool.players} player{pool.players === 1 ? "" : "s"}
                   </p>
                 </div>
               )}
             </div>
             <div className="relative mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-              {nextKickoff && round.status === "open" ? <Countdown to={nextKickoff} /> : <span className="text-xs text-mist">All matches have kicked off</span>}
-              {(entered || leagueNames.length > 0) && (
+              {bettable && lockAt ? (
+                <Countdown to={lockAt} label="Betting closes in" />
+              ) : (
+                <span className="text-xs font-bold uppercase tracking-widest text-rose-200">Betting closed</span>
+              )}
+              {slips.length > 0 && (
                 <span className="rounded-full bg-lilac/15 px-3 py-1 text-xs font-bold text-lilac-soft">
-                  {predictedCount}/{matches.length} predicted
+                  {slips.length} slip{slips.length === 1 ? "" : "s"} placed
                 </span>
               )}
               <Link href="/leaderboard" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">
@@ -221,16 +224,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </section>
 
+          {leagueNames.length > 0 && (
+            <p className="mb-4 rounded-2xl border border-lilac/20 bg-lilac/10 p-3 text-sm text-mist">
+              🏳️ Your <b className="text-white">Slip #1</b> also counts in your league{leagueNames.length === 1 ? "" : "s"}:{" "}
+              <b className="text-white">{leagueNames.join(", ")}</b>
+              {slips.length === 0 && " — place a slip to play."}
+            </p>
+          )}
+
           <PredictionBoard
             roundId={round.id}
-            roundOpen={round.status === "open"}
-            entered={entered}
-            leagueNames={leagueNames}
+            bettable={bettable}
             entryFeeLabel={formatUnits(Number(round.entry_fee_units))}
             balanceUnits={me.balance_units}
             entryFeeUnits={Number(round.entry_fee_units)}
             matches={matches}
-            saved={saved}
+            slips={slips}
           />
         </>
       ) : (

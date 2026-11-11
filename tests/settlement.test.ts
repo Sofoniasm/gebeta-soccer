@@ -77,3 +77,15 @@ test("predictions from non-entrants are ignored", () => {
   });
   assert.ok(!r.payouts.some((p) => p.userId === "intruder"));
 });
+
+test("multi-slip: each slip is an entrant; one player's two winning slips share the prize", () => {
+  // slips 1 and 2 belong to the same player, slip 3 to someone else
+  const r = settleRound({
+    entrantIds: ["1", "2", "3"],
+    entryFeeUnits: 1,
+    results: [{ matchId: 1, homeScore: 2, awayScore: 0 }],
+    predictions: [pick(1, "1", 1, 2, 0), pick(2, "2", 1, 2, 0), pick(3, "3", 1, 0, 1)],
+  });
+  assert.equal(r.poolUnits, 3); // three slips paid
+  assert.deepEqual(r.payouts, [{ userId: "1", units: 1.05 }, { userId: "2", units: 1.05 }]);
+});

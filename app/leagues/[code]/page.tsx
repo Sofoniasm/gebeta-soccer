@@ -153,7 +153,7 @@ export default async function LeaguePage({
                 <h2 className="text-lg font-extrabold">League table</h2>
                 {myStatus === "active" && open && (
                   <Link href="/dashboard" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">
-                    Make my picks →
+                    My slips →
                   </Link>
                 )}
               </div>
@@ -192,7 +192,7 @@ export default async function LeaguePage({
                 </div>
               )}
               <p className="mt-3 text-xs text-mist">
-                Same scoring as the main game: exact 3 · close 1.5 · result 1, plus Slam Points.
+                Each member&apos;s <b className="text-white">Slip #1</b> in {league.rounds?.name ?? "the round"} is their league entry, so place a slip on the Predict page to play. Same scoring as the main game: exact 3 · close 1.5 · result 1, plus Slam Points.
                 {fee > 0 && " The winner takes 70% of the league pot (ties share it) when the round is settled."}
               </p>
             </section>

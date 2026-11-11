@@ -227,7 +227,7 @@ export default async function Home() {
               </p>
               <p className="mt-3 text-sm text-mist">
                 {pool && pool.entrants > 0
-                  ? `${pool.entrants} player${pool.entrants === 1 ? "" : "s"} in · grows with every entry`
+                  ? `${pool.entrants} slip${pool.entrants === 1 ? "" : "s"} placed · grows with every slip`
                   : activeRound
                     ? "Be the first to join this round"
                     : "Next round opens soon"}

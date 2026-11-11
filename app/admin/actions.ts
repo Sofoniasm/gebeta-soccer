@@ -11,10 +11,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { syncMatches } from "@/lib/football/sync";
-import { settleRound } from "@/lib/settlement";
 import { formatUnits } from "@/lib/money";
 import { pushNotifications } from "@/lib/notify";
 import { settleLeague } from "@/lib/league-settle";
+import { computeSlipSettlement } from "@/lib/slip-settle";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -222,54 +222,34 @@ export async function settle(formData: FormData) {
   const missing = list.filter((m: Row) => m.status === "finished" && (m.actual_home_score === null || m.actual_away_score === null));
   if (missing.length > 0) return done("err", `${missing.length} finished match(es) have no score. Enter them first.`);
 
-  // Superbru-style default picks for anyone who forgot a match (most popular pick).
-  const { error: defErr } = await admin.rpc("apply_default_picks", { p_round_id: roundId });
-  if (defErr) return done("err", `Default picks failed: ${defErr.message}`);
+  // Every slip is an entrant (slips are always complete, so no default picks needed).
+  const { result, slipById, payouts } = await computeSlipSettlement(admin, round);
 
-  const { data: entries } = await admin.from("round_entries").select("user_id").eq("round_id", roundId);
-  const { data: preds } = await admin
-    .from("predictions")
-    .select("id, user_id, match_id, predicted_home_score, predicted_away_score")
-    .in("match_id", list.map((m: Row) => m.id));
-
-  const result = settleRound({
-    entrantIds: (entries ?? []).map((e: Row) => e.user_id as string),
-    entryFeeUnits: Number(round.entry_fee_units),
-    houseCut: Number(round.house_cut),
-    results: list
-      .filter((m: Row) => m.status === "finished")
-      .map((m: Row) => ({ matchId: m.id, homeScore: m.actual_home_score, awayScore: m.actual_away_score })),
-    predictions: (preds ?? []).map((p: Row) => ({
-      predictionId: p.id,
-      userId: p.user_id,
-      matchId: p.match_id,
-      predictedHome: p.predicted_home_score,
-      predictedAway: p.predicted_away_score,
-    })),
-  });
-
-  const { error } = await admin.rpc("settle_round", {
+  const { error } = await admin.rpc("settle_round_slips", {
     p_round_id: roundId,
-    p_points: result.pointsByPrediction.map((p) => ({ prediction_id: p.predictionId, points: p.points })),
-    p_payouts: result.payouts.map((p) => ({ user_id: p.userId, units: p.units })),
+    p_points: result.pointsByPrediction.map((p) => ({ pick_id: p.predictionId, points: p.points })),
+    p_slams: result.slams.map((x) => ({ slip_id: Number(x.userId), slam_points: x.slamPoints })),
+    p_payouts: payouts.map((p) => ({ slip_id: p.slip.id, units: p.units, rank: p.rank })),
     p_admin_id: adminId,
-    p_slams: result.slams.map((x) => ({ user_id: x.userId, slam_points: x.slamPoints })),
   });
   if (error) return done("err", error.message);
 
-  // Everyone who played gets their result; winners already got "You won!" from the wallet.
-  const winnerIds = new Set(result.payouts.map((p) => p.userId));
+  // Every slip that didn't win gets its result; winners already got "You won!" from the wallet.
+  const winningSlips = new Set(payouts.map((p) => String(p.slip.id)));
   const total = result.standings.length;
   const roundName = (round.name as string) || `Round ${roundId}`;
   const notes = result.standings
-    .filter((s) => !winnerIds.has(s.userId))
-    .map((s) => ({
-      user_id: s.userId,
-      kind: "round_result",
-      title: `📊 ${roundName} results`,
-      body: `You finished #${s.rank} of ${total} with ${s.totalPoints} points (${s.exactScores} exact, ${s.correctResults} correct). Better luck next round!`,
-      link: "/results",
-    }));
+    .filter((s) => !winningSlips.has(s.userId))
+    .map((s) => {
+      const slip = slipById.get(s.userId)!;
+      return {
+        user_id: slip.user_id,
+        kind: "round_result",
+        title: `📊 ${roundName} results`,
+        body: `Slip #${slip.slip_no} finished #${s.rank} of ${total} with ${s.totalPoints} points (${s.exactScores} exact, ${s.correctResults} correct). Better luck next round!`,
+        link: "/results",
+      };
+    });
   if (notes.length) await admin.from("notifications").insert(notes);
 
   // Private leagues on this round are settled in the same click.
@@ -282,11 +262,11 @@ export async function settle(formData: FormData) {
 
   await pushNotifications();
 
-  const winners = result.payouts.length;
-  const paid = result.payouts.reduce((sum, p) => sum + p.units, 0);
+  const winners = payouts.length;
+  const paid = payouts.reduce((sum, p) => sum + p.units, 0);
   return done(
     "msg",
-    `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winner${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.` +
+    `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winning slip${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.` +
       (leagueMsgs.length ? ` Leagues: ${leagueMsgs.join(" ")}` : "")
   );
 }

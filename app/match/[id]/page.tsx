@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 interface Pick {
   username: string;
+  slip_no: number;
+  slips_count: number;
   home: number;
   away: number;
   points: number | null;
@@ -28,20 +30,24 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
   if (!match) notFound();
   const m = match as MatchRow & { rounds: { id: number; name: string; status: string } | null };
 
-  const started = new Date(m.kickoff_at).getTime() <= Date.now() || m.status !== "scheduled";
+  // Picks become visible when the round locks (its first kickoff).
+  const { data: lockData } = m.round_id ? await supabase.rpc("round_lock_at", { p_round_id: m.round_id }) : { data: null };
+  const lockAt = (lockData as string | null) ?? m.kickoff_at;
+  const started = new Date(lockAt).getTime() <= Date.now() || m.status !== "scheduled";
   const [{ data: picksData }, { data: countData }, { data: mine }] = await Promise.all([
     started ? supabase.rpc("get_match_picks", { p_match_id: m.id }) : Promise.resolve({ data: [] }),
     supabase.rpc("get_match_pick_count", { p_match_id: m.id }),
     supabase
-      .from("predictions")
-      .select("predicted_home_score, predicted_away_score, is_default")
+      .from("slip_picks")
+      .select("home, away, slips!inner(slip_no, user_id)")
       .eq("match_id", m.id)
-      .eq("user_id", me.id)
-      .maybeSingle(),
+      .eq("slips.user_id", me.id),
   ]);
   const picks = ((picksData ?? []) as Pick[]).map((p) => ({ ...p, points: p.points === null ? null : Number(p.points) }));
   const pickCount = Number(countData ?? 0);
-  const my = mine as { predicted_home_score: number; predicted_away_score: number; is_default: boolean } | null;
+  const myPicks = ((mine ?? []) as unknown as { home: number; away: number; slips: { slip_no: number } }[]).sort(
+    (a, b) => a.slips.slip_no - b.slips.slip_no,
+  );
 
   // Pick split: home win / draw / away win, and the most popular scores
   const total = picks.length;
@@ -82,12 +88,14 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3 border-t border-white/10 pt-4 text-sm">
-          <span className="text-mist">Your pick:</span>
-          {my ? (
-            <span className="rounded-full bg-lilac/20 px-3 py-1 font-extrabold text-lilac-soft">
-              {my.predicted_home_score} – {my.predicted_away_score}
-              {my.is_default && <span className="ml-1 text-[10px] text-amber-200">default</span>}
-            </span>
+          <span className="text-mist">Your pick{myPicks.length > 1 ? "s" : ""}:</span>
+          {myPicks.length ? (
+            myPicks.map((p) => (
+              <span key={p.slips.slip_no} className="rounded-full bg-lilac/20 px-3 py-1 font-extrabold text-lilac-soft">
+                {myPicks.length > 1 && <span className="mr-1 text-[10px] text-mist">#{p.slips.slip_no}</span>}
+                {p.home} – {p.away}
+              </span>
+            ))
           ) : (
             <span className="text-mist/70">none</span>
           )}
@@ -98,11 +106,11 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
       {!started ? (
         <div className="mt-5 rounded-[2rem] border border-white/5 bg-card/60 p-8 text-center">
           <LockIcon size={24} className="mx-auto text-lilac" />
-          <p className="mt-2 font-bold">Picks are hidden until kickoff</p>
-          <p className="mt-1 text-sm text-mist">At {timeOf(m.kickoff_at)} everyone&apos;s picks and the pick split appear here.</p>
+          <p className="mt-2 font-bold">Picks are hidden until the round locks</p>
+          <p className="mt-1 text-sm text-mist">At the first kickoff of the round ({timeOf(lockAt)}) everyone&apos;s slips and the pick split appear here.</p>
           {m.rounds?.status === "open" && (
             <Link href="/dashboard" className="mt-4 inline-block rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
-              {my ? "Change my pick" : "Make my pick"}
+              {myPicks.length ? "Edit my slips" : "Place a slip"}
             </Link>
           )}
         </div>
@@ -150,12 +158,13 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
           {/* Everyone's picks */}
           <section className="rounded-[2rem] border border-white/5 bg-card/60 p-6">
-            <h2 className="mb-4 text-lg font-extrabold">Everyone&apos;s picks</h2>
+            <h2 className="mb-4 text-lg font-extrabold">Everyone&apos;s slips</h2>
             <ul className="divide-y divide-white/5">
               {picks.map((p, i) => (
-                <li key={`${p.username}-${i}`} className={`flex items-center gap-3 py-2.5 ${p.is_me ? "-mx-3 rounded-xl bg-lilac/10 px-3" : ""}`}>
+                <li key={`${p.username}-${p.slip_no}-${i}`} className={`flex items-center gap-3 py-2.5 ${p.is_me ? "-mx-3 rounded-xl bg-lilac/10 px-3" : ""}`}>
                   <span className="flex-1 truncate font-semibold">
                     {p.username}
+                    {Number(p.slips_count) > 1 && <span className="ml-1 text-xs text-mist">#{p.slip_no}</span>}
                     {p.is_me && <span className="ml-1.5 text-xs text-lilac">(you)</span>}
                   </span>
                   <span className="font-extrabold">
@@ -169,7 +178,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
               ))}
             </ul>
             <p className="mt-3 text-xs text-mist">
-              <span className="text-amber-200">D</span> = default pick (the player didn&apos;t pick in time).
+              Players with several slips appear once per slip (#1, #2…).
             </p>
           </section>
         </div>

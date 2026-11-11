@@ -7,14 +7,15 @@ export interface TodoPick {
   round: RoundRow;
 }
 
+export type TodoRound = RoundRow & { lockAt: string };
+
 export interface Todo {
-  /** Open rounds the player hasn't joined yet */
-  join: RoundRow[];
-  /** Matches in joined rounds that still need a pick (kickoff in the future), soonest first */
+  /** Open rounds (still before the first kickoff) where the player has no slip yet */
+  join: TodoRound[];
+  /** Kept for compatibility: slips are always complete, so no single picks are ever missing */
   picks: TodoPick[];
-  /** Open matches in rounds not joined yet (shown as "join to predict") */
   notJoinedMatches: number;
-  /** Badge number: picks needed + rounds to join */
+  /** Badge number */
   count: number;
 }
 
@@ -32,42 +33,27 @@ export const getTodo = cache(async (): Promise<Todo> => {
   if (open.length === 0) return empty;
 
   const ids = open.map((r) => r.id);
-  const nowIso = new Date().toISOString();
-  const [{ data: entries }, { data: leagueRows }, { data: matches }] = await Promise.all([
-    supabase.from("round_entries").select("round_id").eq("user_id", user.id).in("round_id", ids),
-    supabase.from("league_members").select("leagues!inner(round_id)").eq("user_id", user.id).eq("status", "active").in("leagues.round_id", ids),
-    supabase
-      .from("matches")
-      .select("*")
-      .in("round_id", ids)
-      .eq("status", "scheduled")
-      .gt("kickoff_at", nowIso)
-      .order("kickoff_at", { ascending: true }),
+  const [{ data: slips }, { data: matches }] = await Promise.all([
+    supabase.from("slips").select("round_id").eq("user_id", user.id).in("round_id", ids),
+    supabase.from("matches").select("round_id, kickoff_at, status").in("round_id", ids),
   ]);
-  // Joined = in the main round, or in a private league on that round.
-  const joined = new Set([
-    ...((entries ?? []) as { round_id: number }[]).map((e) => e.round_id),
-    ...((leagueRows ?? []) as unknown as { leagues: { round_id: number } }[]).map((l) => l.leagues.round_id),
-  ]);
-  const list = (matches ?? []) as MatchRow[];
+  const haveSlip = new Set(((slips ?? []) as { round_id: number }[]).map((s) => s.round_id));
 
-  const { data: preds } = list.length
-    ? await supabase.from("predictions").select("match_id").eq("user_id", user.id).in("match_id", list.map((m) => m.id))
-    : { data: [] };
-  const picked = new Set(((preds ?? []) as { match_id: number }[]).map((p) => p.match_id));
-  const byId = new Map(open.map((r) => [r.id, r]));
-
-  const picks: TodoPick[] = list
-    .filter((m) => m.round_id && joined.has(m.round_id) && !picked.has(m.id))
-    .map((m) => ({ match: m, round: byId.get(m.round_id!)! }));
-  const join = open.filter((r) => !joined.has(r.id) && list.some((m) => m.round_id === r.id));
-  const notJoinedMatches = list.filter((m) => m.round_id && !joined.has(m.round_id)).length;
-
-  return { join, picks, notJoinedMatches, count: picks.length + join.length };
+  const now = Date.now();
+  const join: TodoRound[] = [];
+  for (const r of open) {
+    const ms = ((matches ?? []) as { round_id: number; kickoff_at: string; status: string }[]).filter(
+      (m) => m.round_id === r.id && !["postponed", "cancelled"].includes(m.status),
+    );
+    if (ms.length === 0) continue;
+    const lock = Math.min(...ms.map((m) => new Date(m.kickoff_at).getTime()));
+    if (lock > now && !haveSlip.has(r.id)) join.push({ ...r, lockAt: new Date(lock).toISOString() });
+  }
+  return { join, picks: [], notJoinedMatches: 0, count: join.length };
 });
 
-/** Picks needed for matches kicking off within the next `hours`. */
+/** Rounds still needing a slip that close within the next `hours`. */
 export function picksNeededWithin(todo: Todo, hours: number, now = Date.now()): number {
   const limit = now + hours * 3600_000;
-  return todo.picks.filter((p) => new Date(p.match.kickoff_at).getTime() <= limit).length;
+  return todo.join.filter((r) => new Date(r.lockAt).getTime() <= limit).length;
 }

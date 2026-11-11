@@ -18,6 +18,8 @@ interface Row {
   slam_points?: number;
   rounds_played?: number;
   wins?: number;
+  slip_no?: number;
+  slips_count?: number;
 }
 
 function Medal({ rank }: { rank: number }) {
@@ -90,7 +92,9 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
               <Medal rank={Number(r.rank)} />
               <div className="min-w-0">
                 <p className="truncate font-bold">
-                  {r.username} {r.is_me && <span className="ml-1 rounded-full bg-lilac px-2 py-0.5 text-[10px] font-extrabold uppercase text-ink">You</span>}
+                  {r.username}
+                  {Number(r.slips_count ?? 1) > 1 && <span className="ml-1 text-mist">#{r.slip_no}</span>}{" "}
+                  {r.is_me && <span className="ml-1 rounded-full bg-lilac px-2 py-0.5 text-[10px] font-extrabold uppercase text-ink">You</span>}
                 </p>
                 <p className="text-xs text-mist">
                   {Number(r.exact_scores)} exact

@@ -29,7 +29,10 @@ export interface MatchRow {
 }
 
 export interface PoolInfo {
+  /** number of slips placed */
   entrants: number;
+  /** distinct players */
+  players: number;
   pool_units: number;
   prize_fund_units: number;
 }
@@ -69,6 +72,7 @@ export async function getRoundPool(supabase: SupabaseClient, roundId: number): P
   const p = (data ?? {}) as Partial<PoolInfo>;
   return {
     entrants: Number(p.entrants ?? 0),
+    players: Number(p.players ?? 0),
     pool_units: Number(p.pool_units ?? 0),
     prize_fund_units: Number(p.prize_fund_units ?? 0),
   };

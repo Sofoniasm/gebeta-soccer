@@ -21,14 +21,13 @@ begin
   select string_agg(table_name || '.' || column_name || ':' || grantee || ':' || privilege_type, ', ') into t
     from information_schema.column_privileges
    where table_schema = 'public' and grantee in ('anon', 'authenticated') and privilege_type in ('INSERT', 'UPDATE')
-     and (table_name, column_name) not in (('predictions', 'match_id'), ('predictions', 'user_id'),
-          ('predictions', 'predicted_home_score'), ('predictions', 'predicted_away_score'), ('profiles', 'username'));
+     and (table_name, column_name) not in (('profiles', 'username'));
   if t is not null then raise exception 'FAIL: unexpected column write rights: %', t; end if;
 
   select string_agg(p.proname, ', ') into t from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.prosecdef and has_function_privilege('anon', p.oid, 'execute')
      and p.proname not in ('get_match_pick_count', 'get_overall_leaderboard', 'get_public_stats',
-                           'get_round_leaderboard', 'get_round_pool');
+                           'get_round_leaderboard', 'get_round_pool', 'round_lock_at', 'round_is_bettable');
   if t is not null then raise exception 'FAIL: logged-out visitors can run privileged functions: %', t; end if;
 
   select string_agg(p.proname, ', ') into t from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -46,7 +45,7 @@ update public.profiles set phone_verified_at = now();
 insert into public.rounds (name, status) values ('Test week', 'draft');
 insert into public.matches (round_id, home_team, away_team, kickoff_at) values
   ((select max(id) from public.rounds), 'Home FC', 'Away FC', now() + interval '1 day'),
-  ((select max(id) from public.rounds), 'Past FC', 'Old FC',  now() - interval '1 hour');
+  ((select max(id) from public.rounds), 'Late FC', 'Night FC', now() + interval '1 day 2 hours');
 insert into public.matches (round_id, home_team, away_team, kickoff_at)
   select (select max(id) from public.rounds), 'Team ' || g, 'Other ' || g, now() + interval '2 days'
     from generate_series(3, 10) g;
@@ -63,6 +62,12 @@ do $$ begin
   raise notice 'ok  rounds hold exactly 10 matches';
 end $$;
 update public.rounds set status = 'open' where id = (select max(id) from public.rounds);
+create table tests_slip as
+  select jsonb_agg(jsonb_build_object('match_id', id, 'home', 1, 'away', 0)) j from public.matches where round_id = (select max(id) from public.rounds);
+create table tests_slip9 as
+  select jsonb_agg(jsonb_build_object('match_id', id, 'home', 1, 'away', 0)) j
+    from (select id from public.matches where round_id = (select max(id) from public.rounds) limit 9) x;
+grant select on tests_slip, tests_slip9 to anon, authenticated;
 select public.admin_add_units('11111111-0000-0000-0000-000000000001', 10, 'test', null);
 select public.admin_add_units('11111111-0000-0000-0000-000000000002', 10, 'test', null);
 
@@ -113,49 +118,76 @@ do $$ begin
         raise exception 'FAIL: player gave themselves money'; exception when insufficient_privilege then null; end;
   begin insert into public.round_entries (round_id, user_id) values ((select max(id) from public.rounds), auth.uid());
         raise exception 'FAIL: player joined a round for free'; exception when insufficient_privilege then null; end;
-  begin perform public.enter_round((select max(id) from public.rounds));
-        raise exception 'FAIL: player with 0 units joined a round';
+  begin perform public.place_slip((select max(id) from public.rounds), (select j from tests_slip));
+        raise exception 'FAIL: player with 0 units placed a slip';
   exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
   begin insert into public.predictions (user_id, match_id, predicted_home_score, predicted_away_score)
         values (auth.uid(), (select min(id) from public.matches), 1, 0);
-        raise exception 'FAIL: player predicted without joining'; exception when insufficient_privilege then null; end;
+        raise exception 'FAIL: player wrote a pick directly'; exception when insufficient_privilege then null; end;
+  begin insert into public.slip_picks (slip_id, match_id, home, away) values (1, (select min(id) from public.matches), 1, 0);
+        raise exception 'FAIL: player wrote slip picks directly'; exception when insufficient_privilege then null; end;
+  begin insert into public.slips (round_id, user_id, slip_no) values ((select max(id) from public.rounds), auth.uid(), 1);
+        raise exception 'FAIL: player created a free slip'; exception when insufficient_privilege then null; end;
   begin insert into public.notifications (user_id, kind, title) values (auth.uid(), 'x', 'fake');
         raise exception 'FAIL: player created a notification'; exception when insufficient_privilege then null; end;
   begin perform public.admin_add_units(auth.uid(), 50, 'hack', auth.uid());
         raise exception 'FAIL: player ran admin_add_units'; exception when insufficient_privilege then null; end;
   begin perform public.settle_round(1, '[]', '[]', auth.uid());
         raise exception 'FAIL: player ran settle_round'; exception when insufficient_privilege then null; end;
+  begin perform public.settle_round_slips(1, '[]', '[]', '[]', auth.uid());
+        raise exception 'FAIL: player ran settle_round_slips'; exception when insufficient_privilege then null; end;
   if exists (select 1 from public.profiles where id <> auth.uid()) then raise exception 'FAIL: player can read other profiles'; end if;
   if exists (select 1 from public.wallet_ledger where user_id <> auth.uid()) then raise exception 'FAIL: player can read other wallets'; end if;
   raise notice 'ok  player can''t give themselves money, admin rights, free entry or fake data';
 end $$;
 reset role;
 
--- ---------- legit play + hidden picks + late picks ----------------------
+-- ---------- slips: legit play, 10-pick rule, hidden picks, lock ---------
 set role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', false) \g /dev/null
-select public.enter_round((select max(id) from public.rounds));
-insert into public.predictions (user_id, match_id, predicted_home_score, predicted_away_score)
-  values (auth.uid(), (select min(id) from public.matches where kickoff_at > now()), 2, 1);
+select public.place_slip((select max(id) from public.rounds), (select j from tests_slip));
+select public.place_slip((select max(id) from public.rounds), (select j from tests_slip));
 do $$ begin
-  begin insert into public.predictions (user_id, match_id, predicted_home_score, predicted_away_score)
-        values (auth.uid(), (select min(id) from public.matches where kickoff_at < now()), 1, 1);
-        raise exception 'FAIL: pick accepted after kickoff'; exception when insufficient_privilege then null; end;
-  begin update public.predictions set points_earned = 30 where user_id = auth.uid();
+  if (select count(*) from public.slips where user_id = auth.uid()) <> 2 then raise exception 'FAIL: two paid slips not recorded'; end if;
+  begin perform public.place_slip((select max(id) from public.rounds), (select j from tests_slip9));
+        raise exception 'FAIL: slip with 9 picks accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin update public.slip_picks set points_earned = 30;
         raise exception 'FAIL: player set their own points'; exception when insufficient_privilege then null; end;
-  begin perform public.request_withdrawal(9, '+251911000001');
+  begin perform public.request_withdrawal(8, '+251911000001');
         raise exception 'FAIL: withdrawal left less than 1 Unit';
   exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
-  raise notice 'ok  legit join + pick works; late picks, self-scoring and over-withdrawal blocked';
+  raise notice 'ok  slips need all 10 picks, each slip is paid, no self-scoring, no over-withdrawal';
 end $$;
 select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000002', false) \g /dev/null
 do $$ begin
-  if exists (select 1 from public.get_match_picks((select min(id) from public.matches where kickoff_at > now()))) then
-    raise exception 'FAIL: other players'' picks visible before kickoff';
+  if exists (select 1 from public.get_match_picks((select min(id) from public.matches))) then
+    raise exception 'FAIL: other players'' picks visible before the round locks';
   end if;
-  if exists (select 1 from public.predictions where user_id <> auth.uid()) then raise exception 'FAIL: player reads others'' picks directly'; end if;
-  raise notice 'ok  picks hidden until kickoff';
+  if exists (select 1 from public.slips where user_id <> auth.uid()) then raise exception 'FAIL: player can see other slips'; end if;
+  begin perform public.update_slip((select min(id) from public.slips), (select j from tests_slip));
+        raise exception 'FAIL: player edited someone else''s slip';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  raise notice 'ok  other players'' slips are private until the lock';
 end $$;
+reset role;
+update public.matches set kickoff_at = now() - interval '1 minute'
+ where id = (select min(id) from public.matches where round_id = (select max(id) from public.rounds));
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', false) \g /dev/null
+do $$ begin
+  begin perform public.place_slip((select max(id) from public.rounds), (select j from tests_slip));
+        raise exception 'FAIL: slip placed after the first kickoff';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.update_slip((select min(id) from public.slips where user_id = auth.uid()), (select j from tests_slip));
+        raise exception 'FAIL: slip edited after the first kickoff';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  raise notice 'ok  whole round locks at the first kickoff';
+end $$;
+reset role;
+update public.matches set kickoff_at = now() + interval '1 day'
+ where round_id = (select max(id) from public.rounds) and kickoff_at < now();
+set role authenticated;
 
 -- ---------- private leagues ---------------------------------------------
 select public.create_league('Test League', (select max(id) from public.rounds), 5, true) as code \gset

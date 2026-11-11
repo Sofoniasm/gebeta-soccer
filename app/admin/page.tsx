@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdminId } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoundPool, type MatchRow, type RoundRow } from "@/lib/rounds";
-import { settleRound } from "@/lib/settlement";
+import { computeSlipSettlement } from "@/lib/slip-settle";
 import { formatKickoff } from "@/lib/format";
 import { formatUnits, etbLabel } from "@/lib/money";
 import { assignMatches, createRound, removeMatch, setRoundStatus, setScore, settle, syncNow } from "./actions";
@@ -58,28 +58,20 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
   const allDone =
     roundMatches.length > 0 &&
     roundMatches.every((m) => ["cancelled", "postponed"].includes(m.status) || (m.status === "finished" && m.actual_home_score !== null && m.actual_away_score !== null));
+  // Every slip placed in this round (with phone numbers) + settlement preview
+  const slipCalc = round ? await computeSlipSettlement(admin, round) : null;
   let preview: { username: string; units: number }[] = [];
   let previewTotals: { pool: number; prize: number; house: number } | null = null;
-  if (round && allDone) {
-    const [{ data: entries }, { data: preds }] = await Promise.all([
-      admin.from("round_entries").select("user_id").eq("round_id", round.id),
-      admin.from("predictions").select("id, user_id, match_id, predicted_home_score, predicted_away_score").in("match_id", roundMatches.map((m) => m.id)),
-    ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const e = (entries ?? []) as any[]; const p = (preds ?? []) as any[];
-    const result = settleRound({
-      entrantIds: e.map((x) => x.user_id),
-      entryFeeUnits: Number(round.entry_fee_units),
-      houseCut: Number(round.house_cut),
-      results: roundMatches.filter((m) => m.status === "finished").map((m) => ({ matchId: m.id, homeScore: m.actual_home_score!, awayScore: m.actual_away_score! })),
-      predictions: p.map((x) => ({ predictionId: x.id, userId: x.user_id, matchId: x.match_id, predictedHome: x.predicted_home_score, predictedAway: x.predicted_away_score })),
-    });
-    const ids = result.payouts.map((x) => x.userId);
-    const { data: names } = ids.length ? await admin.from("profiles").select("id, username").in("id", ids) : { data: [] };
-    const nameOf = new Map(((names ?? []) as { id: string; username: string }[]).map((x) => [x.id, x.username]));
-    preview = result.payouts.map((x) => ({ username: nameOf.get(x.userId) ?? "player", units: x.units }));
-    previewTotals = { pool: result.poolUnits, prize: result.payouts.reduce((s, x) => s + x.units, 0), house: result.houseUnits };
+  if (slipCalc && allDone) {
+    preview = slipCalc.payouts.map((p) => ({ username: `${p.slip.username} · Slip #${p.slip.slip_no}`, units: p.units }));
+    previewTotals = {
+      pool: slipCalc.result.poolUnits,
+      prize: slipCalc.payouts.reduce((s, x) => s + x.units, 0),
+      house: slipCalc.result.houseUnits,
+    };
   }
+  const slipsPerPlayer = new Map<string, number>();
+  for (const sl of slipCalc?.slips ?? []) slipsPerPlayer.set(sl.user_id, (slipsPerPlayer.get(sl.user_id) ?? 0) + 1);
 
   const finishedCount = roundMatches.filter((m) => m.status === "finished").length;
 
@@ -234,6 +226,52 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
               </Step>
             </>
           )}
+          {round && (
+            <section className={card}>
+              <div className="mb-4 flex items-baseline justify-between gap-3">
+                <h2 className="text-lg font-extrabold">Slips placed</h2>
+                <p className="text-xs text-mist">
+                  {slipCalc?.slips.length ?? 0} slips · {slipsPerPlayer.size} players
+                </p>
+              </div>
+              {(slipCalc?.slips.length ?? 0) === 0 ? (
+                <p className="text-sm text-mist">No slips yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[520px] text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10 text-left text-[10px] font-bold uppercase tracking-[0.15em] text-mist/70">
+                        <th className="py-2.5 pr-3">Player</th>
+                        <th className="py-2.5 pr-3">Phone</th>
+                        <th className="py-2.5 pr-3">Slip</th>
+                        <th className="py-2.5 pr-3">Placed</th>
+                        <th className="py-2.5 text-right">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {slipCalc!.slips.map((sl) => {
+                        const st = slipCalc!.result.standings.find((x) => x.userId === String(sl.id));
+                        return (
+                          <tr key={sl.id}>
+                            <td className="py-2.5 pr-3 font-bold">
+                              <Link href={`/admin/players/${sl.user_id}`} className="hover:text-lilac">{sl.username}</Link>
+                            </td>
+                            <td className="py-2.5 pr-3 text-mist">{sl.phone ?? "—"}</td>
+                            <td className="py-2.5 pr-3">
+                              #{sl.slip_no}
+                              {(slipsPerPlayer.get(sl.user_id) ?? 0) > 1 && <span className="ml-1 text-xs text-mist">of {slipsPerPlayer.get(sl.user_id)}</span>}
+                            </td>
+                            <td className="py-2.5 pr-3 text-xs text-mist">{formatKickoff(sl.created_at)}</td>
+                            <td className="py-2.5 text-right font-bold">{st ? st.totalPoints : 0}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
         </div>
 
         {/* Side column */}
@@ -245,7 +283,8 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
               <span className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase">{round.status}</span>
               {pool && (
                 <dl className="mt-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><dt className="text-mist">Players</dt><dd className="font-bold">{pool.entrants}</dd></div>
+                  <div className="flex justify-between"><dt className="text-mist">Slips</dt><dd className="font-bold">{pool.entrants}</dd></div>
+                  <div className="flex justify-between"><dt className="text-mist">Players</dt><dd className="font-bold">{pool.players}</dd></div>
                   <div className="flex justify-between"><dt className="text-mist">Entry</dt><dd className="font-bold">{formatUnits(Number(round.entry_fee_units))}</dd></div>
                   <div className="flex justify-between"><dt className="text-mist">Pool</dt><dd className="font-bold">{etbLabel(pool.pool_units)}</dd></div>
                   <div className="flex justify-between"><dt className="text-mist">Prize (70%)</dt><dd className="font-bold text-lilac-soft">{etbLabel(pool.prize_fund_units)}</dd></div>

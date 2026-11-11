@@ -18,8 +18,8 @@ export const metadata = pageMeta({
 const STEPS = [
   { t: "Create your account", d: "Sign up with a username, your phone number and a password. You must be 18 or older." },
   { t: "Top up your wallet", d: `Send money to our Telegram admin (from ${ETB_PER_UNIT} ETB up to ${(MAX_DEPOSIT_UNITS * ETB_PER_UNIT).toLocaleString("en-US")} ETB) and quote your username. 1 Unit = ${ETB_PER_UNIT} ETB.` },
-  { t: "Join the weekly round", d: "Each round has 10 big matches and an entry fee shown on the round. Joining takes it from your wallet." },
-  { t: "Predict every score", d: "Type a score for each match. You can change a pick any time until that match kicks off — then it locks." },
+  { t: "Fill your slip", d: "Each round has 10 big matches. Type a score for all 10 — a slip can only be placed when every match has a score." },
+  { t: "Place your bet", d: "Placing a slip costs the round's entry fee (usually 1 Unit = 200 ETB). Want another go? Place more slips with different scores — each one is paid and competes on its own." },
   { t: "Watch the table move", d: "Points update live as matches finish. Check the leaderboard to see where you stand." },
   { t: "Win and cash out", d: "When the round is settled, 70% of the pool goes to the winner. Withdraw from your wallet to your phone." },
 ];
@@ -32,8 +32,8 @@ const SCORING = [
 ];
 
 const FAQ = [
-  ["When do predictions lock?", "Each match locks at its own kickoff time. You can still predict later matches in the round."],
-  ["What if I forget a match?", "You get a default pick — the most popular score among the other players for that match — so you're never left on zero. Check your To-do list to see which picks you still need."],
+  ["When does betting close?", "The whole round locks at its first kickoff. Until then you can edit your slips for free and place new ones. After that, no new slips and no changes."],
+  ["Can I place more than one slip?", "Yes. Every slip is paid separately and ranked separately (you appear as yourname #1, #2…). If two of your slips finish top, both win. Your Slip #1 is the one that counts in private leagues. Slips can't be refunded once placed."],
   ["Can I see other players' picks?", "Yes. Once a match kicks off, open it from Fixtures or Live & Results to see everyone's picks and how the players split between home win, draw and away win."],
   ["What if a match is postponed?", "A postponed or cancelled match scores 0 for everyone and doesn't count towards Slam Points."],
   ["How are ties decided?", "Most correct results, then most exact scores, then most close picks, then the smallest total goal difference. Players still level share the prize equally."],

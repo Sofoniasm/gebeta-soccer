@@ -10,13 +10,13 @@ export function GET() {
 > GebetaSoccer (${SITE_URL}) is a weekly football score-prediction game for players in Ethiopia (18+). Each round has exactly 10 big matches (Premier League and other top competitions). Players predict the score of every match, earn points for accuracy, and the best player wins the prize pool, paid in Ethiopian birr (ETB).
 
 ## How it works
-- Each round has exactly 10 matches. Each pick locks at that match's own kickoff time.
+- Each round has exactly 10 matches. Players fill a slip with a score for all 10 matches and pay the entry fee when placing it. Several slips per round are allowed; each is paid and ranked separately.
+- The whole round locks at its first kickoff: slips can be edited free until then; no refunds.
 - Scoring per match: exact score = 3 points; "close" (right result and 1 goal away, or 2 goals away with the same goal difference, e.g. 1-1 vs 2-2) = 1.5; correct result = 1; wrong = 0.
 - Slam Points per round: 5-7 correct results +1, 8-9 correct +2, all 10 correct +3.
 - Tie-breaks: most correct results, then most exact scores, then most close picks, then smallest total goal difference. Players still tied share the prize.
 - Prize: the round winner(s) receive 70% of the entry pool; 30% is the house fee.
-- Forgotten picks get a default pick: the most popular score among the other players for that match.
-- Everyone's picks are hidden until kickoff, then visible on the match page.
+- Everyone's slips are hidden until the round locks, then visible on the match page.
 
 ## Money
 - 1 Unit = 200 ETB. Typical round entry: 1 Unit.

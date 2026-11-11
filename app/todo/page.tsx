@@ -31,7 +31,7 @@ export default async function TodoPage() {
             <CheckIcon size={24} />
           </span>
           <p className="mt-3 text-lg font-bold">All done!</p>
-          <p className="mt-1 text-sm text-mist">You have no picks to make right now. We&apos;ll remind you when the next round opens.</p>
+          <p className="mt-1 text-sm text-mist">You&apos;ve placed a slip in every open round. Want another go? You can add more slips on the Predict page until the first kickoff.</p>
           <Link href="/fixtures" className="mt-5 inline-block text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">
             See upcoming fixtures →
           </Link>
@@ -41,14 +41,14 @@ export default async function TodoPage() {
           {todo.join.map((r) => (
             <div key={r.id} className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-lilac/30 bg-gradient-to-br from-lilac/15 to-transparent p-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">Join to play</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">Place your slip · closes {until(r.lockAt)}</p>
                 <p className="text-xl font-extrabold">{r.name}</p>
                 <p className="text-sm text-mist">
                   Entry {formatUnits(Number(r.entry_fee_units))} · your balance {formatUnits(me.balance_units)}
                 </p>
               </div>
               <Link href="/dashboard" className="rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
-                Join &amp; predict →
+                Fill my slip →
               </Link>
             </div>
           ))}

@@ -63,13 +63,18 @@ export default async function WalletPage() {
     switch (t.kind) {
       case "deposit":
         return { title: "Telegram deposit", note: (t.reference ?? "").replace(/^Telegram deposit ?·? ?/, "") };
-      case "entry_fee":
-        return { title: league ? `Joined league ${league}` : `Joined ${round}`, note: "Entry fee" };
+      case "entry_fee": {
+        const slip = (t.reference ?? "").match(/^Slip #(\d+)/);
+        if (league) return { title: `Joined league ${league}`, note: "Entry fee" };
+        return slip ? { title: `Bet placed: ${round} (Slip #${slip[1]})`, note: "Entry fee · no refunds" } : { title: `Joined ${round}`, note: "Entry fee" };
+      }
       case "payout": {
         if (league) {
           const m = (t.reference ?? "").match(/\(Rank (\d+)\)/);
           return { title: `Won league ${league}${m ? ` (Rank ${m[1]})` : ""}`, note: "70% of the league pot" };
         }
+        const slipWin = (t.reference ?? "").match(/^Slip #(\d+) winnings \(Rank (\d+)\)/);
+        if (slipWin) return { title: `Won ${round} (Slip #${slipWin[1]}, Rank ${slipWin[2]})`, note: "Prize money" };
         const r = t.round_id ? rankOf.get(t.round_id) : null;
         return { title: `Won ${round}${r ? ` (Rank ${r})` : ""}`, note: "Prize money" };
       }
