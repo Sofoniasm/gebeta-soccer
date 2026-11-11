@@ -2,8 +2,13 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TELEGRAM_URL } from "@/lib/config";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Terms & Responsible Play · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "Terms & responsible play",
+  description: "GebetaSoccer rules, 18+ policy, deposits, withdrawals, scoring, prize split and responsible play.",
+  path: "/terms",
+});
 
 // NOTE: plain-language starter terms. Have a lawyer review before launch.
 const sections: { title: string; body: string[] }[] = [

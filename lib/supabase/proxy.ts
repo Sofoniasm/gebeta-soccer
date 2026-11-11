@@ -58,5 +58,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Player, admin and sign-in pages must never show up in search results.
+  if (PRIVATE_PREFIXES.some((p) => path.startsWith(p)) || path === "/login" || ["/verify", "/tma"].some((p) => path.startsWith(p))) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+
   return response;
 }

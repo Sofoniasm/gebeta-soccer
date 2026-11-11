@@ -4,8 +4,13 @@ import { formatNewsDate, type NewsPost } from "@/lib/news";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "News · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "News & guides",
+  description: "GebetaSoccer news, round announcements and guides to football score prediction, scoring and payments in Ethiopia.",
+  path: "/news",
+});
 export const dynamic = "force-dynamic";
 
 export default async function NewsPage() {

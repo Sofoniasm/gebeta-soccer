@@ -6,8 +6,14 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
 import { SectionTitle } from "@/components/ui";
+import { breadcrumbJsonLd, faqJsonLd, pageMeta } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 
-export const metadata = { title: "How to play · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "How to play — rules, scoring & FAQ",
+  description: "How GebetaSoccer works: predict 10 football scores, exact score 3 points, close 1.5, result 1, Slam Points, tie-breaks, deposits in birr and withdrawals to Telebirr.",
+  path: "/how-to-play",
+});
 
 const STEPS = [
   { t: "Create your account", d: "Sign up with a username, your phone number and a password. You must be 18 or older." },
@@ -39,6 +45,8 @@ export default async function HowToPlayPage() {
   const { loggedIn } = await getPublicContext();
   return (
     <div className="relative">
+      <JsonLd data={faqJsonLd(FAQ as [string, string][])} />
+      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "" }, { name: "How to play", path: "/how-to-play" }])} />
       <SiteHeader loggedIn={loggedIn} />
       <PageHero title="How to play" subtitle="Six steps from sign-up to cash-out. It takes two minutes to learn and a whole season to master." image="/ball.webp" />
 

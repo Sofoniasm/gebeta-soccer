@@ -1,6 +1,11 @@
 import { RegisterForm } from "../AuthForms";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Create account · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "Create your free account",
+  description: "Join GebetaSoccer with your Ethiopian phone number and start predicting this week's 10 football matches. 18+.",
+  path: "/register",
+});
 
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;

@@ -4,8 +4,13 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
 import { SendIcon, TrophyIcon, UsersIcon, StarIcon } from "@/components/icons";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "For businesses · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "For businesses — sponsor a round",
+  description: "Sponsor a GebetaSoccer round, run a company prediction league or add prizes to reach engaged football fans across Ethiopia.",
+  path: "/business",
+});
 
 const OFFERS = [
   { icon: <TrophyIcon size={28} />, title: "Sponsor a round", body: "Put your brand on a weekly round, its leaderboard and the winner announcement on Telegram." },

@@ -13,6 +13,14 @@ import { MatchTicker, type TickerMatch } from "@/components/MatchTicker";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ArrowRightIcon, BallIcon, SendIcon, ShieldIcon, StarIcon, TrophyIcon, WalletIcon } from "@/components/icons";
+import { DEFAULT_DESCRIPTION, pageMeta, siteJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
+
+export const metadata = pageMeta({
+  title: "GebetaSoccer — Ethiopia's football score predictor. Win the prize pool",
+  description: DEFAULT_DESCRIPTION,
+  path: "",
+});
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +78,7 @@ export default async function Home() {
 
   return (
     <div className="relative overflow-x-hidden">
+      <JsonLd data={siteJsonLd()} />
       <FlowLines />
       <SiteHeader loggedIn={loggedIn} />
 

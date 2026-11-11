@@ -4,8 +4,13 @@ import { formatKickoff } from "@/lib/format";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Tournaments · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "Football tournaments",
+  description: "Predict the biggest Premier League and top European football matches every week on GebetaSoccer — 10 games per round, prizes in birr.",
+  path: "/tournaments",
+});
 export const dynamic = "force-dynamic";
 
 // Competitions available on our football data plan. `name` must match the

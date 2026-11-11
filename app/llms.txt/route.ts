@@ -1,0 +1,44 @@
+import { SITE_URL } from "@/lib/site";
+import { TELEGRAM_URL } from "@/lib/config";
+
+export const dynamic = "force-static";
+
+/** /llms.txt — a plain summary of GebetaSoccer for AI assistants (llmstxt.org format). */
+export function GET() {
+  const body = `# GebetaSoccer
+
+> GebetaSoccer (${SITE_URL}) is a weekly football score-prediction game for players in Ethiopia (18+). Each round has exactly 10 big matches (Premier League and other top competitions). Players predict the score of every match, earn points for accuracy, and the best player wins the prize pool, paid in Ethiopian birr (ETB).
+
+## How it works
+- Each round has exactly 10 matches. Each pick locks at that match's own kickoff time.
+- Scoring per match: exact score = 3 points; "close" (right result and 1 goal away, or 2 goals away with the same goal difference, e.g. 1-1 vs 2-2) = 1.5; correct result = 1; wrong = 0.
+- Slam Points per round: 5-7 correct results +1, 8-9 correct +2, all 10 correct +3.
+- Tie-breaks: most correct results, then most exact scores, then most close picks, then smallest total goal difference. Players still tied share the prize.
+- Prize: the round winner(s) receive 70% of the entry pool; 30% is the house fee.
+- Forgotten picks get a default pick: the most popular score among the other players for that match.
+- Everyone's picks are hidden until kickoff, then visible on the match page.
+
+## Money
+- 1 Unit = 200 ETB. Typical round entry: 1 Unit.
+- Deposits: 1,000-10,000 ETB per transaction, paid via Telebirr and confirmed by the admin on Telegram (${TELEGRAM_URL}).
+- Withdrawals: any amount; 1 Unit always stays in the account. Paid to the player's Telebirr number after review.
+
+## Private leagues
+- Any player can create a free league (bragging rights) or a paid league (5-50 Units per player, winner takes 70% of the league pot) and invite friends with a link or code.
+
+## Account & safety
+- Sign up with an Ethiopian mobile number and password; the number is confirmed with the Telegram bot.
+- Also available as a Telegram Mini App with the same account.
+- 18+ only. Play responsibly: only play with money you can afford to lose.
+
+## Key pages
+- [Home](${SITE_URL}/): overview, current prize pool, featured matches
+- [How to play](${SITE_URL}/how-to-play): rules, scoring and FAQ
+- [Tournaments](${SITE_URL}/tournaments): competitions covered
+- [News](${SITE_URL}/news): guides and announcements
+- [Get the app](${SITE_URL}/apps): install on Android, iPhone or use in Telegram
+- [About](${SITE_URL}/about)
+- [Terms & responsible play](${SITE_URL}/terms)
+`;
+  return new Response(body, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
+}

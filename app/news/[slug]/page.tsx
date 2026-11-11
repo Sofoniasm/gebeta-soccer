@@ -4,8 +4,35 @@ import { getPublicContext } from "@/lib/public";
 import { formatNewsDate, type NewsPost } from "@/lib/news";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { JsonLd } from "@/components/JsonLd";
+import { BRAND, breadcrumbJsonLd, pageMeta } from "@/lib/seo";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+
+async function loadPost(slug: string): Promise<NewsPost | null> {
+  const { supabase } = await getPublicContext();
+  const { data } = await supabase
+    .from("news_posts")
+    .select("id, slug, title, excerpt, body, cover_image, tag, published_at")
+    .eq("slug", slug)
+    .maybeSingle();
+  return (data as NewsPost) ?? null;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await loadPost(slug);
+  if (!post) return { title: "Article not found · GebetaSoccer", robots: { index: false } };
+  return pageMeta({
+    title: post.title,
+    description: post.excerpt,
+    path: `/news/${post.slug}`,
+    image: post.cover_image,
+    type: "article",
+    publishedTime: post.published_at,
+  });
+}
 
 export default async function NewsArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -20,6 +47,22 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
 
   return (
     <div className="relative">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "NewsArticle",
+          headline: post.title,
+          description: post.excerpt,
+          image: [`${SITE_URL}${post.cover_image}`],
+          datePublished: post.published_at,
+          dateModified: post.published_at,
+          inLanguage: "en",
+          mainEntityOfPage: `${SITE_URL}/news/${post.slug}`,
+          author: { "@type": "Organization", name: BRAND, url: SITE_URL },
+          publisher: { "@id": `${SITE_URL}/#organization`, "@type": "Organization", name: BRAND, logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` } },
+        }}
+      />
+      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "" }, { name: "News", path: "/news" }, { name: post.title, path: `/news/${post.slug}` }])} />
       <SiteHeader loggedIn={loggedIn} />
       <article>
         <header className="relative isolate overflow-hidden">

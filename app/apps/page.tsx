@@ -7,8 +7,13 @@ import { PageHero } from "@/components/PageHero";
 import { PhoneMockup } from "@/components/PhoneMockup";
 import { SendIcon } from "@/components/icons";
 import { SITE_HOST } from "@/lib/site";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Get the app · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "Get the app — Android, iPhone & Telegram",
+  description: "Install GebetaSoccer on Android or iPhone in seconds, or play inside Telegram with our Mini App. Same account everywhere.",
+  path: "/apps",
+});
 
 const ANDROID = [`Open ${SITE_HOST} in Chrome`, "Tap the ⋮ menu (top right)", "Tap “Add to Home screen” → Install", "Open GebetaSoccer from your home screen"];
 const IPHONE = [`Open ${SITE_HOST} in Safari`, "Tap the Share button (square with arrow)", "Scroll down and tap “Add to Home Screen”", "Tap “Add” — the icon appears on your home screen"];

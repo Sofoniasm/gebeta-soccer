@@ -4,8 +4,13 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
 import { CountUp } from "@/components/CountUp";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "About · GebetaSoccer" };
+export const metadata = pageMeta({
+  title: "About GebetaSoccer",
+  description: "GebetaSoccer is a football prediction game built in Ethiopia, inspired by Gebeta — the classic board game of patience and strategy.",
+  path: "/about",
+});
 export const dynamic = "force-dynamic";
 
 const CARDS = [
