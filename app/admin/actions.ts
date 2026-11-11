@@ -205,3 +205,41 @@ export async function settle(formData: FormData) {
     `Round settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winner${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.`
   );
 }
+
+// ------------------------------------------------- deposit / withdrawal requests
+export async function approveDeposit(formData: FormData) {
+  const adminId = await requireAdmin();
+  const id = Number(formData.get("requestId"));
+  const units = Number(formData.get("units"));
+  if (!Number.isFinite(units) || units <= 0) done("err", "Units must be positive.");
+  const { error } = await createAdminClient().rpc("admin_approve_deposit", { p_request_id: id, p_units: units, p_admin_id: adminId });
+  if (error) done("err", error.message);
+  done("msg", `Deposit #${id} approved: ${formatUnits(units)} credited.`);
+}
+
+export async function rejectDeposit(formData: FormData) {
+  const adminId = await requireAdmin();
+  const id = Number(formData.get("requestId"));
+  const note = String(formData.get("note") ?? "").trim() || "Payment not found";
+  const { error } = await createAdminClient().rpc("admin_reject_deposit", { p_request_id: id, p_note: note, p_admin_id: adminId });
+  if (error) done("err", error.message);
+  done("msg", `Deposit #${id} rejected.`);
+}
+
+export async function markWithdrawalPaid(formData: FormData) {
+  const adminId = await requireAdmin();
+  const id = Number(formData.get("requestId"));
+  const note = String(formData.get("note") ?? "").trim() || null;
+  const { error } = await createAdminClient().rpc("admin_mark_withdrawal_paid", { p_request_id: id, p_note: note, p_admin_id: adminId });
+  if (error) done("err", error.message);
+  done("msg", `Withdrawal #${id} marked as paid.`);
+}
+
+export async function rejectWithdrawal(formData: FormData) {
+  const adminId = await requireAdmin();
+  const id = Number(formData.get("requestId"));
+  const note = String(formData.get("note") ?? "").trim() || "Rejected";
+  const { error } = await createAdminClient().rpc("admin_reject_withdrawal", { p_request_id: id, p_note: note, p_admin_id: adminId });
+  if (error) done("err", error.message);
+  done("msg", `Withdrawal #${id} rejected and units refunded.`);
+}

@@ -20,6 +20,8 @@ interface Props {
   roundOpen: boolean;
   entered: boolean;
   entryFeeLabel: string;
+  balanceUnits: number;
+  entryFeeUnits: number;
   matches: MatchRow[];
   saved: SavedPrediction[];
 }
@@ -56,7 +58,7 @@ function ScoreInput(props: { value: string; disabled: boolean; label: string; on
   );
 }
 
-export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeLabel, matches, saved }: Props) {
+export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeLabel, balanceUnits, entryFeeUnits, matches, saved }: Props) {
   const savedByMatch = useMemo(() => new Map(saved.map((s) => [s.match_id, s])), [saved]);
 
   const [draft, setDraft] = useState<Draft>(() => {
@@ -101,16 +103,22 @@ export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeL
   }
 
   return (
-    <div className="space-y-3 pb-28">
+    <div className="space-y-4 pb-24">
       {result && <Banner kind={result.ok ? "success" : "error"}>{result.message}</Banner>}
 
       {!entered && roundOpen && (
-        <div className="rounded-2xl border border-lilac/25 bg-gradient-to-br from-lilac/15 to-transparent p-5">
-          <p className="text-lg font-bold">Join this round</p>
-          <p className="mt-1 text-sm text-mist">Entry: {entryFeeLabel}. Predict all matches and win the pot.</p>
-          <button onClick={onJoin} disabled={pending} className={`${primaryButtonClass} mt-4`}>
-            {pending && <SpinnerIcon size={18} />} Join round
-          </button>
+        <div className="rounded-[2rem] border border-lilac/30 bg-gradient-to-br from-lilac/20 to-transparent p-6">
+          <p className="text-lg font-extrabold">Join this round</p>
+          <p className="mt-1 text-sm text-mist">Entry: {entryFeeLabel}. Predict every match and win the pot.</p>
+          {balanceUnits >= entryFeeUnits ? (
+            <button onClick={onJoin} disabled={pending} className={`${primaryButtonClass} mt-5 sm:w-auto`}>
+              {pending && <SpinnerIcon size={18} />} Join round
+            </button>
+          ) : (
+            <a href="/wallet" className={`${primaryButtonClass} mt-5 sm:w-auto`}>
+              Top up to join
+            </a>
+          )}
         </div>
       )}
 
@@ -187,7 +195,7 @@ export default function PredictionBoard({ roundId, roundOpen, entered, entryFeeL
       )}
 
       {canEdit && editable.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-plum/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-white/10 bg-[#0b0912]/90 p-3 backdrop-blur-xl lg:bottom-0 lg:left-72 lg:p-4">
           <div className="mx-auto max-w-md">
             <button onClick={onSave} disabled={pending || changed.length === 0} className={primaryButtonClass}>
               {pending && <SpinnerIcon size={18} />}

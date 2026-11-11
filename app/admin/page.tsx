@@ -5,7 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoundPool, type MatchRow, type RoundRow } from "@/lib/rounds";
 import { formatKickoff, formatEtb } from "@/lib/format";
 import { formatUnits, unitsToEtb } from "@/lib/money";
-import { addUnits, assignMatches, createRound, removeMatch, setRoundStatus, setScore, settle, syncNow } from "./actions";
+import { addUnits, approveDeposit, assignMatches, createRound, markWithdrawalPaid, rejectDeposit, rejectWithdrawal, removeMatch, setRoundStatus, setScore, settle, syncNow } from "./actions";
+import { ETB_PER_UNIT } from "@/lib/money";
 import { Banner, Card, Logo, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { RefreshIcon } from "@/components/icons";
 import { FlowLines } from "@/components/FlowLines";
@@ -74,6 +75,11 @@ export default async function AdminPage({
 
   const { data: recentRounds } = await admin.from("rounds").select("*").order("id", { ascending: false }).limit(5);
 
+  const [{ data: pendingDeposits }, { data: pendingWithdrawals }] = await Promise.all([
+    admin.from("deposit_requests").select("id, amount_etb, reference, created_at, profiles(username, phone_number)").eq("status", "pending").order("created_at"),
+    admin.from("withdrawal_requests").select("id, units, payout_phone, created_at, profiles(username)").eq("status", "pending").order("created_at"),
+  ]);
+
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
     <FlowLines />
@@ -88,6 +94,56 @@ export default async function AdminPage({
 
       {msg && <Banner kind="success">{msg}</Banner>}
       {err && <Banner kind="error">{err}</Banner>}
+
+      {/* -------------------------------------------- pending requests */}
+      <Card className="space-y-4">
+        <h2 className="text-lg font-bold">Pending requests</h2>
+        {(pendingDeposits ?? []).length === 0 && (pendingWithdrawals ?? []).length === 0 && (
+          <p className="text-sm text-mist">Nothing waiting. 🎉</p>
+        )}
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        {(pendingDeposits ?? []).map((d: any) => (
+          <div key={`d${d.id}`} className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <p className="text-sm font-semibold">
+              Deposit #{d.id} · {d.profiles?.username} <span className="text-mist">({d.profiles?.phone_number})</span>
+            </p>
+            <p className="text-xs text-mist">{Number(d.amount_etb)} ETB · Telebirr ref <b className="text-white">{d.reference}</b> · {formatKickoff(d.created_at)}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <form action={approveDeposit} className="flex gap-2">
+                <input type="hidden" name="requestId" value={d.id} />
+                <input name="units" type="number" step="0.5" min="0.5" defaultValue={Math.floor((Number(d.amount_etb) / ETB_PER_UNIT) * 2) / 2} className={`${small} w-20`} aria-label="Units to credit" />
+                <SubmitButton className={secondaryButtonClass}>Approve</SubmitButton>
+              </form>
+              <form action={rejectDeposit} className="flex gap-2">
+                <input type="hidden" name="requestId" value={d.id} />
+                <input name="note" placeholder="Reason" className={`${small} w-32`} />
+                <SubmitButton className="text-xs text-rose-300 hover:text-rose-200">Reject</SubmitButton>
+              </form>
+            </div>
+          </div>
+        ))}
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        {(pendingWithdrawals ?? []).map((w: any) => (
+          <div key={`w${w.id}`} className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <p className="text-sm font-semibold">Withdrawal #{w.id} · {w.profiles?.username}</p>
+            <p className="text-xs text-mist">
+              Send <b className="text-white">{Number(w.units) * ETB_PER_UNIT} ETB</b> ({formatUnits(Number(w.units))}) to Telebirr <b className="text-white">{w.payout_phone}</b> · {formatKickoff(w.created_at)}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <form action={markWithdrawalPaid} className="flex gap-2">
+                <input type="hidden" name="requestId" value={w.id} />
+                <input name="note" placeholder="Telebirr txn ID" className={`${small} w-36`} />
+                <SubmitButton className={secondaryButtonClass} confirm="Have you sent the money? Mark as paid?">Mark paid</SubmitButton>
+              </form>
+              <form action={rejectWithdrawal} className="flex gap-2">
+                <input type="hidden" name="requestId" value={w.id} />
+                <input name="note" placeholder="Reason" className={`${small} w-32`} />
+                <SubmitButton className="text-xs text-rose-300 hover:text-rose-200">Reject & refund</SubmitButton>
+              </form>
+            </div>
+          </div>
+        ))}
+      </Card>
 
       {/* -------------------------------------------- users & deposits */}
       <Card className="space-y-4">

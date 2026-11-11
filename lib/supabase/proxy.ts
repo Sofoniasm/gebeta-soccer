@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
 
-const PRIVATE_PREFIXES = ["/dashboard", "/admin"];
+const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function updateSession(request: NextRequest) {
