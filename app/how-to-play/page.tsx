@@ -52,12 +52,12 @@ export default async function HowToPlayPage() {
 
       <main className="mx-auto max-w-6xl px-6">
         <section className="py-16">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
             {STEPS.map((s, i) => (
-              <div key={s.t} className="rounded-[2rem] border border-white/5 bg-card/60 p-6">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lilac text-sm font-extrabold text-ink">{i + 1}</span>
-                <p className="mt-4 text-lg font-extrabold">{s.t}</p>
-                <p className="mt-2 text-sm leading-relaxed text-mist">{s.d}</p>
+              <div key={s.t} className="rounded-[1.5rem] border border-white/5 bg-card/60 p-4 sm:rounded-[2rem] sm:p-6">
+                <span className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-lilac text-sm font-extrabold text-ink">{i + 1}</span>
+                <p className="mt-3 text-sm font-extrabold sm:mt-4 sm:text-lg">{s.t}</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-mist sm:mt-2 sm:text-sm">{s.d}</p>
               </div>
             ))}
           </div>
@@ -65,12 +65,12 @@ export default async function HowToPlayPage() {
 
         <section className="pb-16">
           <SectionTitle top="Scoring" bottom="Points per match" />
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {SCORING.map(([p, t, d]) => (
-              <div key={t} className="rounded-[2rem] border border-white/5 bg-card/60 p-6">
-                <p className="text-4xl font-extrabold text-lilac">{p}</p>
-                <p className="mt-3 font-bold">{t}</p>
-                <p className="mt-1 text-sm text-mist">{d}</p>
+              <div key={t} className="rounded-[1.5rem] border border-white/5 bg-card/60 p-4 sm:rounded-[2rem] sm:p-6">
+                <p className="text-3xl font-extrabold text-lilac sm:text-4xl">{p}</p>
+                <p className="mt-2 text-sm font-bold sm:mt-3 sm:text-base">{t}</p>
+                <p className="mt-1 text-xs leading-snug text-mist sm:text-sm">{d}</p>
               </div>
             ))}
           </div>

@@ -19,7 +19,7 @@ export default async function CertificatesPage() {
         </span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {certs.map((c) => {
           const pct = c.progress ? Math.round((c.progress.have / c.progress.need) * 100) : c.earned ? 100 : 0;
           return (

@@ -134,12 +134,12 @@ export default async function Home() {
         {featured.length > 0 && (
           <div className="mx-auto max-w-6xl px-6 pb-16">
             <p className="mb-5 text-center text-xl font-bold text-white sm:text-2xl">Big matches this week</p>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:pb-0">
               {featured.map((m, i) => (
                 <Link
                   key={i}
                   href={ctaHref}
-                  className="group overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#141022]/75 backdrop-blur-xl transition hover:-translate-y-1 hover:border-lilac/40"
+                  className="group w-[78%] shrink-0 snap-center overflow-hidden rounded-[1.75rem] border md:w-auto border-white/10 bg-[#141022]/75 backdrop-blur-xl transition hover:-translate-y-1 hover:border-lilac/40"
                 >
                   <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.04] px-5 py-3 text-xs">
                     <span className="font-bold uppercase tracking-widest text-lilac">{m.competition ?? "Football"}</span>
@@ -170,18 +170,18 @@ export default async function Home() {
 
       <main className="relative mx-auto max-w-7xl px-6 lg:px-10">
         {/* ------------------------------------------------ Info strip */}
-        <section className="mt-12 rounded-[2.5rem] border border-white/5 bg-gradient-to-r from-card/80 via-[#3e3660]/80 to-card/80 px-6 py-6 backdrop-blur">
-          <div className="grid gap-6 sm:grid-cols-3 sm:divide-x sm:divide-white/10">
+        <section className="mt-12 rounded-[2rem] border border-white/5 bg-gradient-to-r from-card/80 via-[#3e3660]/80 to-card/80 px-3 py-5 backdrop-blur sm:rounded-[2.5rem] sm:px-6 sm:py-6">
+          <div className="grid grid-cols-3 gap-2 divide-x divide-white/10 sm:gap-6">
             {[
               { icon: <WalletIcon size={26} />, title: "Top up with Telebirr", text: `1 unit = ${ETB_PER_UNIT} ETB` },
               { icon: <SendIcon size={26} />, title: "Confirmed on Telegram", text: "Send your receipt, we credit fast" },
               { icon: <ShieldIcon size={26} />, title: "Fair & transparent", text: `${prizePct}% to winners, every round` },
             ].map((i) => (
-              <div key={i.title} className="flex items-center gap-4 sm:justify-center sm:px-4">
+              <div key={i.title} className="flex flex-col items-center gap-2 px-1 text-center sm:flex-row sm:justify-center sm:gap-4 sm:px-4 sm:text-left">
                 <span className="text-lilac-soft">{i.icon}</span>
                 <div>
-                  <p className="font-bold">{i.title}</p>
-                  <p className="text-xs text-mist">{i.text}</p>
+                  <p className="text-xs font-bold leading-tight sm:text-base">{i.title}</p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-mist sm:text-xs">{i.text}</p>
                 </div>
               </div>
             ))}
@@ -189,7 +189,7 @@ export default async function Home() {
         </section>
 
         {/* ------------------------------------------------ Introduction */}
-        <section id="how" className="grid scroll-mt-24 items-center gap-12 py-20 lg:grid-cols-2">
+        <section id="how" className="grid scroll-mt-24 items-center gap-8 py-12 sm:gap-12 sm:py-20 lg:grid-cols-2">
           <div>
             <SectionTitle top="Introduction" bottom="To GebetaSoccer" />
             <p className="mt-6 text-sm leading-relaxed text-mist">
@@ -207,7 +207,7 @@ export default async function Home() {
         </section>
 
         {/* ------------------------------------------------ Prize pool */}
-        <section id="prize" className="grid scroll-mt-24 items-center gap-12 lg:grid-cols-2">
+        <section id="prize" className="grid scroll-mt-24 items-center gap-8 sm:gap-12 lg:grid-cols-2">
           <div className="relative mx-auto w-full max-w-md">
             <div className="absolute inset-0 -rotate-3 rounded-[3.5rem] bg-gradient-to-br from-[#5f539c]/70 to-lilac/50" />
             <div className="relative overflow-hidden rounded-[3.5rem] border border-white/10 bg-ink px-8 py-12 text-center">
@@ -264,7 +264,7 @@ export default async function Home() {
       </main>
 
       {/* ------------------------------------------------ Why play (full-width dark band) */}
-      <section className="relative mt-20 overflow-hidden bg-[#16121f] py-20">
+      <section className="relative mt-14 overflow-hidden bg-[#16121f] py-14 sm:mt-20 sm:py-20">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/crowd.webp" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-bottom opacity-70" />
         <div className="absolute inset-0 bg-gradient-to-b from-plum via-[#0b0912]/70 to-[#0b0912]/90" />
@@ -278,19 +278,19 @@ export default async function Home() {
               every birr goes.
             </p>
           </div>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-4 lg:grid-cols-4">
             {[
               { icon: <BallIcon size={30} />, title: "Predict", text: "10 big matches every week. Lock your scores before kickoff." },
               { icon: <TrophyIcon size={30} />, title: "Compete", text: "Earn points for exact scores and correct results." },
               { icon: <StarIcon size={30} />, title: "Win", text: `Top the table and take ${prizePct}% of the pool.` },
               { icon: <ShieldIcon size={30} />, title: "Trust", text: "Every deposit and payout is recorded and can't be edited." },
             ].map((c) => (
-              <div key={c.title} className="rounded-[2rem] border border-white/5 bg-card/60 p-6 text-center transition duration-300 hover:-translate-y-2 hover:border-lilac/30 hover:bg-card">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-plum bg-gradient-to-br from-lilac to-[#6c5fb3] text-ink shadow-lg shadow-black/30">
+              <div key={c.title} className="rounded-[1.5rem] border border-white/5 bg-card/60 p-4 text-center transition sm:rounded-[2rem] sm:p-6 duration-300 hover:-translate-y-2 hover:border-lilac/30 hover:bg-card">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-4 sm:h-20 sm:w-20 border-plum bg-gradient-to-br from-lilac to-[#6c5fb3] text-ink shadow-lg shadow-black/30">
                   {c.icon}
                 </div>
-                <p className="mt-5 text-sm font-extrabold uppercase tracking-widest">{c.title}</p>
-                <p className="mt-2 text-sm text-mist">{c.text}</p>
+                <p className="mt-3 text-xs font-extrabold uppercase tracking-widest sm:mt-5 sm:text-sm">{c.title}</p>
+                <p className="mt-1.5 text-xs leading-snug text-mist sm:mt-2 sm:text-sm">{c.text}</p>
               </div>
             ))}
           </div>
@@ -299,20 +299,20 @@ export default async function Home() {
 
       <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
         {/* ------------------------------------------------ Scoring */}
-        <section id="scoring" className="scroll-mt-24 py-20">
+        <section id="scoring" className="scroll-mt-24 py-14 sm:py-20">
           <SectionTitle top="Scoring" bottom="How points work" />
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4">
             {[
               [POINTS.EXACT, "Exact score", "You say 2-1, it ends 2-1"],
               [POINTS.CLOSE, "Close", "Right result and 1 goal away (or 1-1 vs 2-2)"],
               [POINTS.RESULT, "Right result", "Correct winner or draw"],
               [POINTS.WRONG, "Wrong result", "Better luck next match"],
             ].map(([pts, label, ex]) => (
-              <div key={String(label)} className="rounded-[2rem] border border-white/5 bg-card/60 p-6 transition duration-300 hover:-translate-y-2 hover:border-lilac/30">
-                <p className="text-4xl font-extrabold text-lilac">{pts}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-mist">points</p>
-                <p className="mt-4 font-bold">{label}</p>
-                <p className="mt-1 text-sm text-mist">{ex}</p>
+              <div key={String(label)} className="rounded-[1.5rem] border border-white/5 bg-card/60 p-4 transition duration-300 hover:-translate-y-2 hover:border-lilac/30 sm:rounded-[2rem] sm:p-6">
+                <p className="text-3xl font-extrabold text-lilac sm:text-4xl">{pts}</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-mist sm:text-xs">points</p>
+                <p className="mt-3 text-sm font-bold sm:mt-4 sm:text-base">{label}</p>
+                <p className="mt-1 text-xs leading-snug text-mist sm:text-sm">{ex}</p>
               </div>
             ))}
           </div>

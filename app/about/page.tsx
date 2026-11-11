@@ -45,15 +45,15 @@ export default async function AboutPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#3a3166] via-[#4a3f86] to-[#2c2740]" />
           <div className="relative mx-auto max-w-6xl px-6 text-center">
             <h2 className="text-2xl font-extrabold">GebetaSoccer in numbers</h2>
-            <div className="mt-10 grid gap-8 sm:grid-cols-3">
+            <div className="mt-8 grid grid-cols-3 gap-3 sm:mt-10 sm:gap-8">
               {[
                 [Number(stats.players), "Registered players"],
                 [Number(stats.predictions), "Predictions made"],
                 [Number(stats.rounds), "Rounds completed"],
               ].map(([n, label]) => (
                 <div key={String(label)}>
-                  <p className="font-mono text-5xl font-bold tracking-tight text-white"><CountUp value={Number(n)} suffix="" /></p>
-                  <p className="mt-2 text-sm text-white/80">{label}</p>
+                  <p className="font-mono text-3xl font-bold tracking-tight text-white sm:text-5xl"><CountUp value={Number(n)} suffix="" /></p>
+                  <p className="mt-1 text-xs leading-snug text-white/80 sm:mt-2 sm:text-sm">{label}</p>
                 </div>
               ))}
             </div>

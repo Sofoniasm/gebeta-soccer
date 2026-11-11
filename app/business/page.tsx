@@ -25,12 +25,14 @@ export default async function BusinessPage() {
       <SiteHeader loggedIn={loggedIn} />
       <PageHero title="For businesses" subtitle="Reach football fans every weekend — at the moment they care most." image="/crowd.webp" />
       <main className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 md:gap-5">
           {OFFERS.map((o) => (
-            <div key={o.title} className="rounded-[2rem] border border-white/5 bg-card/60 p-8 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-lilac to-[#6c5fb3] text-ink">{o.icon}</div>
-              <p className="mt-5 text-lg font-extrabold">{o.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-mist">{o.body}</p>
+            <div key={o.title} className="flex items-start gap-4 rounded-[1.5rem] border border-white/5 bg-card/60 p-5 md:block md:rounded-[2rem] md:p-8 md:text-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lilac to-[#6c5fb3] text-ink md:mx-auto md:h-16 md:w-16">{o.icon}</div>
+              <div>
+                <p className="text-base font-extrabold md:mt-5 md:text-lg">{o.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-mist md:mt-2">{o.body}</p>
+              </div>
             </div>
           ))}
         </div>

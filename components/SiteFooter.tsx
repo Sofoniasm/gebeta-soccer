@@ -4,25 +4,25 @@ import { TELEGRAM_URL } from "@/lib/config";
 
 const COLS = [
   { title: "Play", links: [["Create account", "/register"], ["Log in", "/login"], ["My predictions", "/dashboard"], ["Tournaments", "/tournaments"]] },
-  { title: "Learn", links: [["How to play", "/how-to-play"], ["News", "/news"], ["Get the app", "/apps"], ["Terms & responsible play", "/terms"]] },
-  { title: "Company", links: [["About us", "/about"], ["For businesses", "/business"], ["Contact on Telegram", TELEGRAM_URL]] },
+  { title: "Learn", links: [["How to play", "/how-to-play"], ["News", "/news"], ["Get the app", "/apps"], ["Terms", "/terms"]] },
+  { title: "Company", links: [["About us", "/about"], ["For businesses", "/business"], ["Telegram", TELEGRAM_URL]] },
 ];
 
 export function SiteFooter() {
   return (
     <footer className="relative border-t border-white/5 bg-ink">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-5 lg:px-10">
-        <div className="lg:col-span-2">
+      <div className="mx-auto grid max-w-7xl grid-cols-3 gap-x-4 gap-y-8 px-6 py-10 sm:gap-10 sm:py-14 lg:grid-cols-5 lg:px-10">
+        <div className="col-span-3 lg:col-span-2">
           <Wordmark className="text-2xl" />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-mist">
-            Ethiopia&apos;s weekly football prediction game, inspired by Gebeta — the board game of strategy we all grew up with.
+            Ethiopia&apos;s weekly football prediction game, inspired by Gebeta, the board game of strategy we all grew up with.
           </p>
           <span className="mt-5 inline-flex rounded-full border border-white/15 px-3 py-1 text-xs font-bold text-mist">18+ · Play responsibly</span>
         </div>
         {COLS.map((c) => (
           <div key={c.title}>
-            <p className="text-xs font-bold uppercase tracking-widest text-lilac">{c.title}</p>
-            <ul className="mt-4 space-y-2 text-sm text-mist">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-lilac sm:text-xs">{c.title}</p>
+            <ul className="mt-3 space-y-2.5 text-[13px] leading-snug text-mist sm:mt-4 sm:space-y-2 sm:text-sm">
               {c.links.map(([label, href]) => (
                 <li key={label}>
                   {href.startsWith("http") ? (
