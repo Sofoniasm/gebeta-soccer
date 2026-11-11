@@ -22,8 +22,8 @@ export function LoginForm({ next }: { next?: string }) {
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
       <input type="hidden" name="next" value={next ?? "/dashboard"} />
-      <Field label="Username or phone number">
-        <input name="identifier" autoComplete="username" autoCapitalize="none" required className={inputClass} placeholder="abebe_10 or 0911 223 344" />
+      <Field label="Phone number" hint="The number you registered with (your display name also works).">
+        <input name="identifier" type="tel" inputMode="tel" autoComplete="tel" autoCapitalize="none" required className={inputClass} placeholder="0911 223 344" />
       </Field>
       <Field label="Password">
         <input name="password" type="password" autoComplete="current-password" required className={inputClass} placeholder="••••••••" />
@@ -58,17 +58,17 @@ export function RegisterForm() {
   return (
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
-      <Field label="Username" hint="Shown on leaderboards. Letters, numbers, _">
-        <input name="username" autoComplete="username" autoCapitalize="none" required minLength={3} maxLength={24} className={inputClass} placeholder="abebe_10" />
-      </Field>
-      <Field label="Phone number" hint="Used to log in and to match your Telebirr deposits.">
+      <Field label="Phone number" hint="You'll log in with this and confirm it in the next step.">
         <input name="phone" type="tel" inputMode="tel" autoComplete="tel" required className={inputClass} placeholder="0911 223 344" />
-      </Field>
-      <Field label="Email (optional)" hint="Lets you recover your account if you forget your password.">
-        <input name="email" type="email" autoComplete="email" className={inputClass} placeholder="you@example.com" />
       </Field>
       <Field label="Password" hint="At least 8 characters.">
         <input name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} placeholder="••••••••" />
+      </Field>
+      <Field label="Display name (optional)" hint="Shown on leaderboards. Leave empty and we'll pick one for you.">
+        <input name="username" autoComplete="nickname" autoCapitalize="none" minLength={3} maxLength={24} className={inputClass} placeholder="abebe_10" />
+      </Field>
+      <Field label="Email (optional)" hint="Lets you recover your account if you forget your password.">
+        <input name="email" type="email" autoComplete="email" className={inputClass} placeholder="you@example.com" />
       </Field>
       <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-ink/50 p-4 text-sm text-mist">
         <input name="age_ok" type="checkbox" required className="mt-0.5 h-5 w-5 shrink-0 accent-violet-300" />

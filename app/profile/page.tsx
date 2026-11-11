@@ -27,11 +27,11 @@ export default async function ProfilePage() {
             </div>
           </div>
           <dl className="mt-6 divide-y divide-white/5 text-sm">
-            <div className="flex justify-between py-3"><dt className="text-mist">Phone</dt><dd className="font-semibold">{me.phone_number ?? "—"}</dd></div>
+            <div className="flex justify-between py-3"><dt className="text-mist">Phone</dt><dd className="font-semibold">{me.phone_number ?? "—"} {me.phone_verified_at && <span className="ml-1 rounded-full bg-emerald-300/15 px-2 py-0.5 text-[10px] font-bold text-emerald-100">Verified ✓</span>}</dd></div>
             <div className="flex justify-between py-3"><dt className="text-mist">Email</dt><dd className="font-semibold">{me.email ?? "Not set"}</dd></div>
-            <div className="flex justify-between py-3"><dt className="text-mist">Log in with</dt><dd className="font-semibold">Username or phone</dd></div>
+            <div className="flex justify-between py-3"><dt className="text-mist">Log in with</dt><dd className="font-semibold">Phone number + password</dd></div>
           </dl>
-          <p className="mt-4 text-xs text-mist">To change your phone number, contact support on Telegram — it&apos;s linked to your deposits.</p>
+          <p className="mt-4 text-xs text-mist">Your confirmed phone number is your identity on GebetaSoccer. To change it, contact support on Telegram.</p>
         </section>
 
         <section className={card}>

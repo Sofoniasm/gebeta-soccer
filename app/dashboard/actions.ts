@@ -10,7 +10,9 @@ export async function joinRound(roundId: number): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("enter_round", { p_round_id: roundId });
   if (error) {
-    const msg = error.message.includes("insufficient balance")
+    const msg = error.message.includes("phone not verified")
+      ? "Please confirm your phone number first."
+      : error.message.includes("insufficient balance")
       ? "Not enough balance. Top up via Telebirr and send the receipt on Telegram."
       : error.message.includes("already entered")
         ? "You're already in this round."

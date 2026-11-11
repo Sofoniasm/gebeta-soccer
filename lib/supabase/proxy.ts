@@ -32,16 +32,26 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  if (!user && PRIVATE_PREFIXES.some((p) => path.startsWith(p))) {
+  const verified = user?.app_metadata?.phone_verified === true;
+
+  if (!user && (PRIVATE_PREFIXES.some((p) => path.startsWith(p)) || path === "/verify")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = `?next=${encodeURIComponent(path)}`;
     return NextResponse.redirect(url);
   }
 
+  // Logged in but phone not confirmed yet → verification page.
+  if (user && !verified && PRIVATE_PREFIXES.some((p) => path.startsWith(p))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/verify";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   if (user && AUTH_PAGES.includes(path)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = verified ? "/dashboard" : "/verify";
     url.search = "";
     return NextResponse.redirect(url);
   }

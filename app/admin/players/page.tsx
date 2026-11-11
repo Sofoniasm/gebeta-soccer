@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
 const small = "rounded-xl border border-white/10 bg-ink/70 px-3 py-2 text-sm text-white outline-none focus:border-lilac";
 
-interface Player { id: string; username: string; email: string | null; phone_number: string | null; balance_units: number; created_at: string; is_admin: boolean }
+interface Player { id: string; username: string; email: string | null; phone_number: string | null; balance_units: number; created_at: string; is_admin: boolean; phone_verified_at: string | null }
 
 export default async function PlayersAdminPage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string; q?: string }> }) {
   await requireAdminId("/admin/players");
@@ -21,7 +21,7 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
   const admin = createAdminClient();
 
   // Search, or show newest players by default
-  let query = admin.from("profiles").select("id, username, email, phone_number, balance_units, created_at, is_admin");
+  let query = admin.from("profiles").select("id, username, email, phone_number, balance_units, created_at, is_admin, phone_verified_at");
   const term = q.trim().replace(/[%,()]/g, "");
   if (term) {
     const digits = term.replace(/\D/g, "");
@@ -112,6 +112,11 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
                   <div className="min-w-0 flex-1">
                     <p className="font-bold">
                       {u.username} {u.is_admin && <span className="ml-1 rounded-full bg-lilac/15 px-2 py-0.5 text-[10px] font-bold uppercase text-lilac-soft">Admin</span>}
+                      {u.phone_verified_at ? (
+                        <span className="ml-1 rounded-full bg-emerald-300/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-100">Verified</span>
+                      ) : (
+                        <span className="ml-1 rounded-full bg-amber-200/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-100">Unverified</span>
+                      )}
                     </p>
                     <p className="text-xs text-mist">{u.phone_number ?? "no phone"} · {u.email ?? "no email"} · joined {formatKickoff(u.created_at)}</p>
                   </div>

@@ -44,11 +44,11 @@ async function resolveLoginEmail(identifier: string): Promise<string | null> {
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const identifier = String(formData.get("identifier") ?? "");
   const password = String(formData.get("password") ?? "");
-  if (!identifier.trim() || !password) return { error: "Enter your username (or phone) and password." };
+  if (!identifier.trim() || !password) return { error: "Enter your phone number and password." };
 
   const email = await resolveLoginEmail(identifier);
   // Same message whether the user exists or not — don't reveal who is registered.
-  if (!email) return { error: "Wrong username/phone or password." };
+  if (!email) return { error: "Wrong phone number or password." };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -56,38 +56,45 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     const m = error.message.toLowerCase();
     if (m.includes("email not confirmed")) return { error: "Please confirm your email first — check your inbox (and spam)." };
     if (m.includes("disabled")) return { error: "Logins are temporarily unavailable. Please try again soon." };
-    return { error: "Wrong username/phone or password." };
+    return { error: "Wrong phone number or password." };
   }
   redirect(safeNext(formData.get("next")));
 }
 
 // ------------------------------------------------------------- register
 export async function register(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const username = String(formData.get("username") ?? "").trim();
+  let username = String(formData.get("username") ?? "").trim();
   const emailInput = String(formData.get("email") ?? "").trim().toLowerCase();
   const phoneRaw = String(formData.get("phone") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  if (!/^[A-Za-z0-9_]{3,24}$/.test(username)) {
-    return { error: "Username: 3–24 letters, numbers or _ (no spaces)." };
-  }
   const phone = normalizeEthiopianPhone(phoneRaw);
   if (!phone) return { error: "Enter a valid Ethiopian mobile number, e.g. 0911 223 344." };
-  if (emailInput && !/^\S+@\S+\.\S+$/.test(emailInput)) return { error: "That email doesn't look right (or leave it empty)." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (username && !/^[A-Za-z0-9_]{3,24}$/.test(username)) {
+    return { error: "Display name: 3–24 letters, numbers or _ (no spaces) — or leave it empty." };
+  }
+  if (emailInput && !/^\S+@\S+\.\S+$/.test(emailInput)) return { error: "That email doesn't look right (or leave it empty)." };
   if (formData.get("age_ok") !== "on") {
     return { error: "You must be 18 or older and accept the Terms to play GebetaSoccer." };
   }
 
   const supabase = await createClient();
 
-  const { data: avail, error: availError } = await supabase
-    .rpc("check_signup_available", { p_username: username, p_phone: phone })
-    .single();
-  if (availError) return { error: "Could not check availability. Please try again." };
-  const a = avail as { username_taken: boolean; phone_taken: boolean };
-  if (a.username_taken) return { error: "That username is taken." };
-  if (a.phone_taken) return { error: "That phone number is already registered." };
+  // No display name given → make one like "player_3344" (unique).
+  const userChose = Boolean(username);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const candidate = userChose ? username : `player_${phone.slice(-4)}${attempt ? Math.floor(Math.random() * 90 + 10) : ""}`;
+    const { data: avail, error: availError } = await supabase
+      .rpc("check_signup_available", { p_username: candidate, p_phone: phone })
+      .single();
+    if (availError) return { error: "Could not check availability. Please try again." };
+    const a = avail as { username_taken: boolean; phone_taken: boolean };
+    if (a.phone_taken) return { error: "That phone number is already registered. Try logging in." };
+    if (!a.username_taken) { username = candidate; break; }
+    if (userChose) return { error: "That display name is taken — try another, or leave it empty." };
+    if (attempt === 5) return { error: "Could not create a display name. Please type one." };
+  }
 
   // Create the account on the server with the secret key. This works no matter
   // how Supabase's "Allow sign-ups" / "Confirm email" switches are set, and the
@@ -116,9 +123,9 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     if (signInError.message.toLowerCase().includes("disabled")) {
       return { error: "Account created, but logins are switched off in Supabase (Email provider). Ask the admin to enable it." };
     }
-    return { success: "Account created. You can log in now." };
+    return { success: "Account created. Log in with your phone number to confirm it." };
   }
-  redirect("/dashboard");
+  redirect("/verify");
 }
 
 // -------------------------------------------------------------- sign out

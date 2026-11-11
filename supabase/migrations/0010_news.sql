@@ -13,6 +13,7 @@ create table if not exists public.news_posts (
   created_at    timestamptz not null default now()
 );
 alter table public.news_posts enable row level security;
+drop policy if exists "anyone reads published news" on public.news_posts;
 create policy "anyone reads published news" on public.news_posts
   for select to anon, authenticated using (is_published and published_at <= now());
 
