@@ -8,7 +8,7 @@ import { pageMeta } from "@/lib/seo";
 
 export const metadata = pageMeta({
   title: "About GebetaSoccer",
-  description: "GebetaSoccer is a football prediction game built in Ethiopia, inspired by Gebeta — the classic board game of patience and strategy.",
+  description: "GebetaSoccer is a football prediction game built in Ethiopia, inspired by Gebeta, the classic board game of patience and strategy.",
   path: "/about",
 });
 export const dynamic = "force-dynamic";

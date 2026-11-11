@@ -10,7 +10,7 @@ import { breadcrumbJsonLd, faqJsonLd, pageMeta } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const metadata = pageMeta({
-  title: "How to play — rules, scoring & FAQ",
+  title: "How to Play: Rules, Scoring & FAQ",
   description: "How GebetaSoccer works: predict 10 football scores, exact score 3 points, close 1.5, result 1, Slam Points, tie-breaks, deposits in birr and withdrawals to Telebirr.",
   path: "/how-to-play",
 });

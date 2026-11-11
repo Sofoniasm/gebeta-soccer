@@ -7,7 +7,7 @@ import { SendIcon, TrophyIcon, UsersIcon, StarIcon } from "@/components/icons";
 import { pageMeta } from "@/lib/seo";
 
 export const metadata = pageMeta({
-  title: "For businesses — sponsor a round",
+  title: "For Businesses: Sponsor a Round",
   description: "Sponsor a GebetaSoccer round, run a company prediction league or add prizes to reach engaged football fans across Ethiopia.",
   path: "/business",
 });

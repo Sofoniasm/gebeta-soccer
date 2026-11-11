@@ -10,7 +10,7 @@ const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "GebetaSoccer — Predict the scores. Win the Gebeta.",
+  title: "GebetaSoccer | Predict the scores. Win the Gebeta.",
   description: DEFAULT_DESCRIPTION,
   applicationName: "GebetaSoccer",
   category: "sports",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "GebetaSoccer", statusBarStyle: "black-translucent" },
   openGraph: {
-    title: "GebetaSoccer — Predict the scores. Win the Gebeta.",
+    title: "GebetaSoccer | Predict the scores. Win the Gebeta.",
     description: "Predict 10 football matches every week and win the prize pool.",
     images: [{ url: "/og.png", width: 1080, height: 1080 }],
   },

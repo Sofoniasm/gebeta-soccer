@@ -17,7 +17,7 @@ import { DEFAULT_DESCRIPTION, pageMeta, siteJsonLd } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const metadata = pageMeta({
-  title: "GebetaSoccer — Ethiopia's football score predictor. Win the prize pool",
+  title: "GebetaSoccer | Ethiopia's Football Score Predictor",
   description: DEFAULT_DESCRIPTION,
   path: "",
 });

@@ -8,7 +8,7 @@ import { pageMeta } from "@/lib/seo";
 
 export const metadata = pageMeta({
   title: "Football tournaments",
-  description: "Predict the biggest Premier League and top European football matches every week on GebetaSoccer — 10 games per round, prizes in birr.",
+  description: "Predict the biggest Premier League and top European football matches every week on GebetaSoccer. 10 games per round, prizes in birr.",
   path: "/tournaments",
 });
 export const dynamic = "force-dynamic";

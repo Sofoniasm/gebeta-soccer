@@ -26,7 +26,7 @@ export function pageMeta({
   publishedTime?: string;
 }): Metadata {
   const url = `${SITE_URL}${path}`;
-  const fullTitle = title.includes(BRAND) ? title : `${title} · ${BRAND}`;
+  const fullTitle = title.includes(BRAND) ? title : `${title} | ${BRAND}`;
   return {
     title: fullTitle,
     description,

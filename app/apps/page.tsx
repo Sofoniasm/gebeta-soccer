@@ -10,7 +10,7 @@ import { SITE_HOST } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 
 export const metadata = pageMeta({
-  title: "Get the app — Android, iPhone & Telegram",
+  title: "Get the App: Android, iPhone & Telegram",
   description: "Install GebetaSoccer on Android or iPhone in seconds, or play inside Telegram with our Mini App. Same account everywhere.",
   path: "/apps",
 });
