@@ -1,0 +1,84 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState } from "react";
+import { login, register, type AuthState } from "./actions";
+import { Banner, inputClass, primaryButtonClass } from "@/components/ui";
+import { SpinnerIcon } from "@/components/icons";
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium text-neutral-300">{label}</span>
+      {children}
+      {hint && <span className="block text-xs text-neutral-500">{hint}</span>}
+    </label>
+  );
+}
+
+export function LoginForm({ next }: { next?: string }) {
+  const [state, action, pending] = useActionState<AuthState, FormData>(login, undefined);
+  return (
+    <form action={action} className="space-y-4">
+      {state?.error && <Banner kind="error">{state.error}</Banner>}
+      <input type="hidden" name="next" value={next ?? "/dashboard"} />
+      <Field label="Email">
+        <input name="email" type="email" autoComplete="email" required className={inputClass} placeholder="you@example.com" />
+      </Field>
+      <Field label="Password">
+        <input name="password" type="password" autoComplete="current-password" required className={inputClass} placeholder="••••••••" />
+      </Field>
+      <button type="submit" disabled={pending} className={primaryButtonClass}>
+        {pending && <SpinnerIcon size={18} />} Log in
+      </button>
+      <p className="text-center text-sm text-neutral-400">
+        New here?{" "}
+        <Link href="/register" className="font-semibold text-emerald-400">
+          Create an account
+        </Link>
+      </p>
+    </form>
+  );
+}
+
+export function RegisterForm() {
+  const [state, action, pending] = useActionState<AuthState, FormData>(register, undefined);
+
+  if (state?.success) {
+    return (
+      <div className="space-y-4">
+        <Banner kind="success">{state.success}</Banner>
+        <Link href="/login" className={primaryButtonClass}>
+          Go to login
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <form action={action} className="space-y-4">
+      {state?.error && <Banner kind="error">{state.error}</Banner>}
+      <Field label="Username" hint="Shown on leaderboards. Letters, numbers, _">
+        <input name="username" autoComplete="username" required minLength={3} maxLength={24} className={inputClass} placeholder="abebe_10" />
+      </Field>
+      <Field label="Email">
+        <input name="email" type="email" autoComplete="email" required className={inputClass} placeholder="you@example.com" />
+      </Field>
+      <Field label="Phone number" hint="Used to match your Telebirr deposits.">
+        <input name="phone" type="tel" inputMode="tel" autoComplete="tel" required className={inputClass} placeholder="0911 223 344" />
+      </Field>
+      <Field label="Password" hint="At least 8 characters.">
+        <input name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} placeholder="••••••••" />
+      </Field>
+      <button type="submit" disabled={pending} className={primaryButtonClass}>
+        {pending && <SpinnerIcon size={18} />} Create account
+      </button>
+      <p className="text-center text-sm text-neutral-400">
+        Already have an account?{" "}
+        <Link href="/login" className="font-semibold text-emerald-400">
+          Log in
+        </Link>
+      </p>
+    </form>
+  );
+}
