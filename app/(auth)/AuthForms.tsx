@@ -6,6 +6,8 @@ import { login, register, type AuthState } from "./actions";
 import { Banner, inputClass, primaryButtonClass } from "@/components/ui";
 import { SpinnerIcon } from "@/components/icons";
 import { latestAdultBirthDate } from "@/lib/age";
+import { localPath, type Lang } from "@/lib/i18n";
+import { PAGES } from "@/lib/i18n/pages";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -17,40 +19,42 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, lang = "en" }: { next?: string; lang?: Lang }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(login, undefined);
+  const t = PAGES[lang].auth;
   return (
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
       <input type="hidden" name="next" value={next ?? "/dashboard"} />
-      <Field label="Phone number" hint="The number you registered with (your display name or email also works).">
+      <Field label={t.phone} hint={t.phoneHintLogin}>
         <input name="identifier" type="tel" inputMode="tel" autoComplete="tel" autoCapitalize="none" required className={inputClass} placeholder="0911 223 344" />
       </Field>
-      <Field label="Password">
+      <Field label={t.password}>
         <input name="password" type="password" autoComplete="current-password" required className={inputClass} placeholder="••••••••" />
       </Field>
       <button type="submit" disabled={pending} className={primaryButtonClass}>
-        {pending && <SpinnerIcon size={18} />} Log in
+        {pending && <SpinnerIcon size={18} />} {t.logIn}
       </button>
       <p className="text-center text-sm text-mist">
-        New here?{" "}
-        <Link href={next && next !== "/dashboard" ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="font-semibold text-lilac">
-          Create an account
+        {t.newHere}{" "}
+        <Link href={next && next !== "/dashboard" ? `${localPath("/register", lang)}?next=${encodeURIComponent(next)}` : localPath("/register", lang)} className="font-semibold text-lilac">
+          {t.createLink}
         </Link>
       </p>
     </form>
   );
 }
 
-export function RegisterForm({ next }: { next?: string }) {
+export function RegisterForm({ next, lang = "en" }: { next?: string; lang?: Lang }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(register, undefined);
+  const t = PAGES[lang].auth;
 
   if (state?.success) {
     return (
       <div className="space-y-4">
         <Banner kind="success">{state.success}</Banner>
-        <Link href="/login" className={primaryButtonClass}>
-          Go to login
+        <Link href={localPath("/login", lang)} className={primaryButtonClass}>
+          {t.goLogin}
         </Link>
       </div>
     );
@@ -60,35 +64,35 @@ export function RegisterForm({ next }: { next?: string }) {
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
       {next && <input type="hidden" name="next" value={next} />}
-      <Field label="Phone number" hint="You'll log in with this and confirm it in the next step.">
+      <Field label={t.phone} hint={t.phoneHintRegister}>
         <input name="phone" type="tel" inputMode="tel" autoComplete="tel" required className={inputClass} placeholder="0911 223 344" />
       </Field>
-      <Field label="Password" hint="At least 8 characters.">
+      <Field label={t.password} hint={t.passwordHint}>
         <input name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} placeholder="••••••••" />
       </Field>
-      <Field label="Date of birth" hint="You must be 18 or older. We never show it to other players.">
+      <Field label={t.dob} hint={t.dobHint}>
         <input name="date_of_birth" type="date" required min="1900-01-01" max={latestAdultBirthDate()} className={`${inputClass} [color-scheme:dark]`} />
       </Field>
-      <Field label="Display name (optional)" hint="Shown on leaderboards. Leave empty and we'll pick one for you.">
+      <Field label={t.displayName} hint={t.displayNameHint}>
         <input name="username" autoComplete="nickname" autoCapitalize="none" minLength={3} maxLength={24} className={inputClass} placeholder="abebe_10" />
       </Field>
-      <Field label="Email (optional)" hint="Lets you recover your account if you forget your password.">
+      <Field label={t.email} hint={t.emailHint}>
         <input name="email" type="email" autoComplete="email" className={inputClass} placeholder="you@example.com" />
       </Field>
       <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-ink/50 p-4 text-sm text-mist">
         <input name="age_ok" type="checkbox" required className="mt-0.5 h-5 w-5 shrink-0 accent-violet-300" />
         <span>
-          I confirm I am <b className="text-white">18 years or older</b> and I accept the{" "}
-          <Link href="/terms" target="_blank" className="font-semibold text-lilac underline underline-offset-2">Terms &amp; Responsible Play</Link> rules.
+          {t.ageA}<b className="text-white">{t.ageB}</b>{t.ageC}
+          <Link href={localPath("/terms", lang)} target="_blank" className="font-semibold text-lilac underline underline-offset-2">{t.terms}</Link>{t.ageD}
         </span>
       </label>
       <button type="submit" disabled={pending} className={primaryButtonClass}>
-        {pending && <SpinnerIcon size={18} />} Create account
+        {pending && <SpinnerIcon size={18} />} {t.create}
       </button>
       <p className="text-center text-sm text-mist">
-        Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-lilac">
-          Log in
+        {t.haveAccount}{" "}
+        <Link href={localPath("/login", lang)} className="font-semibold text-lilac">
+          {t.logIn}
         </Link>
       </p>
     </form>

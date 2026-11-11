@@ -80,7 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const withLanguages: MetadataRoute.Sitemap = [];
   for (const e of entries) {
     const path = e.url.slice(SITE_URL.length) || "/";
-    if (!isTranslatable(path)) {
+    if (!isTranslatable(path) || path.startsWith("/news/")) {
       withLanguages.push(e);
       continue;
     }

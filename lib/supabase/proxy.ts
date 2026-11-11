@@ -3,7 +3,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
-import { LANG_HEADER, isTranslatable, stripLang } from "@/lib/i18n";
+import { LANG_COOKIE, LANG_HEADER, isTranslatable, localPath, stripLang } from "@/lib/i18n";
 
 const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates", "/leagues", "/join", "/challenges"];
 const AUTH_PAGES = ["/login", "/register"];
@@ -18,13 +18,22 @@ export async function updateSession(request: NextRequest) {
     url.pathname = stripLang(rawPath);
     return NextResponse.redirect(url);
   }
+  // Remember Amharic: a visitor who chose አማ gets the Amharic version of every
+  // translated public page (search engines have no cookie, so they still see both).
+  if (!amPath && request.method === "GET" && request.cookies.get(LANG_COOKIE)?.value === "am" && isTranslatable(rawPath)) {
+    const url = request.nextUrl.clone();
+    url.pathname = localPath(rawPath, "am");
+    return NextResponse.redirect(url);
+  }
   const makeResponse = () => {
     if (!amPath) return NextResponse.next({ request });
     const headers = new Headers(request.headers);
     headers.set(LANG_HEADER, "am");
     const url = request.nextUrl.clone();
     url.pathname = stripLang(rawPath);
-    return NextResponse.rewrite(url, { request: { headers } });
+    const res = NextResponse.rewrite(url, { request: { headers } });
+    if (request.cookies.get(LANG_COOKIE)?.value !== "am") res.cookies.set(LANG_COOKIE, "am", { path: "/", maxAge: 31536000, sameSite: "lax" });
+    return res;
   };
   // A visitor can't pretend to be on an Amharic page by sending the header themselves.
   if (!amPath && request.headers.has(LANG_HEADER)) {

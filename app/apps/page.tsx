@@ -1,3 +1,6 @@
+import { PAGES } from "@/lib/i18n/pages";
+import { getLang } from "@/lib/i18n-server";
+import { localPath } from "@/lib/i18n";
 import Link from "next/link";
 import { getPublicContext } from "@/lib/public";
 import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
@@ -9,14 +12,11 @@ import { SendIcon } from "@/components/icons";
 import { SITE_HOST } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 
-export const metadata = pageMeta({
-  title: "Get the App: Android, iPhone & Telegram",
-  description: "Install GebetaSoccer on Android or iPhone in seconds, or play inside Telegram with our Mini App. Same account everywhere.",
-  path: "/apps",
-});
+export async function generateMetadata() {
+  const lang = await getLang();
+  return pageMeta({ title: PAGES[lang].apps.metaTitle, description: PAGES[lang].apps.metaDescription, path: "/apps", lang, translated: true });
+}
 
-const ANDROID = [`Open ${SITE_HOST} in Chrome`, "Tap the ⋮ menu (top right)", "Tap “Add to Home screen” → Install", "Open GebetaSoccer from your home screen"];
-const IPHONE = [`Open ${SITE_HOST} in Safari`, "Tap the Share button (square with arrow)", "Scroll down and tap “Add to Home Screen”", "Tap “Add” — the icon appears on your home screen"];
 
 function Steps({ title, steps }: { title: string; steps: string[] }) {
   return (
@@ -35,38 +35,40 @@ function Steps({ title, steps }: { title: string; steps: string[] }) {
 }
 
 export default async function AppsPage() {
+  const lang = await getLang();
+  const t = PAGES[lang].apps;
   const site = await getSiteSettings();
   const { loggedIn } = await getPublicContext();
   return (
     <div className="relative">
       <SiteHeader loggedIn={loggedIn} />
-      <PageHero title="Get the app" subtitle="GebetaSoccer installs straight from your browser — no app store needed, light on data, always up to date." />
+      <PageHero title={t.title} subtitle={t.subtitle} />
 
       <main className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_auto]">
         <div className="space-y-5">
           <div className="grid gap-5 sm:grid-cols-2">
-            <Steps title="Android (Chrome)" steps={ANDROID} />
-            <Steps title="iPhone (Safari)" steps={IPHONE} />
+            <Steps title="Android (Chrome)" steps={t.android(SITE_HOST)} />
+            <Steps title="iPhone (Safari)" steps={t.iphone(SITE_HOST)} />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-lilac/25 bg-gradient-to-r from-lilac/15 to-transparent p-6">
             <div>
-              <p className="text-lg font-extrabold">Join us on Telegram</p>
-              <p className="text-sm text-mist">Deposits and help in one chat{site.telegram_channel ? ", round announcements in our channel" : ""}. You can also play inside Telegram with our bot.</p>
+              <p className="text-lg font-extrabold">{t.telegramTitle}</p>
+              <p className="text-sm text-mist">{t.telegramText(Boolean(site.telegram_channel))}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <a href={site.telegram_support} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-lilac px-6 py-3 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
-                <SendIcon size={14} /> Support chat
+                <SendIcon size={14} /> {t.support}
               </a>
               {site.telegram_channel && (
                 <a href={site.telegram_channel} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-white/60 px-6 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10">
-                  Announcements
+                  {t.announcements}
                 </a>
               )}
             </div>
           </div>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Link href={loggedIn ? "/dashboard" : "/register"} className="inline-flex rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
-              {loggedIn ? "Open my predictions" : "Play on the web"}
+            <Link href={loggedIn ? "/dashboard" : localPath("/register", lang)} className="inline-flex rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
+              {loggedIn ? t.openMine : t.playWeb}
             </Link>
           </div>
         </div>

@@ -1,3 +1,6 @@
+import { PAGES } from "@/lib/i18n/pages";
+import { getLang } from "@/lib/i18n-server";
+import { localPath } from "@/lib/i18n";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicContext } from "@/lib/public";
@@ -30,7 +33,7 @@ async function loadPost(slug: string): Promise<{ post: NewsPost; preview: boolea
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const found = await loadPost(slug);
-  if (!found) return { title: "Article not found | GebetaSoccer", robots: { index: false } };
+  if (!found) return { title: `${PAGES[await getLang()].news.notFound} | GebetaSoccer`, robots: { index: false } };
   const { post, preview } = found;
   const meta = pageMeta({
     title: post.title,
@@ -44,6 +47,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function NewsArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const lang = await getLang();
+  const t = PAGES[lang].news;
   const { slug } = await params;
   const found = await loadPost(slug);
   if (!found) notFound();
@@ -85,8 +90,8 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
           <img src={post.cover_image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
           <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0b0912]/80 via-[#1a1530]/70 to-plum" />
           <div className="mx-auto max-w-3xl px-6 pb-10 pt-12 sm:pb-14 sm:pt-24">
-            <Link href="/news" className="text-xs font-bold uppercase tracking-widest text-lilac hover:text-lilac-soft">← All news</Link>
-            <p className="mt-5 text-[10px] font-bold uppercase tracking-widest text-lilac-soft sm:mt-6">{post.tag} · {formatNewsDate(post.published_at)}</p>
+            <Link href={localPath("/news", lang)} className="text-xs font-bold uppercase tracking-widest text-lilac hover:text-lilac-soft">{t.all}</Link>
+            <p className="mt-5 text-[10px] font-bold uppercase tracking-widest text-lilac-soft sm:mt-6">{post.tag} · {formatNewsDate(post.published_at, lang)}</p>
             <h1 className="mt-3 text-2xl font-extrabold leading-tight sm:text-5xl">{post.title}</h1>
             <p className="mt-3 text-base text-white/80 sm:mt-4 sm:text-lg">{post.excerpt}</p>
           </div>
@@ -94,8 +99,8 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
         <div className="mx-auto max-w-3xl space-y-5 px-6 py-10 text-[15px] leading-relaxed text-[#d9d5ea] sm:py-12 sm:text-base">
           <NewsBody body={post.body} />
           <div className="pt-6">
-            <Link href={loggedIn ? "/dashboard" : "/register"} className="inline-flex rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
-              {loggedIn ? "Make your predictions" : "Join GebetaSoccer"}
+            <Link href={loggedIn ? "/dashboard" : localPath("/register", lang)} className="inline-flex rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
+              {loggedIn ? t.makePredictions : t.join}
             </Link>
           </div>
         </div>

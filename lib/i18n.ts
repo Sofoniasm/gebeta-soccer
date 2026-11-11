@@ -7,10 +7,10 @@ export type Lang = "en" | "am";
 export const LANG_HEADER = "x-gs-lang";
 
 /** Public pages that have an Amharic version. */
-const TRANSLATED = ["/", "/how-to-play", "/terms", "/predictions"];
+const TRANSLATED = ["/", "/how-to-play", "/terms", "/predictions", "/news", "/apps", "/about", "/business", "/tournaments", "/login", "/register"];
 
 export function isTranslatable(path: string): boolean {
-  return TRANSLATED.includes(path) || path.startsWith("/predictions/");
+  return TRANSLATED.includes(path) || path.startsWith("/predictions/") || path.startsWith("/news/");
 }
 
 /** "/am/how-to-play" -> "/how-to-play" */
@@ -27,3 +27,9 @@ export function localPath(path: string, lang: Lang): string {
 }
 
 export const LOCALE: Record<Lang, string> = { en: "en-GB", am: "am-ET" };
+
+/** Cookie that remembers the visitor's language choice (set by the EN | አማ switch). */
+export const LANG_COOKIE = "gs_lang";
+export function rememberLang(lang: Lang) {
+  if (typeof document !== "undefined") document.cookie = `${LANG_COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
+}

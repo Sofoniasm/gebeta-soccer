@@ -20,8 +20,8 @@ export const NEWS_COVERS = [
   { src: "/crowd.webp", label: "Crowd" },
 ] as const;
 
-export function formatNewsDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Addis_Ababa" }).format(new Date(iso));
+export function formatNewsDate(iso: string, lang: "en" | "am" = "en"): string {
+  return new Intl.DateTimeFormat(lang === "am" ? "am-ET" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Addis_Ababa" }).format(new Date(iso));
 }
 
 /** Absolute URL for an image that may be a site path ("/ball.webp") or a full URL. */

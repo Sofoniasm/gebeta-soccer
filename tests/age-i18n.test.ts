@@ -28,5 +28,6 @@ test("i18n: Amharic URLs only for translated pages", () => {
   assert.equal(stripLang("/am"), "/");
   assert.equal(stripLang("/am/terms"), "/terms");
   assert.equal(stripLang("/amazing"), "/amazing");
-  assert.equal(isTranslatable("/news"), false);
+  assert.equal(isTranslatable("/news"), true);
+  assert.equal(isTranslatable("/dashboard"), false);
 });

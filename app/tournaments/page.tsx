@@ -1,22 +1,23 @@
 import Link from "next/link";
 import { getPublicContext } from "@/lib/public";
-import { formatKickoff } from "@/lib/format";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
-import { Crest, dayKeyOf, dayOf, timeOf } from "@/components/MatchLine";
+import { Crest, dayKeyOf, timeOf } from "@/components/MatchLine";
 import { pageMeta } from "@/lib/seo";
 import { ALL_COMPETITIONS, getSiteSettings } from "@/lib/site-settings";
 import { getActiveRounds, getRoundPool } from "@/lib/rounds";
 import { predictionPath } from "@/lib/predictions";
 import { etbLabel } from "@/lib/money";
+import { PAGES } from "@/lib/i18n/pages";
+import { getLang } from "@/lib/i18n-server";
+import { localPath } from "@/lib/i18n";
+import { dateFmt } from "@/lib/i18n/predictions";
 
-export const metadata = pageMeta({
-  title: "Football tournaments",
-  description:
-    "The leagues you can predict on GebetaSoccer: Premier League and top European football. Daily rounds of 10 matches, private challenges, prizes in birr.",
-  path: "/tournaments",
-});
+export async function generateMetadata() {
+  const lang = await getLang();
+  return pageMeta({ title: PAGES[lang].tournaments.metaTitle, description: PAGES[lang].tournaments.metaDescription, path: "/tournaments", lang, translated: true });
+}
 export const dynamic = "force-dynamic";
 
 type Fixture = {
@@ -30,6 +31,10 @@ type Fixture = {
 };
 
 export default async function TournamentsPage() {
+  const lang = await getLang();
+  const t = PAGES[lang].tournaments;
+  const f = dateFmt(lang);
+  const when = (iso: string) => `${f.day(iso)} ${f.clock(iso)}`;
   const { supabase, loggedIn } = await getPublicContext();
   const site = await getSiteSettings();
 
@@ -59,25 +64,25 @@ export default async function TournamentsPage() {
   return (
     <div className="relative">
       <SiteHeader loggedIn={loggedIn} />
-      <PageHero title="Tournaments" subtitle="Daily rounds of 10 big matches, picked from the best football leagues in the world." />
+      <PageHero title={t.title} subtitle={t.subtitle} />
 
       {/* Open rounds right now */}
       {openRounds.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
-          <h2 className="mb-3 text-xl font-extrabold">Open now</h2>
+          <h2 className="mb-3 text-xl font-extrabold">{t.openNow}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {openRounds.map((r, i) => (
               <Link
                 key={r.id}
-                href={loggedIn ? `/dashboard?round=${r.id}` : "/register"}
+                href={loggedIn ? `/dashboard?round=${r.id}` : localPath("/register", lang)}
                 className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-lilac/30 bg-gradient-to-r from-lilac/15 to-transparent p-5 hover:border-lilac/60"
               >
                 <div className="min-w-0">
                   <p className="truncate text-lg font-extrabold">{r.name}</p>
-                  <p className="text-xs text-mist">10 matches · entry {etbLabel(Number(r.entry_fee_units))}{r.lock_at ? ` · closes ${formatKickoff(r.lock_at)}` : ""}</p>
+                  <p className="text-xs text-mist">{t.roundLine(etbLabel(Number(r.entry_fee_units)), r.lock_at ? when(r.lock_at) : null)}</p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-lilac">Prize pot</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-lilac">{t.pot}</p>
                   <p className="text-lg font-extrabold">{etbLabel(pools[i]?.prize_fund_units ?? 0)}</p>
                 </div>
               </Link>
@@ -88,8 +93,8 @@ export default async function TournamentsPage() {
 
       {/* Leagues */}
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <h2 className="mb-1 text-xl font-extrabold">Leagues we follow</h2>
-        <p className="mb-5 text-sm text-mist">Every round and challenge is built from these leagues&apos; fixtures.</p>
+        <h2 className="mb-1 text-xl font-extrabold">{t.leagues}</h2>
+        <p className="mb-5 text-sm text-mist">{t.leaguesSub}</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {followed.map((c) => {
             const games = byComp.get(c.name) ?? [];
@@ -108,9 +113,9 @@ export default async function TournamentsPage() {
                     }`}
                   >
                     {games.length > 0 && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />}
-                    {games.length ? `${games.length} upcoming` : "No matches this week"}
+                    {games.length ? t.upcoming(games.length) : t.none}
                   </span>
-                  {next && <p className="mt-1.5 text-[11px] text-mist">Next: {formatKickoff(next.kickoff_at)}</p>}
+                  {next && <p className="mt-1.5 text-[11px] text-mist">{t.next} {when(next.kickoff_at)}</p>}
                 </div>
               </div>
             );
@@ -118,29 +123,29 @@ export default async function TournamentsPage() {
         </div>
         {notYet.length > 0 && (
           <p className="mt-4 text-xs text-mist">
-            Also available as we grow: {notYet.map((c) => c.label).join(", ")}.
+            {t.also(notYet.map((c) => c.label).join(", "))}
           </p>
         )}
       </section>
 
       {/* Fixtures */}
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-        <h2 className="mb-1 text-xl font-extrabold">Upcoming fixtures</h2>
-        <p className="mb-5 text-sm text-mist">All times are Ethiopia time. Tap a match for our prediction.</p>
+        <h2 className="mb-1 text-xl font-extrabold">{t.fixtures}</h2>
+        <p className="mb-5 text-sm text-mist">{t.fixturesSub}</p>
         {upcoming.length === 0 ? (
           <p className="rounded-2xl bg-card/60 p-5 text-sm text-mist">
-            No fixtures in the next 10 days for the leagues we follow (international break or off-season). New matches appear here as soon as they are scheduled.
+            {t.noFixtures}
           </p>
         ) : (
           <div className="space-y-5">
             {[...days.values()].map((ms) => (
               <div key={ms[0].kickoff_at}>
-                <p className="mb-2 text-xs font-bold uppercase tracking-widest text-lilac">{dayOf(ms[0].kickoff_at)}</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-widest text-lilac">{f.day(ms[0].kickoff_at)}</p>
                 <div className="space-y-2">
                   {ms.map((m) => (
                     <Link
                       key={m.id}
-                      href={predictionPath(m)}
+                      href={localPath(predictionPath(m), lang)}
                       className="grid grid-cols-[3rem_1fr_auto_1fr] items-center gap-2 rounded-2xl border border-white/5 bg-card/50 px-3 py-3 hover:border-lilac/40 sm:px-4"
                     >
                       <span className="text-xs font-bold text-mist">{timeOf(m.kickoff_at)}</span>
@@ -161,11 +166,11 @@ export default async function TournamentsPage() {
           </div>
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href={loggedIn ? "/dashboard" : "/register"} className="inline-flex rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
-            {loggedIn ? "Make your predictions" : "Join and predict"}
+          <Link href={loggedIn ? "/dashboard" : localPath("/register", lang)} className="inline-flex rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink hover:bg-lilac-soft">
+            {loggedIn ? t.predict : t.joinPredict}
           </Link>
-          <Link href="/predictions" className="inline-flex rounded-full border border-white/60 px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10">
-            Our predictions
+          <Link href={localPath("/predictions", lang)} className="inline-flex rounded-full border border-white/60 px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10">
+            {t.ours}
           </Link>
         </div>
       </section>
