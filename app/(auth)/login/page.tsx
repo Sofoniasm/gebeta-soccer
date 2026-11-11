@@ -11,7 +11,7 @@ export default async function LoginPage({
   const { next, error, confirmed } = await searchParams;
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">Welcome back</h1>
+      <h1 className="text-2xl font-extrabold">Welcome back</h1>
       {confirmed && <Banner kind="success">Email confirmed — you can log in now.</Banner>}
       {error && <Banner kind="error">{error}</Banner>}
       <LoginForm next={next} />

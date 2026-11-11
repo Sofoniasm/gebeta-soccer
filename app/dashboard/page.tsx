@@ -7,6 +7,7 @@ import { formatEtb } from "@/lib/format";
 import { signOut } from "../(auth)/actions";
 import PredictionBoard, { type SavedPrediction } from "./PredictionBoard";
 import { Logo } from "@/components/ui";
+import { FlowLines } from "@/components/FlowLines";
 import { LogOutIcon, ShieldIcon, TrophyIcon, WalletIcon } from "@/components/icons";
 
 export const metadata = { title: "Dashboard · GebetaSoccer" };
@@ -53,19 +54,21 @@ export default async function DashboardPage() {
   const balance = Number(profile?.balance_units ?? 0);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-lg px-4 pt-4">
+    <div className="relative min-h-dvh overflow-x-hidden">
+    <FlowLines />
+    <main className="relative mx-auto min-h-dvh max-w-3xl px-4 pt-4">
       {/* Header */}
-      <header className="sticky top-0 z-10 -mx-4 mb-4 border-b border-white/5 bg-pitch/85 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 -mx-4 mb-4 border-b border-white/5 bg-plum/85 px-4 py-3 backdrop-blur">
         <div className="flex items-center justify-between">
-          <Logo />
+          <Logo size="sm" />
           <div className="flex items-center gap-2">
             {profile?.is_admin && (
-              <Link href="/admin" className="rounded-lg p-2 text-neutral-400 hover:bg-white/10 hover:text-white" aria-label="Admin">
+              <Link href="/admin" className="rounded-lg p-2 text-mist hover:bg-white/10 hover:text-white" aria-label="Admin">
                 <ShieldIcon size={18} />
               </Link>
             )}
             <form action={signOut}>
-              <button className="rounded-lg p-2 text-neutral-400 hover:bg-white/10 hover:text-white" aria-label="Sign out">
+              <button className="rounded-lg p-2 text-mist hover:bg-white/10 hover:text-white" aria-label="Sign out">
                 <LogOutIcon size={18} />
               </button>
             </form>
@@ -75,38 +78,38 @@ export default async function DashboardPage() {
 
       {/* Player + wallet */}
       <section className="mb-4 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <p className="text-xs text-neutral-400">Player</p>
+        <div className="rounded-3xl border border-white/[0.06] bg-card/60 p-4">
+          <p className="text-xs text-mist">Player</p>
           <p className="mt-1 truncate text-lg font-bold">{profile?.username ?? "—"}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/15 to-transparent p-4">
-          <p className="flex items-center gap-1.5 text-xs text-emerald-300"><WalletIcon size={14} /> Wallet</p>
+        <div className="rounded-2xl border border-lilac/25 bg-gradient-to-br from-lilac/15 to-transparent p-4">
+          <p className="flex items-center gap-1.5 text-xs text-lilac"><WalletIcon size={14} /> Wallet</p>
           <p className="mt-1 text-lg font-bold">{formatUnits(balance).split(" / ")[0]}</p>
-          <p className="text-xs text-neutral-400">{formatEtb(unitsToEtb(balance))}</p>
+          <p className="text-xs text-mist">{formatEtb(unitsToEtb(balance))}</p>
         </div>
       </section>
 
       {/* Round header */}
       {round ? (
-        <section className="mb-4 rounded-2xl border border-white/10 bg-gradient-to-br from-neutral-800/60 to-neutral-900 p-4">
+        <section className="mb-4 rounded-2xl border border-white/10 bg-gradient-to-br from-card to-plum p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wider text-neutral-400">
+              <p className="text-xs uppercase tracking-wider text-mist">
                 {round.status === "open" ? "Current round" : round.status === "locked" ? "In progress" : "Last round"}
               </p>
               <h1 className="text-xl font-bold">{round.name}</h1>
             </div>
             {pool && (
               <div className="text-right">
-                <p className="flex items-center justify-end gap-1 text-xs text-amber-300"><TrophyIcon size={14} /> Prize pot</p>
-                <p className="text-xl font-black text-amber-300">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
-                <p className="text-xs text-neutral-500">{pool.entrants} players</p>
+                <p className="flex items-center justify-end gap-1 text-xs text-lilac-soft"><TrophyIcon size={14} /> Prize pot</p>
+                <p className="text-xl font-black text-lilac-soft">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
+                <p className="text-xs text-mist/70">{pool.entrants} players</p>
               </div>
             )}
           </div>
         </section>
       ) : (
-        <p className="rounded-2xl border border-white/10 p-6 text-center text-neutral-400">No round yet — check back soon.</p>
+        <p className="rounded-2xl border border-white/10 p-6 text-center text-mist">No round yet — check back soon.</p>
       )}
 
       {round && (
@@ -120,5 +123,6 @@ export default async function DashboardPage() {
         />
       )}
     </main>
+    </div>
   );
 }

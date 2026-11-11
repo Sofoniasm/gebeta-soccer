@@ -8,10 +8,10 @@ import Link from "next/link";
  * Flat colours only (no SVG ids), so it can be used many times on a page.
  */
 
-const BOARD = "#13734a";
-const PIT = "#03170e";
-const GOLD = "#f5b82e";
-const TILE = "#0a3d27";
+const BOARD = "#4b4270";
+const PIT = "#1b1729";
+const GOLD = "#b8abf7"; // lavender: outline, hinges, seeds
+const TILE = "#2c2740";
 
 const PIT_X = [10.6, 19.1, 27.6, 36.1, 44.6, 53.1];
 const TOP_Y = 25.8;
@@ -83,8 +83,8 @@ export function Logo({
   return (
     <Link href={href} className={`inline-flex items-center gap-2 ${className}`} aria-label="GebetaSoccer home">
       <LogoMark className={`${mark} shrink-0`} tile />
-      <span className={`${text} font-black tracking-tight text-white`}>
-        Gebeta<span className="text-amber-400">Soccer</span>
+      <span className={`${text} font-extrabold tracking-tight text-white`}>
+        Gebeta<span className="text-lilac">Soccer</span>
       </span>
     </Link>
   );

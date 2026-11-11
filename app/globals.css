@@ -1,18 +1,25 @@
 @import "tailwindcss";
 
+/* GebetaSoccer — calm plum & lavender theme */
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  /* Brand colours */
-  --color-pitch: #07110c;   /* page background: near-black forest green */
-  --color-forest: #146c43;  /* Gebeta board green */
-  --color-gold: #fbbf24;    /* seeds / accents */
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #1f1b2e;        /* deepest: footer, inputs, phone mockup */
+  --color-plum: #2c2740;       /* page background */
+  --color-card: #383151;       /* cards & panels */
+  --color-line: #4b4468;       /* borders & dividers */
+  --color-lilac: #a99cf0;      /* primary accent */
+  --color-lilac-soft: #cbc2fa; /* hover / highlights */
+  --color-mist: #b4aecb;       /* secondary text */
 }
 
 html {
   -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;

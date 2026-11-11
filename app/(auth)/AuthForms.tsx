@@ -9,9 +9,9 @@ import { SpinnerIcon } from "@/components/icons";
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-sm font-medium text-neutral-300">{label}</span>
+      <span className="text-sm font-medium text-mist">{label}</span>
       {children}
-      {hint && <span className="block text-xs text-neutral-500">{hint}</span>}
+      {hint && <span className="block text-xs text-mist/70">{hint}</span>}
     </label>
   );
 }
@@ -31,9 +31,9 @@ export function LoginForm({ next }: { next?: string }) {
       <button type="submit" disabled={pending} className={primaryButtonClass}>
         {pending && <SpinnerIcon size={18} />} Log in
       </button>
-      <p className="text-center text-sm text-neutral-400">
+      <p className="text-center text-sm text-mist">
         New here?{" "}
-        <Link href="/register" className="font-semibold text-emerald-400">
+        <Link href="/register" className="font-semibold text-lilac">
           Create an account
         </Link>
       </p>
@@ -73,9 +73,9 @@ export function RegisterForm() {
       <button type="submit" disabled={pending} className={primaryButtonClass}>
         {pending && <SpinnerIcon size={18} />} Create account
       </button>
-      <p className="text-center text-sm text-neutral-400">
+      <p className="text-center text-sm text-mist">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-emerald-400">
+        <Link href="/login" className="font-semibold text-lilac">
           Log in
         </Link>
       </p>

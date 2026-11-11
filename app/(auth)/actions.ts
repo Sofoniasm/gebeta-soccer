@@ -53,9 +53,9 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    if (error.message.toLowerCase().includes("email not confirmed")) {
-      return { error: "Please confirm your email first — check your inbox (and spam)." };
-    }
+    const m = error.message.toLowerCase();
+    if (m.includes("email not confirmed")) return { error: "Please confirm your email first — check your inbox (and spam)." };
+    if (m.includes("disabled")) return { error: "Logins are temporarily unavailable. Please try again soon." };
     return { error: "Wrong username/phone or password." };
   }
   redirect(safeNext(formData.get("next")));
@@ -86,27 +86,36 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   if (a.username_taken) return { error: "That username is taken." };
   if (a.phone_taken) return { error: "That phone number is already registered." };
 
-  const { data, error } = await supabase.auth.signUp({
-    email: emailInput || placeholderEmail(phone),
+  // Create the account on the server with the secret key. This works no matter
+  // how Supabase's "Allow sign-ups" / "Confirm email" switches are set, and the
+  // account is active immediately.
+  const loginEmail = emailInput || placeholderEmail(phone);
+  const { error: createError } = await createAdminClient().auth.admin.createUser({
+    email: loginEmail,
     password,
-    options: { data: { username, phone_number: phone } },
+    email_confirm: true,
+    user_metadata: { username, phone_number: phone },
   });
 
-  if (error) {
-    if (error.message.toLowerCase().includes("already registered")) {
-      return { error: "That email is already registered. Try logging in." };
+  if (createError) {
+    const m = createError.message.toLowerCase();
+    if (m.includes("already") && m.includes("registered")) {
+      return { error: emailInput ? "That email is already registered. Try logging in." : "That phone number is already registered." };
     }
-    return { error: error.message };
+    if (m.includes("database error")) return { error: "That username or phone number is already taken." };
+    if (m.includes("password")) return { error: "Please choose a stronger password (at least 8 characters)." };
+    return { error: "Could not create your account. Please try again." };
   }
 
-  // "Confirm email" is off in Supabase → the player is signed in right away.
-  if (data.session) redirect("/dashboard");
-
-  return {
-    success: emailInput
-      ? `Account created. We sent a confirmation link to ${emailInput} — open it, then log in.`
-      : "Account created. You can log in now.",
-  };
+  // Sign the new player in straight away.
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+  if (signInError) {
+    if (signInError.message.toLowerCase().includes("disabled")) {
+      return { error: "Account created, but logins are switched off in Supabase (Email provider). Ask the admin to enable it." };
+    }
+    return { success: "Account created. You can log in now." };
+  }
+  redirect("/dashboard");
 }
 
 // -------------------------------------------------------------- sign out

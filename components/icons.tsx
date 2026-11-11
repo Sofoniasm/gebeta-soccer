@@ -78,3 +78,24 @@ export const SpinnerIcon = (p: IconProps) => (
     <path d="M21 12a9 9 0 1 1-9-9" />
   </Svg>
 );
+export const ArrowRightIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 12h15M13 6l6 6-6 6" />
+  </Svg>
+);
+export const SendIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 3L10 14M21 3l-7 18-4-7-7-4 18-7z" />
+  </Svg>
+);
+export const StarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z" />
+  </Svg>
+);
+export const UsersIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c1.8.7 3 2.4 3.5 5.2" />
+  </Svg>
+);

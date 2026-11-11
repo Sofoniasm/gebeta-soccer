@@ -8,12 +8,13 @@ import { formatUnits, unitsToEtb } from "@/lib/money";
 import { addUnits, assignMatches, createRound, removeMatch, setRoundStatus, setScore, settle, syncNow } from "./actions";
 import { Banner, Card, Logo, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { RefreshIcon } from "@/components/icons";
+import { FlowLines } from "@/components/FlowLines";
 import { SubmitButton } from "./SubmitButton";
 
 export const metadata = { title: "Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-const small = "rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white outline-none focus:border-amber-400";
+const small = "rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white outline-none focus:border-lilac";
 
 export default async function AdminPage({
   searchParams,
@@ -74,13 +75,15 @@ export default async function AdminPage({
   const { data: recentRounds } = await admin.from("rounds").select("*").order("id", { ascending: false }).limit(5);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-2xl space-y-5 px-4 py-5">
+    <div className="relative min-h-dvh overflow-x-hidden">
+    <FlowLines />
+    <main className="relative mx-auto min-h-dvh max-w-3xl space-y-5 px-4 py-5">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Logo />
-          <span className="rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-bold text-amber-300">ADMIN</span>
+          <Logo size="sm" />
+          <span className="rounded-full bg-lilac/15 px-2.5 py-0.5 text-xs font-bold text-lilac-soft">ADMIN</span>
         </div>
-        <Link href="/dashboard" className="text-sm text-neutral-400 hover:text-white">Dashboard →</Link>
+        <Link href="/dashboard" className="text-sm text-mist hover:text-white">Dashboard →</Link>
       </header>
 
       {msg && <Banner kind="success">{msg}</Banner>}
@@ -94,16 +97,16 @@ export default async function AdminPage({
           <button className={secondaryButtonClass}>Search</button>
         </form>
 
-        {q && users.length === 0 && <p className="text-sm text-neutral-400">No players found.</p>}
+        {q && users.length === 0 && <p className="text-sm text-mist">No players found.</p>}
 
         <div className="space-y-3">
           {users.map((u) => (
             <div key={u.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-semibold">{u.username}</p>
-                <p className="text-sm text-emerald-300">{formatUnits(Number(u.balance_units))}</p>
+                <p className="text-sm text-lilac">{formatUnits(Number(u.balance_units))}</p>
               </div>
-              <p className="text-xs text-neutral-400">{u.phone_number ?? "no phone"} · {u.email ?? "no email"}</p>
+              <p className="text-xs text-mist">{u.phone_number ?? "no phone"} · {u.email ?? "no email"}</p>
               <form action={addUnits} className="mt-3 flex flex-wrap gap-2">
                 <input type="hidden" name="userId" value={u.id} />
                 <input type="hidden" name="q" value={q ?? ""} />
@@ -129,7 +132,7 @@ export default async function AdminPage({
 
         {!round ? (
           <form action={createRound} className="space-y-3">
-            <p className="text-sm text-neutral-400">No open round. Create one:</p>
+            <p className="text-sm text-mist">No open round. Create one:</p>
             <div className="flex gap-2">
               <input name="name" required placeholder="Week 1" className={inputClass} />
               <input name="entryFee" type="number" step="0.5" min="0.5" defaultValue="1" className={`${inputClass} w-24`} aria-label="Entry fee (units)" />
@@ -142,7 +145,7 @@ export default async function AdminPage({
               <div>
                 <p className="font-semibold">{round.name} <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-xs uppercase">{round.status}</span></p>
                 {pool && (
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-mist">
                     {pool.entrants} players · pool {formatEtb(unitsToEtb(pool.pool_units))} · prizes {formatEtb(unitsToEtb(pool.prize_fund_units))}
                   </p>
                 )}
@@ -155,7 +158,7 @@ export default async function AdminPage({
                 </form>
                 <form action={settle}>
                   <input type="hidden" name="roundId" value={round.id} />
-                  <SubmitButton className={`${secondaryButtonClass} border-amber-400/40 text-amber-200`} confirm="Settle this round and pay winners? This cannot be undone.">
+                  <SubmitButton className={`${secondaryButtonClass} border-lilac/40 text-lilac-soft`} confirm="Settle this round and pay winners? This cannot be undone.">
                     Settle round
                   </SubmitButton>
                 </form>
@@ -164,32 +167,32 @@ export default async function AdminPage({
 
             {/* Round matches + manual scores */}
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-neutral-300">Matches in round ({roundMatches.length})</p>
-              {roundMatches.length === 0 && <p className="text-sm text-neutral-500">None yet — add some below.</p>}
+              <p className="text-sm font-semibold text-mist">Matches in round ({roundMatches.length})</p>
+              {roundMatches.length === 0 && <p className="text-sm text-mist/70">None yet — add some below.</p>}
               {roundMatches.map((m) => (
                 <div key={m.id} className="rounded-xl border border-white/10 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold">{m.home_team} vs {m.away_team}</p>
-                    <span className="text-xs text-neutral-400">{m.status}</span>
+                    <span className="text-xs text-mist">{m.status}</span>
                   </div>
-                  <p className="text-xs text-neutral-500">{formatKickoff(m.kickoff_at)} · {m.competition}</p>
+                  <p className="text-xs text-mist/70">{formatKickoff(m.kickoff_at)} · {m.competition}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <form action={setScore} className="flex items-center gap-1.5">
                       <input type="hidden" name="matchId" value={m.id} />
                       <input type="hidden" name="status" value="finished" />
                       <input name="home" type="number" min="0" defaultValue={m.actual_home_score ?? ""} className={`${small} w-14 text-center`} aria-label="Home score" />
-                      <span className="text-neutral-500">–</span>
+                      <span className="text-mist/70">–</span>
                       <input name="away" type="number" min="0" defaultValue={m.actual_away_score ?? ""} className={`${small} w-14 text-center`} aria-label="Away score" />
                       <SubmitButton className={secondaryButtonClass}>Save score</SubmitButton>
                     </form>
                     <form action={setScore}>
                       <input type="hidden" name="matchId" value={m.id} />
                       <input type="hidden" name="status" value="postponed" />
-                      <SubmitButton className="text-xs text-neutral-400 hover:text-white">Postponed</SubmitButton>
+                      <SubmitButton className="text-xs text-mist hover:text-white">Postponed</SubmitButton>
                     </form>
                     <form action={removeMatch}>
                       <input type="hidden" name="matchId" value={m.id} />
-                      <SubmitButton className="text-xs text-red-300 hover:text-red-200">Remove</SubmitButton>
+                      <SubmitButton className="text-xs text-rose-300 hover:text-rose-200">Remove</SubmitButton>
                     </form>
                   </div>
                 </div>
@@ -199,16 +202,16 @@ export default async function AdminPage({
             {/* Add upcoming matches */}
             <form action={assignMatches} className="space-y-2">
               <input type="hidden" name="roundId" value={round.id} />
-              <p className="text-sm font-semibold text-neutral-300">Add upcoming matches</p>
+              <p className="text-sm font-semibold text-mist">Add upcoming matches</p>
               {(upcoming ?? []).length === 0 && (
-                <p className="text-sm text-neutral-500">No upcoming matches. Press “Sync matches” first.</p>
+                <p className="text-sm text-mist/70">No upcoming matches. Press “Sync matches” first.</p>
               )}
               <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
                 {(upcoming ?? []).map((m: MatchRow) => (
                   <label key={m.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/5">
-                    <input type="checkbox" name="matchId" value={m.id} className="h-4 w-4 accent-amber-400" />
+                    <input type="checkbox" name="matchId" value={m.id} className="h-4 w-4 accent-violet-300" />
                     <span className="flex-1 text-sm">{m.home_team} vs {m.away_team}</span>
-                    <span className="text-xs text-neutral-500">{formatKickoff(m.kickoff_at)}</span>
+                    <span className="text-xs text-mist/70">{formatKickoff(m.kickoff_at)}</span>
                   </label>
                 ))}
               </div>
@@ -225,12 +228,13 @@ export default async function AdminPage({
           {(recentRounds ?? []).map((r: RoundRow) => (
             <li key={r.id} className="flex justify-between py-2">
               <span>{r.name}</span>
-              <span className="text-neutral-400">{r.status}</span>
+              <span className="text-mist">{r.status}</span>
             </li>
           ))}
-          {(recentRounds ?? []).length === 0 && <li className="py-2 text-neutral-500">No rounds yet.</li>}
+          {(recentRounds ?? []).length === 0 && <li className="py-2 text-mist/70">No rounds yet.</li>}
         </ul>
       </Card>
     </main>
+    </div>
   );
 }

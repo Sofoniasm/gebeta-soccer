@@ -1,32 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "GebetaSoccer — Predict. Win. Dominate the Gebeta.",
+  title: "GebetaSoccer — Predict the scores. Win the Gebeta.",
   description: "Predict 10 football matches every week, beat the leaderboard and win the prize pool.",
   icons: { icon: "/icon.svg", apple: "/apple-icon.png" },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "GebetaSoccer", statusBarStyle: "black-translucent" },
   openGraph: {
-    title: "GebetaSoccer — Predict. Win. Dominate the Gebeta.",
+    title: "GebetaSoccer — Predict the scores. Win the Gebeta.",
     description: "Predict 10 football matches every week and win the prize pool.",
     images: [{ url: "/og.png", width: 1080, height: 1080 }],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07110c",
+  themeColor: "#2c2740",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} bg-pitch`}>
-      <body className="min-h-dvh bg-pitch font-sans text-neutral-100 antialiased selection:bg-amber-400/30">
+    <html lang="en" className={`${montserrat.variable} bg-plum`}>
+      <body className="min-h-dvh bg-plum font-sans text-[#ece9f6] antialiased selection:bg-lilac/30">
         {children}
       </body>
     </html>

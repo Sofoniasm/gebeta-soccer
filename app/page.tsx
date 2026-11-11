@@ -3,13 +3,18 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentRound, getRoundPool } from "@/lib/rounds";
 import { unitsToEtb, ETB_PER_UNIT, DEFAULT_HOUSE_CUT } from "@/lib/money";
 import { POINTS } from "@/lib/scoring";
-import { Logo, LogoMark, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
+import { LogoMark, SectionTitle } from "@/components/ui";
 import { CountUp } from "@/components/CountUp";
-import { BallIcon, ShieldIcon, TrophyIcon } from "@/components/icons";
+import { FlowLines } from "@/components/FlowLines";
+import { PhoneMockup } from "@/components/PhoneMockup";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import { ArrowRightIcon, BallIcon, SendIcon, ShieldIcon, StarIcon, TrophyIcon, WalletIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
-const glass = "rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl";
+const pill =
+  "inline-flex items-center justify-center rounded-full bg-lilac px-7 py-3.5 text-xs font-bold uppercase tracking-widest text-ink shadow-lg shadow-lilac/20 transition hover:bg-lilac-soft";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -22,172 +27,187 @@ export default async function Home() {
   const prizePct = Math.round((1 - houseCut) * 100);
   const housePct = 100 - prizePct;
   const prizeEtb = pool ? unitsToEtb(pool.prize_fund_units) : 0;
-  const examplePlayers = 100;
-  const examplePool = examplePlayers * ETB_PER_UNIT;
+  const examplePool = 100 * ETB_PER_UNIT;
+  const ctaHref = loggedIn ? "/dashboard" : "/register";
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden">
-      {/* Background glows */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-forest/50 blur-3xl" />
-      <div className="pointer-events-none absolute top-[30rem] -right-32 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
+    <div className="relative overflow-x-hidden">
+      <FlowLines />
+      <SiteHeader loggedIn={loggedIn} />
 
-      {/* Nav */}
-      <header className="sticky top-0 z-20 border-b border-white/5 bg-pitch/70 backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
-          <Logo size="sm" />
-          {loggedIn ? (
-            <Link href="/dashboard" className={secondaryButtonClass}>My predictions</Link>
-          ) : (
-            <Link href="/login" className={secondaryButtonClass}>Log in</Link>
-          )}
-        </nav>
-      </header>
-
-      <main className="relative mx-auto max-w-5xl px-5 pb-16">
-        {/* Hero */}
-        <section className="grid items-center gap-10 pt-10 md:grid-cols-2 md:pt-16">
-          <div className="text-center md:text-left">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-300">
-              <BallIcon size={14} /> Ethiopia&apos;s football prediction game
-            </p>
-            <h1 className="text-[2.6rem] font-black leading-[1.05] tracking-tight sm:text-6xl">
-              Predict. Win.
+      <main className="relative mx-auto max-w-6xl px-6">
+        {/* ------------------------------------------------ Hero */}
+        <section className="grid items-center gap-12 py-14 lg:grid-cols-2 lg:py-20">
+          <div className="text-center lg:text-left">
+            <h1 className="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-[3.4rem]">
+              <span className="text-lilac">Predict</span> The Scores.
               <br />
-              <span className="bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent">
-                Dominate the Gebeta.
-              </span>
+              Win <span className="text-lilac">The Gebeta.</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-md text-base text-neutral-300 md:mx-0">
-              Call the scores of 10 big matches every week. Top the table and take {prizePct}% of the prize pool.
+            <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-mist lg:mx-0">
+              Call the scores of 10 big matches every week. Climb the table, beat your friends and take {prizePct}% of the prize pool.
             </p>
-            <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 md:mx-0">
-              <Link href={loggedIn ? "/dashboard" : "/register"} className={`${primaryButtonClass} py-4 text-lg`}>
-                {loggedIn ? "Make your predictions" : "Create free account"}
+            <div className="mt-9 flex items-center justify-center gap-5 lg:justify-start">
+              <Link href={ctaHref} className={pill}>
+                {loggedIn ? "Make predictions" : "Create free account"}
               </Link>
-              {!loggedIn && (
-                <Link href="/login" className={`${secondaryButtonClass} w-full py-3.5`}>
-                  I already have an account
-                </Link>
-              )}
+              <Link href="#how" className="text-lilac transition hover:translate-x-1" aria-label="How it works">
+                <ArrowRightIcon size={30} />
+              </Link>
             </div>
           </div>
 
-          {/* Prize pool */}
-          <div className={`${glass} relative overflow-hidden p-6 text-center shadow-2xl shadow-black/40`}>
-            <div className="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-48 w-48 rounded-full bg-amber-400/20 blur-3xl" />
-            <div className="relative">
-              <p className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-300">
+          {/* Squircle with app preview */}
+          <div className="relative mx-auto w-full max-w-md">
+            <div className="absolute inset-0 rotate-3 rounded-[3.5rem] bg-gradient-to-br from-lilac/70 via-[#8a7bd8]/60 to-[#5b4f96]/60" />
+            <div className="relative flex justify-center rounded-[3.5rem] border border-white/10 bg-gradient-to-br from-[#9d8fe6] to-[#5f539c] px-6 py-10">
+              <PhoneMockup />
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------ Info strip */}
+        <section className="rounded-[2.5rem] border border-white/5 bg-gradient-to-r from-card/80 via-[#3e3660]/80 to-card/80 px-6 py-6 backdrop-blur">
+          <div className="grid gap-6 sm:grid-cols-3 sm:divide-x sm:divide-white/10">
+            {[
+              { icon: <WalletIcon size={26} />, title: "Top up with Telebirr", text: `1 unit = ${ETB_PER_UNIT} ETB` },
+              { icon: <SendIcon size={26} />, title: "Confirmed on Telegram", text: "Send your receipt, we credit fast" },
+              { icon: <ShieldIcon size={26} />, title: "Fair & transparent", text: `${prizePct}% to winners, every round` },
+            ].map((i) => (
+              <div key={i.title} className="flex items-center gap-4 sm:justify-center sm:px-4">
+                <span className="text-lilac-soft">{i.icon}</span>
+                <div>
+                  <p className="font-bold">{i.title}</p>
+                  <p className="text-xs text-mist">{i.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ------------------------------------------------ Introduction */}
+        <section id="how" className="grid scroll-mt-24 gap-8 py-20 lg:grid-cols-2 lg:items-center">
+          <SectionTitle top="Introduction" bottom="To GebetaSoccer" />
+          <p className="text-sm leading-relaxed text-mist">
+            Every week we pick 10 big matches. You predict the exact score of each one before kickoff. Exact scores and correct
+            results earn points, and the player with the most points wins the prize pool. Like Gebeta, the board game of seeds and
+            strategy we all grew up with, it rewards patience, knowledge and a little bit of nerve.
+          </p>
+        </section>
+
+        {/* ------------------------------------------------ Prize pool */}
+        <section id="prize" className="grid scroll-mt-24 items-center gap-12 lg:grid-cols-2">
+          <div className="relative mx-auto w-full max-w-md">
+            <div className="absolute inset-0 -rotate-3 rounded-[3.5rem] bg-gradient-to-br from-[#5f539c]/70 to-lilac/50" />
+            <div className="relative rounded-[3.5rem] border border-white/10 bg-gradient-to-br from-card to-ink px-8 py-12 text-center">
+              <p className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-lilac">
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lilac opacity-70" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-lilac" />
                 </span>
-                {activeRound ? `${activeRound.name} · live prize pool` : "Prize pool"}
+                {activeRound ? `${activeRound.name} · live pool` : "Prize pool"}
               </p>
-              <p className="mt-3 bg-gradient-to-b from-white to-amber-200 bg-clip-text text-5xl font-black text-transparent sm:text-6xl">
+              <p className="mt-4 text-5xl font-extrabold tracking-tight text-white sm:text-6xl">
                 <CountUp value={prizeEtb} />
               </p>
-              <p className="mt-2 text-sm text-neutral-400">
+              <p className="mt-3 text-sm text-mist">
                 {pool && pool.entrants > 0
                   ? `${pool.entrants} player${pool.entrants === 1 ? "" : "s"} in · grows with every entry`
                   : activeRound
                     ? "Be the first to join this round"
                     : "Next round opens soon"}
               </p>
-              <LogoMark className="mx-auto mt-6 h-20 w-20" />
-              <p className="mt-3 text-xs text-neutral-500">Entry: 1 unit = {ETB_PER_UNIT} ETB</p>
+              <LogoMark className="mx-auto mt-8 h-20 w-20" tile />
             </div>
           </div>
-        </section>
 
-        {/* How it works */}
-        <section className="mt-20">
-          <h2 className="text-center text-2xl font-black tracking-tight md:text-left">How it works</h2>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {[
-              { icon: <BallIcon size={22} />, title: "Predict 10 matches", text: "Join the weekly round and call the exact score of every match before kickoff." },
-              { icon: <TrophyIcon size={22} />, title: "Beat the leaderboard", text: "Earn points for exact scores and correct results. Most points wins." },
-              { icon: <span className="text-lg font-black">{prizePct}%</span>, title: `Take ${prizePct}% of the pool`, text: "The winner takes the prize pool. Ties share it, split by most exact scores." },
-            ].map((s, i) => (
-              <div key={s.title} className={`${glass} p-5`}>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-emerald-950">
-                    {s.icon}
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Step {i + 1}</span>
-                </div>
-                <p className="mt-4 text-lg font-bold">{s.title}</p>
-                <p className="mt-1 text-sm text-neutral-400">{s.text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Transparency */}
-        <section className="mt-16">
-          <div className={`${glass} p-6`}>
-            <div className="flex items-center gap-2 text-amber-300">
-              <ShieldIcon size={18} />
-              <h2 className="text-lg font-black text-white">Where every birr goes</h2>
-            </div>
-            <p className="mt-2 text-sm text-neutral-400">
-              No hidden fees. {prizePct}% of all entries goes to the winners, {housePct}% runs GebetaSoccer.
+          <div>
+            <SectionTitle top="About" bottom="The prize pool" />
+            <p className="mt-6 text-sm leading-relaxed text-mist">
+              No hidden fees. {prizePct}% of every entry goes straight to the winners and {housePct}% runs GebetaSoccer. The pot grows
+              with every player who joins, and you can see it live right here.
             </p>
-
-            <div className="mt-5 flex h-4 overflow-hidden rounded-full bg-white/10">
-              <div className="bg-gradient-to-r from-amber-300 to-amber-500" style={{ width: `${prizePct}%` }} />
-              <div className="bg-forest" style={{ width: `${housePct}%` }} />
+            <div className="mt-6 flex h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="bg-lilac" style={{ width: `${prizePct}%` }} />
+              <div className="bg-[#5f539c]" style={{ width: `${housePct}%` }} />
             </div>
             <div className="mt-2 flex justify-between text-xs font-semibold">
-              <span className="text-amber-300">{prizePct}% prize pool</span>
-              <span className="text-emerald-400">{housePct}% house fee</span>
+              <span className="text-lilac-soft">{prizePct}% prize pool</span>
+              <span className="text-mist">{housePct}% house fee</span>
             </div>
-
-            <div className="mt-5 rounded-2xl bg-black/30 p-4 text-sm text-neutral-300">
-              Example: {examplePlayers} players × {ETB_PER_UNIT} ETB = {examplePool.toLocaleString("en-US")} ETB pool →{" "}
-              <b className="text-amber-300">{Math.round(examplePool * (prizePct / 100)).toLocaleString("en-US")} ETB</b> to the winner.
-            </div>
+            <p className="mt-6 rounded-2xl bg-ink/60 p-4 text-sm text-mist">
+              Example: 100 players × {ETB_PER_UNIT} ETB = {examplePool.toLocaleString("en-US")} ETB →{" "}
+              <b className="text-white">{Math.round(examplePool * (prizePct / 100)).toLocaleString("en-US")} ETB</b> to the winner.
+            </p>
+            <Link href={ctaHref} className={`${pill} mt-8`}>
+              {loggedIn ? "Join this round" : "Get in the game"}
+            </Link>
           </div>
         </section>
 
-        {/* Scoring */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-black tracking-tight">Scoring</h2>
-          <div className={`${glass} mt-5 overflow-hidden`}>
+        {/* ------------------------------------------------ Why play */}
+        <section className="py-20">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+            <SectionTitle top="Why play" bottom="With GebetaSoccer" />
+            <p className="text-sm leading-relaxed text-mist">
+              Built in Ethiopia for Ethiopian football fans. Simple on any phone, quick to top up, and completely transparent about where
+              every birr goes.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Exact score", POINTS.EXACT, "You say 2-1, it ends 2-1"],
-              ["Right result, close", POINTS.CLOSE, "Same goal difference, or 1 goal off"],
-              ["Right result", POINTS.RESULT, "Correct winner or draw"],
-              ["Wrong result", POINTS.WRONG, "Better luck next match"],
-            ].map(([label, pts, ex]) => (
-              <div key={String(label)} className="flex items-center justify-between border-b border-white/5 px-5 py-4 last:border-0">
-                <div>
-                  <p className="font-semibold">{label}</p>
-                  <p className="text-xs text-neutral-500">{ex}</p>
+              { icon: <BallIcon size={30} />, title: "Predict", text: "10 big matches every week. Lock your scores before kickoff." },
+              { icon: <TrophyIcon size={30} />, title: "Compete", text: "Earn points for exact scores and correct results." },
+              { icon: <StarIcon size={30} />, title: "Win", text: `Top the table and take ${prizePct}% of the pool.` },
+              { icon: <ShieldIcon size={30} />, title: "Trust", text: "Every deposit and payout is recorded and can't be edited." },
+            ].map((c) => (
+              <div key={c.title} className="rounded-[2rem] border border-white/5 bg-card/60 p-6 text-center">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-plum bg-gradient-to-br from-lilac to-[#6c5fb3] text-ink shadow-lg shadow-black/30">
+                  {c.icon}
                 </div>
-                <span className="text-2xl font-black text-amber-300">{pts}</span>
+                <p className="mt-5 text-sm font-extrabold uppercase tracking-widest">{c.title}</p>
+                <p className="mt-2 text-sm text-mist">{c.text}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Final CTA */}
+        {/* ------------------------------------------------ Scoring */}
+        <section id="scoring" className="scroll-mt-24 pb-20">
+          <SectionTitle top="Scoring" bottom="How points work" />
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              [POINTS.EXACT, "Exact score", "You say 2-1, it ends 2-1"],
+              [POINTS.CLOSE, "Right result, close", "Same goal difference, or 1 goal off"],
+              [POINTS.RESULT, "Right result", "Correct winner or draw"],
+              [POINTS.WRONG, "Wrong result", "Better luck next match"],
+            ].map(([pts, label, ex]) => (
+              <div key={String(label)} className="rounded-[2rem] border border-white/5 bg-card/60 p-6">
+                <p className="text-4xl font-extrabold text-lilac">{pts}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-mist">points</p>
+                <p className="mt-4 font-bold">{label}</p>
+                <p className="mt-1 text-sm text-mist">{ex}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ------------------------------------------------ CTA */}
         {!loggedIn && (
-          <section className="mt-16 text-center">
-            <h2 className="text-3xl font-black tracking-tight">Ready to play?</h2>
-            <p className="mt-2 text-neutral-400">Sign up with just your phone number.</p>
-            <Link href="/register" className={`${primaryButtonClass} mx-auto mt-6 max-w-sm py-4 text-lg`}>
+          <section className="mb-20 overflow-hidden rounded-[3rem] bg-gradient-to-br from-[#9d8fe6] to-[#5f539c] px-6 py-14 text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Ready to play?</h2>
+            <p className="mt-3 text-white/80">Sign up with just your phone number. It takes 30 seconds.</p>
+            <Link
+              href="/register"
+              className="mt-8 inline-flex items-center justify-center rounded-full bg-ink px-8 py-4 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-black"
+            >
               Create free account
             </Link>
           </section>
         )}
       </main>
 
-      <footer className="border-t border-white/5 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-5 text-center">
-          <Logo size="sm" />
-          <p className="text-xs text-neutral-500">18+ only. Play responsibly — only stake what you can afford to lose.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
