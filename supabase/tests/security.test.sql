@@ -42,7 +42,7 @@ insert into auth.users (id, raw_user_meta_data) values
   ('11111111-0000-0000-0000-000000000001', '{"username":"alice","phone_number":"+251911000001"}'),
   ('11111111-0000-0000-0000-000000000002', '{"username":"bob","phone_number":"+251911000002"}'),
   ('11111111-0000-0000-0000-000000000003', '{"username":"mallory","phone_number":"+251911000003"}');
-update public.profiles set phone_verified_at = now();
+update public.profiles set phone_verified_at = now(), date_of_birth = date '1990-01-01';
 insert into public.rounds (name, status) values ('Test week', 'draft');
 insert into public.matches (round_id, home_team, away_team, kickoff_at) values
   ((select max(id) from public.rounds), 'Home FC', 'Away FC', now() + interval '1 day'),
@@ -380,6 +380,7 @@ do $$ begin
 end $$;
 insert into auth.users (id, raw_user_meta_data) values
   ('11111111-0000-0000-0000-0000000000ab', jsonb_build_object('username', 'grownup', 'phone_number', '+251911000098', 'date_of_birth', '1990-05-01'));
+update public.profiles set date_of_birth = null where id = '11111111-0000-0000-0000-000000000003';
 set role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000003', false) \g /dev/null
 do $$ begin
@@ -411,5 +412,56 @@ do $$ begin
     raise exception 'FAIL: date of birth not saved at sign-up';
   end if;
 end $$;
+
+-- ---------- responsible play ----------------------------------------------
+reset role;
+insert into public.matches (home_team, away_team, kickoff_at) values ('Break A', 'Break B', now() + interval '2 days');
+create table tests_rp as select jsonb_build_array(jsonb_build_object('match_id', id, 'home', 1, 'away', 0)) j from public.matches where home_team = 'Break A';
+grant select on tests_rp to authenticated;
+select public.admin_add_units('11111111-0000-0000-0000-000000000002', 20, 'test', null);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000002', false) \g /dev/null
+do $$ begin
+  -- deposit limit: set 20 units/week; bob already got deposits this week, so the admin can't add more
+  perform public.set_deposit_limit(20);
+  if public.set_deposit_limit(500) <> 'in 7 days' then raise exception 'FAIL: raising a deposit limit was not delayed 7 days'; end if;
+  if public.set_deposit_limit(10) <> 'now' then raise exception 'FAIL: lowering a deposit limit was not immediate'; end if;
+  begin perform public.take_a_break(3);
+        raise exception 'FAIL: a break of any length was accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  perform public.take_a_break(1);
+  begin perform public.create_challenge('Break bet', 1, null, (select j from tests_rp));
+        raise exception 'FAIL: a player on a break placed a bet';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin update public.profiles set excluded_until = null where id = auth.uid();
+        raise exception 'FAIL: a player ended their own break early';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+  begin perform public.admin_add_units('11111111-0000-0000-0000-000000000002', 5, 'over limit', null);
+        raise exception 'FAIL: a deposit over the player''s weekly limit was accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+-- no date of birth / under 18 = no bets
+update public.profiles set date_of_birth = null where id = '11111111-0000-0000-0000-000000000001';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', false) \g /dev/null
+do $$ begin
+  begin perform public.create_challenge('No birthday bet', 1, null, (select j from tests_rp));
+        raise exception 'FAIL: a player without a date of birth placed a bet';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+reset role;
+update public.profiles set date_of_birth = (now() - interval '16 years')::date where id = '11111111-0000-0000-0000-000000000001';
+set role authenticated;
+do $$ begin
+  begin perform public.create_challenge('Kid bet', 1, null, (select j from tests_rp));
+        raise exception 'FAIL: an under-18 player placed a bet';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  raise notice 'ok  responsible play: breaks, deposit limits (7-day cooling-off) and 18+ enforced by the database';
+end $$;
+reset role;
+update public.profiles set date_of_birth = date '1990-01-01' where id = '11111111-0000-0000-0000-000000000001';
 
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

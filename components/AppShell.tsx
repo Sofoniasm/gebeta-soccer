@@ -74,6 +74,17 @@ export async function AppShell({ children, title, next }: { children: React.Reac
 
       <main className="relative px-4 pb-32 pt-5 sm:px-6 lg:ml-72 lg:px-10 lg:pb-16 lg:pt-10">
         <div className="mx-auto max-w-5xl">
+          {me.excluded_until && new Date(me.excluded_until).getTime() > Date.now() && (
+            <Link href="/profile#responsible-play" className="mb-5 block rounded-2xl border border-amber-200/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-50">
+              ⏸️ You&apos;re taking a break until{" "}
+              <b>{new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Addis_Ababa", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(me.excluded_until))}</b>. Betting is paused; you can still withdraw.
+            </Link>
+          )}
+          {!me.date_of_birth && (
+            <Link href="/profile" className="mb-5 block rounded-2xl border border-amber-200/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-50">
+              🎂 Add your date of birth on your Profile to keep playing for money (18+ only).
+            </Link>
+          )}
           {title && <h1 className="mb-6 text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</h1>}
           {children}
         </div>

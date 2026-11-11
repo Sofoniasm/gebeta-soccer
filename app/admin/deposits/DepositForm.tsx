@@ -64,6 +64,21 @@ export function DepositForm() {
           </div>
         </div>
       )}
+      {p && (p.limit_units !== null || p.on_break_until) && (
+        <div className="rounded-2xl border border-amber-200/30 bg-amber-200/10 p-3 text-sm text-amber-50">
+          {p.limit_units !== null && (
+            <p>
+              Weekly deposit limit set by the player: <b>{(p.limit_units * ETB_PER_UNIT).toLocaleString("en-US")} ETB</b>. Left this week:{" "}
+              <b>{((p.limit_left ?? 0) * ETB_PER_UNIT).toLocaleString("en-US")} ETB</b>.
+            </p>
+          )}
+          {p.on_break_until && (
+            <p className="mt-1">
+              Taking a break until <b>{new Date(p.on_break_until).toLocaleString("en-GB", { timeZone: "Africa/Addis_Ababa", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</b>. They can&apos;t bet until then; withdrawals still work.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Step 2 — amount */}
       {p && (

@@ -88,6 +88,9 @@ export interface MyChallenge {
 
 /** Friendly words for database errors. */
 export function challengeError(m: string): string {
+  if (m.includes("taking a break")) return m.replace(/^.*betting paused: /, "Betting is paused: ") + ". You can still withdraw.";
+  if (m.includes("date of birth")) return "Add your date of birth on your Profile before betting (18+ only).";
+  if (m.includes("18 or older")) return "You must be 18 or older to bet.";
   if (m.includes("insufficient")) return "Not enough Units in your wallet for this stake. Top up first: send the money to our Telegram admin.";
   if (m.includes("phone not verified")) return "Please confirm your phone number first (Profile).";
   if (m.includes("closed")) return "This challenge is closed: its first match has kicked off.";

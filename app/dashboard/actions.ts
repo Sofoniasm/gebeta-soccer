@@ -11,6 +11,9 @@ export interface PickInput {
 }
 
 function friendly(m: string): string {
+  if (m.includes("taking a break")) return m.replace(/^.*betting paused: /, "Betting is paused: ") + ". You can still withdraw.";
+  if (m.includes("date of birth")) return "Add your date of birth on your Profile before betting (18+ only).";
+  if (m.includes("18 or older")) return "You must be 18 or older to bet.";
   if (m.includes("phone not verified")) return "Please confirm your phone number first.";
   if (m.includes("insufficient")) return "Not enough units in your wallet. Top up via Telebirr and send the receipt on Telegram.";
   if (m.includes("all 10")) return "Fill in a score for all 10 matches first.";

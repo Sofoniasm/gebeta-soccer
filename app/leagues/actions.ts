@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 export type LeagueFormState = { ok?: boolean; message?: string } | undefined;
 
 function friendly(m: string): string {
+  if (m.includes("taking a break")) return m.replace(/^.*betting paused: /, "Betting is paused: ") + ".";
+  if (m.includes("date of birth")) return "Add your date of birth on your Profile before playing for money (18+ only).";
+  if (m.includes("18 or older")) return "You must be 18 or older to play for money.";
   if (m.includes("phone not verified")) return "Please confirm your phone number first.";
   if (m.includes("insufficient")) return "Not enough units in your wallet. Top up on Telegram, or choose “Request to join”.";
   if (m.includes("entry fee must be")) return "Entry fee must be free, or 5–50 Units (1,000–10,000 ETB).";

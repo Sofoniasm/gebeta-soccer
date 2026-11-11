@@ -5,6 +5,8 @@ import { PasswordForm } from "./PasswordForm";
 import { LogOutIcon } from "@/components/icons";
 import { AvatarUpload } from "./AvatarUpload";
 import { DobForm } from "./DobForm";
+import { ResponsiblePlay } from "./ResponsiblePlay";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Profile · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -13,6 +15,10 @@ export default async function ProfilePage() {
   const me = await getMe("/profile");
   const since = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "Africa/Addis_Ababa" }).format(new Date(me.created_at));
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
+  const supabase = await createClient();
+  const { data: lim } = await supabase.rpc("get_my_play_limits").maybeSingle();
+  const limits = (lim ?? {}) as { excluded_until?: string | null; deposit_limit_units?: number | null; next_units?: number | null; next_at?: string | null; deposited_7d?: number | null };
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 
   return (
     <AppShell title="Profile" next="/profile">
@@ -44,6 +50,18 @@ export default async function ProfilePage() {
           <div className="mt-4"><PasswordForm /></div>
         </section>
       </div>
+
+      <section id="responsible-play" className={`${card} mt-5 scroll-mt-24`}>
+        <h2 className="text-lg font-extrabold">Responsible play</h2>
+        <p className="mb-5 mt-1 text-sm text-mist">Tools to keep the game fun. Our admin will respect them; the system enforces them.</p>
+        <ResponsiblePlay
+          breakUntil={limits.excluded_until ?? me.excluded_until}
+          limitUnits={num(limits.deposit_limit_units)}
+          nextUnits={num(limits.next_units)}
+          nextAt={limits.next_at ?? null}
+          deposited7d={num(limits.deposited_7d) ?? 0}
+        />
+      </section>
 
       <section className={`${card} mt-5 flex flex-wrap items-center justify-between gap-4`}>
         <div className="flex items-center gap-3">

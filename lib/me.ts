@@ -13,6 +13,7 @@ export interface Me {
   phone_verified_at: string | null;
   date_of_birth: string | null;
   avatar_url: string | null;
+  excluded_until: string | null;
 }
 
 /** The signed-in player's profile (cached per request). Redirects to login if signed out. */
@@ -25,7 +26,7 @@ export const getMe = cache(async (next = "/dashboard"): Promise<Me> => {
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, phone_number, email, balance_units, is_admin, created_at, phone_verified_at, date_of_birth, avatar_url")
+    .select("id, username, phone_number, email, balance_units, is_admin, created_at, phone_verified_at, date_of_birth, avatar_url, excluded_until")
     .eq("id", user.id)
     .single();
   if (!data) redirect("/login");

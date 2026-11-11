@@ -12,6 +12,10 @@ export interface FoundPlayer {
   username: string;
   phone_number: string | null;
   balance_units: number;
+  /** Player's own weekly deposit limit (units) and what is left of it; null = no limit. */
+  limit_units: number | null;
+  limit_left: number | null;
+  on_break_until: string | null;
 }
 export type LookupState = { player?: FoundPlayer; error?: string } | undefined;
 export type DepositState = { ok?: boolean; message?: string; userId?: string; newBalance?: number } | undefined;
@@ -24,13 +28,28 @@ export async function findPlayer(_prev: LookupState, formData: FormData): Promis
 
   const admin = createAdminClient();
   const phone = normalizeEthiopianPhone(raw);
-  const query = admin.from("profiles").select("id, username, phone_number, balance_units");
+  const query = admin.from("profiles").select("id, username, phone_number, balance_units, excluded_until");
   const { data } = phone
     ? await query.eq("phone_number", phone).maybeSingle()
     : await query.ilike("username", raw.replace(/^@/, "").replace(/[%_\\]/g, "\\$&")).maybeSingle();
 
   if (!data) return { error: `No player found for “${raw}”.` };
-  return { player: { ...data, balance_units: Number(data.balance_units) } as FoundPlayer };
+  const [{ data: limit }, { data: used }] = await Promise.all([
+    admin.rpc("effective_deposit_limit", { p_user_id: data.id }),
+    admin.rpc("deposits_last_7_days", { p_user_id: data.id }),
+  ]);
+  const limitUnits = limit === null || limit === undefined ? null : Number(limit);
+  return {
+    player: {
+      id: data.id,
+      username: data.username,
+      phone_number: data.phone_number,
+      balance_units: Number(data.balance_units),
+      limit_units: limitUnits,
+      limit_left: limitUnits === null ? null : Math.max(0, limitUnits - Number(used ?? 0)),
+      on_break_until: data.excluded_until && new Date(data.excluded_until).getTime() > Date.now() ? data.excluded_until : null,
+    },
+  };
 }
 
 /** Record a Telegram deposit: ETB amount → units (1 unit = 200 ETB). */
@@ -54,7 +73,12 @@ export async function recordDeposit(_prev: DepositState, formData: FormData): Pr
     p_reference: reference,
     p_admin_id: adminId,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    if (error.message.includes("weekly deposit limit")) {
+      return { ok: false, message: `Refused: the player set a weekly deposit limit and this would go over it (${error.message.split(": ").pop()}). Don't take their money; send it back.` };
+    }
+    return { ok: false, message: error.message };
+  }
 
   const admin = createAdminClient();
   const { data: after } = await admin.from("profiles").select("username, balance_units").eq("id", userId).single();

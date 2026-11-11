@@ -36,11 +36,13 @@ export default async function PlayerDetailPage({
 
   const { data: p } = await admin
     .from("profiles")
-    .select("id, username, phone_number, email, balance_units, created_at, is_admin, phone_verified_at, telegram_user_id, avatar_url, date_of_birth")
+    .select("id, username, phone_number, email, balance_units, created_at, is_admin, phone_verified_at, telegram_user_id, avatar_url, date_of_birth, excluded_until")
     .eq("id", id)
     .maybeSingle();
   if (!p) notFound();
 
+  const { data: limitRaw } = await admin.rpc("effective_deposit_limit", { p_user_id: id });
+  const depositLimit = limitRaw === null || limitRaw === undefined ? null : Number(limitRaw);
   const keys = [p.phone_number, p.username?.toLowerCase(), p.email?.toLowerCase()].filter(Boolean) as string[];
   const [{ data: authUser }, { data: ledger }, { data: withdrawals }, { data: entries }, { data: leagues }, { data: logins }, { data: notes }, { data: preds }] =
     await Promise.all([
@@ -65,7 +67,9 @@ export default async function PlayerDetailPage({
 
   const facts: [string, string][] = [
     ["Phone", p.phone_number ?? "—"],
-    ["Date of birth", p.date_of_birth ?? "not given"],
+    ["Date of birth", p.date_of_birth ?? "not given (can't bet)"],
+    ["Break", p.excluded_until && new Date(p.excluded_until).getTime() > Date.now() ? `until ${formatKickoff(p.excluded_until)}` : "none"],
+    ["Weekly deposit limit", depositLimit === null ? "none" : `${unitsLabel(depositLimit)} (${etbLabel(depositLimit)})`],
     ["Email", p.email ?? "— (phone login)"],
     ["Registered", formatKickoff(p.created_at)],
     ["Phone confirmed", p.phone_verified_at ? formatKickoff(p.phone_verified_at) : "Not yet"],

@@ -65,6 +65,9 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
         title: "5. Responsible play",
         body: [
           "Only play with money you can afford to lose. Never chase losses.",
+          "On your Profile you can take a break (24 hours, 7 days or 30 days) during which you cannot place any bet; a break cannot be ended early. Withdrawals still work during a break.",
+          "You can set a weekly deposit limit (any 7 days). Lowering it takes effect immediately; raising or removing it takes effect after 7 days. We will not accept deposits above your limit.",
+          "Bets can only be placed once your date of birth (18+) is saved on your account.",
           "If you feel you are playing too much, contact us on Telegram and we will pause or close your account.",
         ],
       },
@@ -134,6 +137,9 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
         title: "5. በኃላፊነት መጫወት",
         body: [
           "ሊያጡት በሚችሉት ገንዘብ ብቻ ይጫወቱ። የጠፋን ገንዘብ ለማስመለስ አይሯሯጡ።",
+          "በመገለጫ ገጽዎ ላይ እረፍት መውሰድ ይችላሉ (24 ሰዓት፣ 7 ቀን ወይም 30 ቀን)፤ በዚህ ጊዜ ምንም ውርርድ ማስገባት አይችሉም፤ እረፍቱ ቀድሞ ሊቋረጥ አይችልም። በእረፍት ጊዜም ገንዘብ ማውጣት ይቻላል።",
+          "ሳምንታዊ የገቢ ገደብ ማስቀመጥ ይችላሉ (በማንኛውም 7 ቀናት)። መቀነስ ወዲያውኑ ይሰራል፤ መጨመር ወይም ማንሳት ከ7 ቀን በኋላ ይሰራል። ከገደብዎ በላይ ገቢ አንቀበልም።",
+          "ውርርድ ማስገባት የሚቻለው የልደት ቀንዎ (18+) በመለያዎ ላይ ከተቀመጠ በኋላ ብቻ ነው።",
           "ከመጠን በላይ እየተጫወቱ እንደሆነ ከተሰማዎት በቴሌግራም ያግኙን፤ መለያዎን እናቆማለን ወይም እንዘጋለን።",
         ],
       },

@@ -81,3 +81,27 @@ export async function saveDateOfBirth(dob: string): Promise<Result> {
   }
   return { ok: true, message: "Saved. Thank you!" };
 }
+
+// ------------------------------------------------------------ responsible play
+export async function takeBreak(days: number): Promise<Result> {
+  if (![1, 7, 30].includes(days)) return { ok: false, message: "Choose 24 hours, 7 days or 30 days." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("take_a_break", { p_days: days });
+  if (error) return { ok: false, message: "Could not start the break. Did the admin run the latest SQL?" };
+  const until = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Addis_Ababa", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(String(data)));
+  return { ok: true, message: `Your break has started. Betting is paused until ${until}. You can still withdraw.` };
+}
+
+export async function saveDepositLimit(etb: number | null): Promise<Result> {
+  if (etb !== null && (!Number.isFinite(etb) || etb < 1000 || etb > 1_000_000)) return { ok: false, message: "Choose a limit between 1,000 and 1,000,000 ETB." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_deposit_limit", { p_units: etb === null ? null : Math.round((etb / 200) * 100) / 100 });
+  if (error) return { ok: false, message: "Could not save the limit. Please try again." };
+  if (data === "now") return { ok: true, message: etb === null ? "No deposit limit." : `Done: you can deposit at most ${etb.toLocaleString("en-US")} ETB in any 7 days.` };
+  return {
+    ok: true,
+    message: etb === null
+      ? "Your limit will be removed in 7 days. Until then the current limit stays."
+      : `Your limit goes up to ${etb.toLocaleString("en-US")} ETB in 7 days. Until then the current limit stays.`,
+  };
+}
