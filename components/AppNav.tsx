@@ -12,6 +12,12 @@ const ITEMS = [
   { href: "/profile", label: "Profile", icon: UsersIcon },
 ];
 
+const ADMIN_ITEMS = [
+  { href: "/admin", label: "Rounds", icon: ShieldIcon },
+  { href: "/admin/players", label: "Players", icon: UsersIcon },
+  { href: "/admin/deposits", label: "Deposits", icon: WalletIcon },
+];
+
 export function SideNav({ isAdmin }: { isAdmin: boolean }) {
   const path = usePathname();
   return (
@@ -34,20 +40,20 @@ export function SideNav({ isAdmin }: { isAdmin: boolean }) {
       {isAdmin && (
         <>
           <p className="px-3 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/60">Manage</p>
-          <Link
-            href="/admin"
-            className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-mist transition hover:bg-white/5 hover:text-white"
-          >
-            <ShieldIcon size={18} /> Admin panel
-          </Link>
-          <Link
-            href="/admin/deposits"
-            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition ${
-              path.startsWith("/admin/deposits") ? "bg-lilac text-ink shadow-lg shadow-lilac/20" : "text-mist hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <WalletIcon size={18} /> Deposits
-          </Link>
+          {ADMIN_ITEMS.map(({ href, label, icon: Icon }) => {
+            const active = href === "/admin" ? path === "/admin" : path.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition ${
+                  active ? "bg-lilac text-ink shadow-lg shadow-lilac/20" : "text-mist hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <Icon size={18} /> {label}
+              </Link>
+            );
+          })}
         </>
       )}
     </nav>
