@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Invite links: gebeta-soccer.vercel.app/join/GEBETA-X7F9 → the league page (login first if needed). */
+/** Invite links: <site>/join/GEBETA-X7F9 → the league page (login first if needed). */
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   redirect(`/leagues/${encodeURIComponent(decodeURIComponent(code).toUpperCase())}`);

@@ -14,7 +14,7 @@ import { sendMessage } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gebeta-soccer.vercel.app";
+import { SITE_URL as SITE } from "@/lib/site";
 
 interface TgUser { id: number; first_name?: string }
 interface TgMessage {

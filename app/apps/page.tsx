@@ -6,11 +6,12 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
 import { PhoneMockup } from "@/components/PhoneMockup";
 import { SendIcon } from "@/components/icons";
+import { SITE_HOST } from "@/lib/site";
 
 export const metadata = { title: "Get the app · GebetaSoccer" };
 
-const ANDROID = ["Open gebeta-soccer.vercel.app in Chrome", "Tap the ⋮ menu (top right)", "Tap “Add to Home screen” → Install", "Open GebetaSoccer from your home screen"];
-const IPHONE = ["Open gebeta-soccer.vercel.app in Safari", "Tap the Share button (square with arrow)", "Scroll down and tap “Add to Home Screen”", "Tap “Add” — the icon appears on your home screen"];
+const ANDROID = [`Open ${SITE_HOST} in Chrome`, "Tap the ⋮ menu (top right)", "Tap “Add to Home screen” → Install", "Open GebetaSoccer from your home screen"];
+const IPHONE = [`Open ${SITE_HOST} in Safari`, "Tap the Share button (square with arrow)", "Scroll down and tap “Add to Home Screen”", "Tap “Add” — the icon appears on your home screen"];
 
 function Steps({ title, steps }: { title: string; steps: string[] }) {
   return (

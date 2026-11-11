@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Banner } from "@/components/ui";
 import { TrophyIcon, UsersIcon } from "@/components/icons";
 import { CopyInvite, JoinLeagueBox } from "../LeagueForms";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,7 @@ export default async function LeaguePage({
   const isCaptain = league.captain_id === me.id;
   const canSeeInside = myStatus === "active" || isCaptain;
   const open = league.status === "open" && league.rounds?.status === "open";
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gebeta-soccer.vercel.app";
+  const site = SITE_URL;
   const inviteUrl = `${site}/join/${league.code}`;
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
 

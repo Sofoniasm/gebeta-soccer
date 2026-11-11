@@ -2,11 +2,13 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Montserrat } from "next/font/google";
 import { TelegramBridge } from "@/components/TelegramBridge";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "GebetaSoccer — Predict the scores. Win the Gebeta.",
   description: "Predict 10 football matches every week, beat the leaderboard and win the prize pool.",
   icons: { icon: "/icon.svg", apple: "/apple-icon.png" },

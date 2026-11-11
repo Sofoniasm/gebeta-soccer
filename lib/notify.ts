@@ -10,7 +10,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage, telegramEnabled } from "@/lib/telegram";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gebeta-soccer.vercel.app";
+import { SITE_URL as SITE } from "@/lib/site";
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
