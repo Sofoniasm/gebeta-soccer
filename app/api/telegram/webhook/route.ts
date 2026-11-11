@@ -32,6 +32,10 @@ const shareKeyboard = {
   },
 };
 const removeKeyboard = { reply_markup: { remove_keyboard: true } };
+/** Inline button that opens the Mini App inside Telegram. */
+const playButton = {
+  reply_markup: { inline_keyboard: [[{ text: "⚽ Play GebetaSoccer", web_app: { url: `${SITE}/tma` } }]] },
+};
 const mask = (p: string) => p.replace(/^(\+2519?\d{2})\d{4}(\d{2})$/, "$1••••$2");
 
 export async function POST(req: NextRequest) {
@@ -52,7 +56,11 @@ export async function POST(req: NextRequest) {
     if (msg.text?.startsWith("/start")) {
       const token = msg.text.split(" ")[1]?.trim();
       if (!token) {
-        await sendMessage(chatId, `👋 Welcome to <b>GebetaSoccer</b>!\n\nPredict 10 big matches every week and win the pot.\nPlay here: ${SITE}`);
+        await sendMessage(
+          chatId,
+          `👋 Welcome to <b>GebetaSoccer</b>!\n\nPredict 10 big matches every week and win the pot. Tap the button to play right here in Telegram 👇`,
+          playButton,
+        );
         return NextResponse.json({ ok: true });
       }
       const { data: row } = await admin
@@ -110,7 +118,8 @@ export async function POST(req: NextRequest) {
 
       await admin.from("phone_verifications").update({ verified_at: new Date().toISOString() }).eq("id", pending.id);
       await markPhoneVerified(pending.user_id, msg.from.id);
-      await sendMessage(chatId, `✅ <b>Verified!</b> Welcome, ${profile.username}.\n\nGo back to GebetaSoccer — you're ready to play: ${SITE}/dashboard`, removeKeyboard);
+      await sendMessage(chatId, `✅ <b>Verified!</b> Welcome, ${profile.username}.`, removeKeyboard);
+      await sendMessage(chatId, "You're ready to play — here in Telegram or on the website. 👇", playButton);
       return NextResponse.json({ ok: true });
     }
   } catch (e) {

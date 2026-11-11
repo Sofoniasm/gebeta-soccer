@@ -47,8 +47,13 @@ export async function pushNotifications(userIds?: string[]): Promise<void> {
       rows.map(async (n) => {
         const chat = chatOf.get(n.user_id);
         if (!chat) return;
-        const text = `<b>${esc(n.title)}</b>\n${esc(n.body ?? "")}${n.link ? `\n\n${SITE}${n.link}` : ""}`;
-        const res = await sendMessage(Number(chat), text, { disable_web_page_preview: true });
+        const text = `<b>${esc(n.title)}</b>\n${esc(n.body ?? "")}`;
+        // "Open" button opens the right page inside the Telegram Mini App
+        const open = `${SITE}/tma?next=${encodeURIComponent(n.link ?? "/dashboard")}`;
+        const res = await sendMessage(Number(chat), text, {
+          disable_web_page_preview: true,
+          reply_markup: { inline_keyboard: [[{ text: "Open GebetaSoccer", web_app: { url: open } }]] },
+        });
         if (!res.ok) console.error("telegram notify failed:", res.description);
       }),
     );

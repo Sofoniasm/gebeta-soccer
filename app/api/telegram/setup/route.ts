@@ -27,6 +27,10 @@ export async function GET(req: NextRequest) {
     drop_pending_updates: true,
   });
   await tg("setMyCommands", { commands: [{ command: "start", description: "Open GebetaSoccer" }] });
+  // "Play" button next to the message box opens the Mini App
+  const menu = await tg("setChatMenuButton", {
+    menu_button: { type: "web_app", text: "Play", web_app: { url: `${req.nextUrl.origin}/tma` } },
+  });
   // Shown in the empty chat BEFORE the player taps Start (Telegram doesn't let
   // a bot send messages until then), so tell them exactly what to do.
   await tg("setMyDescription", {
@@ -38,5 +42,5 @@ export async function GET(req: NextRequest) {
     short_description: "Confirm your GebetaSoccer phone number — tap START, then Share my phone number.",
   });
   const info = await tg("getWebhookInfo", {});
-  return NextResponse.json({ ok: hook.ok, webhook: url, telegram: hook.description, info: info.result });
+  return NextResponse.json({ ok: hook.ok, webhook: url, telegram: hook.description, miniAppMenuButton: menu.ok, info: info.result });
 }

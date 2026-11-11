@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Montserrat } from "next/font/google";
+import { TelegramBridge } from "@/components/TelegramBridge";
 import "./globals.css";
 
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
@@ -28,6 +30,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${montserrat.variable} bg-plum`}>
       <body className="relative isolate min-h-dvh font-sans text-[#ece9f6] antialiased selection:bg-lilac/30">
         {children}
+        {/* Telegram Mini App support (does nothing in a normal browser) */}
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
+        <TelegramBridge />
       </body>
     </html>
   );
