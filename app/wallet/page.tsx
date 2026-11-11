@@ -53,7 +53,7 @@ export default async function WalletPage() {
         <section className={card}>
           <h2 className="text-lg font-extrabold">Add funds</h2>
           <p className="mt-3 text-sm leading-relaxed text-mist">
-            To add funds, send a minimum of <b className="text-white">{MIN_DEPOSIT_UNITS * ETB_PER_UNIT} ETB ({MIN_DEPOSIT_UNITS} Unit)</b> and a maximum of{" "}
+            To add funds, send a minimum of <b className="text-white">{MIN_DEPOSIT_UNITS * ETB_PER_UNIT} ETB ({MIN_DEPOSIT_UNITS} Units)</b> and a maximum of{" "}
             <b className="text-white">{(MAX_DEPOSIT_UNITS * ETB_PER_UNIT).toLocaleString("en-US")} ETB ({MAX_DEPOSIT_UNITS} Units)</b> to our Telegram admin.
             Once confirmed, your balance will update here.
           </p>
@@ -78,7 +78,7 @@ export default async function WalletPage() {
             The units are taken from your balance straight away and held for you, so they can&apos;t be spent while the admin sends your cash.
           </p>
           <div className="mt-5">
-            <WithdrawForm defaultPhone={me.phone_number?.replace("+251", "0") ?? ""} maxUnits={me.balance_units} />
+            <WithdrawForm defaultPhone={me.phone_number?.replace("+251", "0") ?? ""} maxUnits={Math.max(0, Math.floor((me.balance_units - 1) * 2) / 2)} />
           </div>
         </section>
       </div>

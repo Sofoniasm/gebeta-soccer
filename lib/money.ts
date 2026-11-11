@@ -4,8 +4,11 @@ export const ETB_PER_UNIT = 200;
 /** Default share of the pool kept by the house (30%). */
 export const DEFAULT_HOUSE_CUT = 0.3;
 
-/** Manual Telegram top-ups: 1–50 units (200–10,000 ETB) per transaction. */
-export const MIN_DEPOSIT_UNITS = 1;
+/** Manual Telegram top-ups: 5–50 units (1,000–10,000 ETB) per transaction. */
+export const MIN_DEPOSIT_UNITS = 5;
+
+/** A player always keeps at least this much in the account when withdrawing. */
+export const KEEP_UNITS_ON_WITHDRAWAL = 1;
 export const MAX_DEPOSIT_UNITS = 50;
 
 export function unitsToEtb(units: number): number {

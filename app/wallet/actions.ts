@@ -17,6 +17,7 @@ export async function requestWithdrawal(_prev: FormState, formData: FormData): P
   if (error) {
     const m = error.message;
     if (m.includes("phone not verified")) return { ok: false, message: "Please confirm your phone number first." };
+    if (m.includes("keep 1 unit")) return { ok: false, message: "You can withdraw everything except 1 Unit (200 ETB), which keeps your account open." };
     if (m.includes("insufficient")) return { ok: false, message: "You don't have enough units for that." };
     if (m.includes("too many")) return { ok: false, message: "You already have 3 pending withdrawals. Please wait for them to be paid." };
     return { ok: false, message: "Could not submit. Please try again." };

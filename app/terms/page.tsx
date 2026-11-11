@@ -18,7 +18,7 @@ const sections: { title: string; body: string[] }[] = [
     title: "2. Units and payments",
     body: [
       "Your wallet holds Units. 1 Unit = 200 ETB.",
-      "Deposits are made manually through our Telegram admin (minimum 200 ETB, maximum 10,000 ETB per transaction) and are credited after we confirm the payment.",
+      "Deposits are made manually through our Telegram admin (minimum 1,000 ETB, maximum 10,000 ETB per transaction) and are credited after we confirm the payment.",
       "Withdrawals are requested in the app. The Units are held immediately and the money is sent to your phone number after review.",
     ],
   },

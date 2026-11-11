@@ -57,6 +57,34 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
     : { data: [] };
   const adminName = new Map(((admins ?? []) as { id: string; username: string }[]).map((a) => [a.id, a.username]));
 
+  // ---- every player with their own balance and deposits
+  const { data: allDeps } = await admin
+    .from("wallet_ledger")
+    .select("user_id, amount_units, created_at, created_by")
+    .eq("kind", "deposit")
+    .order("created_at", { ascending: false })
+    .limit(5000);
+  const { data: players } = await admin
+    .from("profiles")
+    .select("id, username, phone_number, balance_units, phone_verified_at")
+    .order("created_at", { ascending: true })
+    .limit(500);
+  type Dep = { user_id: string; amount_units: number; created_at: string; created_by: string | null };
+  const depsByUser = new Map<string, { total: number; count: number; last?: Dep }>();
+  for (const d of (allDeps ?? []) as Dep[]) {
+    const e = depsByUser.get(d.user_id) ?? { total: 0, count: 0 };
+    e.total += Number(d.amount_units);
+    e.count += 1;
+    if (!e.last) e.last = d; // list is newest first
+    depsByUser.set(d.user_id, e);
+  }
+  const byIds = [...new Set(((allDeps ?? []) as Dep[]).map((d) => d.created_by).filter(Boolean))] as string[];
+  const { data: byAdmins } = byIds.length ? await admin.from("profiles").select("id, username").in("id", byIds) : { data: [] };
+  const byName = new Map(((byAdmins ?? []) as { id: string; username: string }[]).map((a) => [a.id, a.username]));
+  const playerRows = ((players ?? []) as { id: string; username: string; phone_number: string | null; balance_units: number; phone_verified_at: string | null }[])
+    .map((pl) => ({ ...pl, balance: Number(pl.balance_units), dep: depsByUser.get(pl.id) }))
+    .sort((a, b) => (b.dep?.last?.created_at ?? "").localeCompare(a.dep?.last?.created_at ?? "") || b.balance - a.balance);
+
   // ---- summary (deposits only)
   const deposits = ((data ?? []) as unknown as Row[]).filter((r) => r.kind === "deposit");
   const now = new Date();
@@ -91,16 +119,16 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
   return (
     <AppShell title="Deposits" next="/admin/deposits">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-mist">Record Telegram payments and see everything you&apos;ve submitted. 1 Unit = {ETB_PER_UNIT} ETB.</p>
+        <p className="text-sm text-mist">Record Telegram payments (1,000 – 10,000 ETB) and see every player&apos;s own balance. 1 Unit = {ETB_PER_UNIT} ETB.</p>
         <Link href="/admin/players" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">Players →</Link>
       </div>
 
       {/* Summary */}
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Today", list: today },
-          { label: "Last 7 days", list: week },
-          { label: "All time", list: deposits },
+          { label: "Received today · all players", list: today },
+          { label: "Last 7 days · all players", list: week },
+          { label: "All time · all players", list: deposits },
         ].map(({ label, list }) => (
           <div key={label} className={card}>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">{label}</p>
@@ -117,8 +145,64 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
           <DepositForm />
         </section>
 
-        {/* Chart */}
+        {/* Every player's own balance */}
         <section className={card}>
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="text-lg font-extrabold">Player balances</h2>
+            <p className="text-xs text-mist">{playerRows.length} player{playerRows.length === 1 ? "" : "s"} · latest deposit first</p>
+          </div>
+          {playerRows.length === 0 ? (
+            <p className="py-6 text-center text-sm text-mist">No players yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-left text-[10px] font-bold uppercase tracking-[0.15em] text-mist/70">
+                    <th className="py-3 pr-3">Player</th>
+                    <th className="py-3 pr-3 text-right">Balance</th>
+                    <th className="py-3 pr-3 text-right">Deposited</th>
+                    <th className="py-3">Last deposit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {playerRows.map((pl) => (
+                    <tr key={pl.id} className="align-top hover:bg-white/[0.03]">
+                      <td className="py-3 pr-3">
+                        <p className="font-bold">
+                          {pl.username}
+                          {!pl.phone_verified_at && <span className="ml-1.5 rounded-full bg-amber-200/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-100">Unverified</span>}
+                        </p>
+                        <p className="text-xs text-mist">{pl.phone_number ?? "no phone"}</p>
+                      </td>
+                      <td className="whitespace-nowrap py-3 pr-3 text-right">
+                        <p className="font-extrabold text-lilac-soft">{unitsLabel(pl.balance)}</p>
+                        <p className="text-xs text-mist">{etbLabel(pl.balance)}</p>
+                      </td>
+                      <td className="whitespace-nowrap py-3 pr-3 text-right">
+                        <p className="font-bold">{etbLabel(pl.dep?.total ?? 0)}</p>
+                        <p className="text-xs text-mist">{pl.dep?.count ?? 0} deposit{pl.dep?.count === 1 ? "" : "s"}</p>
+                      </td>
+                      <td className="whitespace-nowrap py-3 text-xs text-mist">
+                        {pl.dep?.last ? (
+                          <>
+                            <p className="font-bold text-emerald-200">+{etbLabel(Number(pl.dep.last.amount_units))}</p>
+                            <p>{dateTime(pl.dep.last.created_at)}{pl.dep.last.created_by ? ` · by ${byName.get(pl.dep.last.created_by) ?? "admin"}` : ""}</p>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+
+        {/* Chart */}
+        <section className={`${card} mt-5`}>
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="text-lg font-extrabold">Deposits · last 14 days</h2>
             <p className="text-xs text-mist">ETB per day</p>
@@ -142,7 +226,6 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
             })}
           </div>
         </section>
-      </div>
 
       {/* 2. List */}
       <section className={`${card} mt-5`}>

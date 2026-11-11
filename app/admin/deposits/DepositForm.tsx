@@ -6,7 +6,7 @@ import { Banner, inputClass, primaryButtonClass, secondaryButtonClass } from "@/
 import { SpinnerIcon, CheckIcon } from "@/components/icons";
 
 const ETB_PER_UNIT = 200;
-const QUICK = [200, 1000, 2000, 5000, 10000];
+const QUICK = [1000, 2000, 3000, 5000, 10000];
 
 export function DepositForm() {
   const [lookup, lookupAction, looking] = useActionState<LookupState, FormData>(findPlayer, undefined);
@@ -25,7 +25,7 @@ export function DepositForm() {
   }, [result]);
 
   const units = Number(etb) > 0 ? Math.round((Number(etb) / ETB_PER_UNIT) * 100) / 100 : 0;
-  const valid = units >= 1 && units <= 50;
+  const valid = units >= 5 && units <= 50;
   const p = lookup?.player;
   const balance = p && result?.ok && result.userId === p.id && result.newBalance !== undefined ? result.newBalance : p?.balance_units;
 
@@ -74,7 +74,7 @@ export function DepositForm() {
             name="etb"
             type="number"
             inputMode="numeric"
-            min={200}
+            min={1000}
             max={10000}
             step={100}
             required
@@ -98,7 +98,7 @@ export function DepositForm() {
           <div className={`rounded-2xl p-4 text-center ${valid ? "bg-ink/70" : "bg-ink/40"}`}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-mist">Player receives</p>
             <p className={`text-3xl font-extrabold ${valid ? "text-lilac-soft" : "text-mist/50"}`}>{units || 0} Units</p>
-            {etb && !valid && <p className="mt-1 text-xs text-rose-200">Must be 200 – 10,000 ETB (1 – 50 Units)</p>}
+            {etb && !valid && <p className="mt-1 text-xs text-rose-200">Must be 1,000 – 10,000 ETB (5 – 50 Units)</p>}
           </div>
           <input ref={noteRef} name="note" placeholder="Note (optional, e.g. Telebirr ref)" className={inputClass} autoComplete="off" />
           {result?.message && (
