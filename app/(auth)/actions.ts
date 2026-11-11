@@ -1,11 +1,16 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 
 export type AuthState = { error?: string; success?: string } | undefined;
+
+/** Hidden login address for players who don't give an email.
+ *  ".invalid" can never receive mail (RFC 2606), so it can't be hijacked. */
+const PLACEHOLDER_DOMAIN = "phone.gebeta-soccer.invalid";
+const placeholderEmail = (phone: string) => `p${phone.replace(/\D/g, "")}@${PLACEHOLDER_DOMAIN}`;
 
 /** Only allow redirects inside our own site. */
 function safeNext(next: FormDataEntryValue | null): string {
@@ -13,27 +18,45 @@ function safeNext(next: FormDataEntryValue | null): string {
   return n.startsWith("/") && !n.startsWith("//") ? n : "/dashboard";
 }
 
-async function siteOrigin(): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return process.env.NEXT_PUBLIC_SITE_URL ?? `${proto}://${host}`;
+/**
+ * Find the Supabase login email for a username, phone number or email.
+ * Runs on the server only — the email is never sent to the browser.
+ */
+async function resolveLoginEmail(identifier: string): Promise<string | null> {
+  const id = identifier.trim();
+  if (!id) return null;
+  if (id.includes("@")) return id.toLowerCase();
+
+  const admin = createAdminClient();
+  const phone = normalizeEthiopianPhone(id);
+
+  const query = admin.from("profiles").select("id");
+  const { data: profile } = phone
+    ? await query.eq("phone_number", phone).maybeSingle()
+    : await query.ilike("username", id.replace(/[%_\\]/g, "\\$&")).maybeSingle();
+  if (!profile) return null;
+
+  const { data } = await admin.auth.admin.getUserById(profile.id);
+  return data.user?.email ?? null;
 }
 
 // ---------------------------------------------------------------- login
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const identifier = String(formData.get("identifier") ?? "");
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { error: "Enter your email and password." };
+  if (!identifier.trim() || !password) return { error: "Enter your username (or phone) and password." };
+
+  const email = await resolveLoginEmail(identifier);
+  // Same message whether the user exists or not — don't reveal who is registered.
+  if (!email) return { error: "Wrong username/phone or password." };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-
   if (error) {
     if (error.message.toLowerCase().includes("email not confirmed")) {
       return { error: "Please confirm your email first — check your inbox (and spam)." };
     }
-    return { error: "Wrong email or password." };
+    return { error: "Wrong username/phone or password." };
   }
   redirect(safeNext(formData.get("next")));
 }
@@ -41,16 +64,16 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
 // ------------------------------------------------------------- register
 export async function register(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const username = String(formData.get("username") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const emailInput = String(formData.get("email") ?? "").trim().toLowerCase();
   const phoneRaw = String(formData.get("phone") ?? "");
   const password = String(formData.get("password") ?? "");
 
   if (!/^[A-Za-z0-9_]{3,24}$/.test(username)) {
     return { error: "Username: 3–24 letters, numbers or _ (no spaces)." };
   }
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address." };
   const phone = normalizeEthiopianPhone(phoneRaw);
   if (!phone) return { error: "Enter a valid Ethiopian mobile number, e.g. 0911 223 344." };
+  if (emailInput && !/^\S+@\S+\.\S+$/.test(emailInput)) return { error: "That email doesn't look right (or leave it empty)." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
 
   const supabase = await createClient();
@@ -64,12 +87,9 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   if (a.phone_taken) return { error: "That phone number is already registered." };
 
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: emailInput || placeholderEmail(phone),
     password,
-    options: {
-      data: { username, phone_number: phone },
-      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/dashboard`,
-    },
+    options: { data: { username, phone_number: phone } },
   });
 
   if (error) {
@@ -79,11 +99,13 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     return { error: error.message };
   }
 
-  // If "Confirm email" is turned off in Supabase, the user is signed in already.
+  // "Confirm email" is off in Supabase → the player is signed in right away.
   if (data.session) redirect("/dashboard");
 
   return {
-    success: `Almost done! We sent a confirmation link to ${email}. Open it to activate your account (check spam too).`,
+    success: emailInput
+      ? `Account created. We sent a confirmation link to ${emailInput} — open it, then log in.`
+      : "Account created. You can log in now.",
   };
 }
 
