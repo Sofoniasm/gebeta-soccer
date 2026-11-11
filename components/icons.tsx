@@ -146,3 +146,10 @@ export const FlagIcon = (p: IconProps) => (
     <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
   </Svg>
 );
+
+export const NewsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 5h13v14H6a2 2 0 0 1-2-2V5Z" />
+    <path d="M17 9h3v8a2 2 0 0 1-2 2h-1M8 9h5M8 13h5M8 17h3" />
+  </Svg>
+);

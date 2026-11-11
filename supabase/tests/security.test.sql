@@ -215,4 +215,32 @@ do $$ begin
   raise notice 'ok  unpaid league requests stay pending; payouts capped at the prize fund';
 end $$;
 
+-- ---------- news ---------------------------------------------------------
+reset role;
+insert into public.news_posts (slug, title, excerpt, body, is_published) values ('tests-draft', 'Draft', 'x', 'draft body text here', false);
+insert into public.news_posts (slug, title, excerpt, body, published_at) values ('tests-later', 'Later', 'x', 'scheduled body text', now() + interval '1 day');
+set role anon;
+do $$ begin
+  if exists (select 1 from public.news_posts where slug in ('tests-draft', 'tests-later')) then
+    raise exception 'FAIL: visitors can read draft or scheduled news';
+  end if;
+  if not exists (select 1 from public.news_posts) then raise exception 'FAIL: visitors cannot read published news'; end if;
+end $$;
+reset role;
+set role authenticated;
+do $$ begin
+  begin insert into public.news_posts (slug, title, excerpt, body) values ('tests-hack', 'Hack', 'x', 'hacked article body');
+        raise exception 'FAIL: a player wrote a news article';
+  exception when insufficient_privilege then null; end;
+  begin update public.news_posts set title = 'hacked';
+        raise exception 'FAIL: a player edited a news article';
+  exception when insufficient_privilege then null; end;
+  begin delete from public.news_posts;
+        raise exception 'FAIL: a player deleted news';
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from public.news_posts where slug = 'tests-draft') then raise exception 'FAIL: players can read drafts'; end if;
+  raise notice 'ok  news: drafts and scheduled articles hidden, only the server can write';
+end $$;
+reset role;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

@@ -10,6 +10,7 @@ import {
   ClockIcon,
   FlagIcon,
   ListCheckIcon,
+  NewsIcon,
   ShieldIcon,
   TrophyIcon,
   UsersIcon,
@@ -25,6 +26,7 @@ const PLAY: Item[] = [
   { href: "/fixtures", label: "Fixtures", icon: CalendarIcon },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon },
   { href: "/results", label: "Results", icon: ClockIcon },
+  { href: "/news", label: "News", icon: NewsIcon },
 ];
 
 const ME: Item[] = [
@@ -40,6 +42,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/players", label: "Players", icon: UsersIcon },
   { href: "/admin/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/admin/deposits", label: "Deposits", icon: WalletIcon },
+  { href: "/admin/news", label: "News", icon: NewsIcon },
 ];
 
 /** Mobile bottom bar: the five most used places. "Me" opens Career, which links to the rest. */

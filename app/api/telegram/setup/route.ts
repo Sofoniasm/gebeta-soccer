@@ -1,6 +1,6 @@
 /**
  * GET /api/telegram/setup — admin only. Connects the bot to this site
- * (sets the webhook + bot commands). Visit once after adding the env vars.
+ * (sets the webhook, bot commands, menu button and the logo as profile photo). Visit once after adding the env vars.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -35,12 +35,37 @@ export async function GET(req: NextRequest) {
   // a bot send messages until then), so tell them exactly what to do.
   await tg("setMyDescription", {
     description:
-      "👋 Welcome to GebetaSoccer — Ethiopia's weekly football prediction game.\n\n" +
-      "To confirm your phone number:\n1️⃣ Tap START below\n2️⃣ Tap “Share my phone number”\n3️⃣ Go back to the website — you're in!\n\nIt's free and takes 5 seconds.",
+      "👋 Welcome to GebetaSoccer, Ethiopia's weekly football prediction game.\n\n" +
+      "To confirm your phone number:\n1️⃣ Tap START below\n2️⃣ Tap “Share my phone number”\n3️⃣ Go back to the website. You're in!\n\nIt's free and takes 5 seconds.",
   });
   await tg("setMyShortDescription", {
     short_description: "Confirm your GebetaSoccer phone number — tap START, then Share my phone number.",
   });
+  // Profile picture = the GebetaSoccer logo (public/bot-avatar.jpg). Skip with ?photo=0.
+  let photo: { ok: boolean; description?: string } = { ok: false, description: "skipped" };
+  if (req.nextUrl.searchParams.get("photo") !== "0") photo = await setBotPhoto(`${req.nextUrl.origin}/bot-avatar.jpg`);
   const info = await tg("getWebhookInfo", {});
-  return NextResponse.json({ ok: hook.ok, webhook: url, telegram: hook.description, miniAppMenuButton: menu.ok, info: info.result });
+  return NextResponse.json({
+    ok: hook.ok,
+    webhook: url,
+    telegram: hook.description,
+    miniAppMenuButton: menu.ok,
+    profilePhoto: photo.ok ? "set to the GebetaSoccer logo" : photo.description,
+    info: info.result,
+  });
+}
+
+/** Upload the logo as the bot's profile photo (Bot API setMyProfilePhoto, multipart). */
+async function setBotPhoto(imageUrl: string): Promise<{ ok: boolean; description?: string }> {
+  try {
+    const img = await fetch(imageUrl, { cache: "no-store" });
+    if (!img.ok) return { ok: false, description: `could not load ${imageUrl}` };
+    const form = new FormData();
+    form.append("photo", JSON.stringify({ type: "static", photo: "attach://logo" }));
+    form.append("logo", new Blob([await img.arrayBuffer()], { type: "image/jpeg" }), "gebetasoccer.jpg");
+    const res = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setMyProfilePhoto`, { method: "POST", body: form, cache: "no-store" });
+    return (await res.json()) as { ok: boolean; description?: string };
+  } catch (e) {
+    return { ok: false, description: (e as Error).message };
+  }
 }

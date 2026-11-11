@@ -28,36 +28,36 @@ export default async function NewsPage() {
       <SiteHeader loggedIn={loggedIn} />
       <PageHero title="GebetaSoccer News" subtitle="Announcements, guides and stories from the game." image="/crowd.webp" />
 
-      <main className="mx-auto max-w-6xl px-6 py-16">
-        {posts.length === 0 && <p className="text-center text-mist">No news yet — check back soon.</p>}
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-16">
+        {posts.length === 0 && <p className="text-center text-mist">No news yet. Check back soon.</p>}
 
         {lead && (
-          <Link href={`/news/${lead.slug}`} className="group mb-8 grid overflow-hidden rounded-[2rem] border border-white/5 bg-card/60 transition hover:border-lilac/40 lg:grid-cols-2">
-            <div className="relative h-56 overflow-hidden lg:h-auto">
+          <Link href={`/news/${lead.slug}`} className="group mb-4 grid overflow-hidden rounded-[1.75rem] sm:mb-8 sm:rounded-[2rem] border border-white/5 bg-card/60 transition hover:border-lilac/40 lg:grid-cols-2">
+            <div className="relative h-44 overflow-hidden sm:h-56 lg:h-auto">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={lead.cover_image} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
             </div>
-            <div className="p-8">
+            <div className="p-5 sm:p-8">
               <span className="rounded-full bg-lilac/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-lilac-soft">{lead.tag}</span>
-              <h2 className="mt-4 text-2xl font-extrabold leading-tight sm:text-3xl">{lead.title}</h2>
-              <p className="mt-3 text-mist">{lead.excerpt}</p>
-              <p className="mt-6 text-xs text-mist/70">{formatNewsDate(lead.published_at)}</p>
+              <h2 className="mt-3 text-xl font-extrabold leading-tight sm:mt-4 sm:text-3xl">{lead.title}</h2>
+              <p className="mt-2 line-clamp-3 text-sm text-mist sm:mt-3 sm:text-base">{lead.excerpt}</p>
+              <p className="mt-4 text-xs text-mist/70 sm:mt-6">{formatNewsDate(lead.published_at)}</p>
             </div>
           </Link>
         )}
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {rest.map((p) => (
-            <Link key={p.id} href={`/news/${p.slug}`} className="group overflow-hidden rounded-[2rem] border border-white/5 bg-card/60 transition hover:-translate-y-1 hover:border-lilac/40">
-              <div className="h-44 overflow-hidden">
+            <Link key={p.id} href={`/news/${p.slug}`} className="group flex overflow-hidden rounded-[1.5rem] border border-white/5 bg-card/60 transition hover:-translate-y-1 hover:border-lilac/40 sm:block sm:rounded-[2rem]">
+              <div className="w-28 shrink-0 overflow-hidden sm:h-44 sm:w-auto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.cover_image} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
               </div>
-              <div className="p-6">
+              <div className="min-w-0 p-4 sm:p-6">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-lilac">{p.tag}</span>
-                <h3 className="mt-2 text-lg font-extrabold leading-snug">{p.title}</h3>
-                <p className="mt-2 line-clamp-3 text-sm text-mist">{p.excerpt}</p>
-                <p className="mt-4 text-xs text-mist/70">{formatNewsDate(p.published_at)}</p>
+                <h3 className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug sm:mt-2 sm:text-lg">{p.title}</h3>
+                <p className="mt-2 hidden line-clamp-3 text-sm text-mist sm:block">{p.excerpt}</p>
+                <p className="mt-1.5 text-xs text-mist/70 sm:mt-4">{formatNewsDate(p.published_at)}</p>
               </div>
             </Link>
           ))}
