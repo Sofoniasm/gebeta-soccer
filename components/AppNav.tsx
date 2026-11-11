@@ -13,6 +13,7 @@ import {
   NewsIcon,
   VersusIcon,
   ShieldIcon,
+  StarIcon,
   TrophyIcon,
   UsersIcon,
   WalletIcon,
@@ -45,6 +46,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/admin/deposits", label: "Deposits", icon: WalletIcon },
   { href: "/admin/challenges", label: "Challenges", icon: VersusIcon },
+  { href: "/admin/previews", label: "Previews", icon: StarIcon },
   { href: "/admin/news", label: "News", icon: NewsIcon },
 ];
 

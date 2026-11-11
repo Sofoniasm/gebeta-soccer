@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 export const SITE_LINKS = [
+  { href: "/predictions", label: "Predictions" },
   { href: "/tournaments", label: "Tournaments" },
   { href: "/how-to-play", label: "How to play" },
   { href: "/news", label: "News" },

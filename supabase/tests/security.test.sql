@@ -27,7 +27,8 @@ begin
   select string_agg(p.proname, ', ') into t from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.prosecdef and has_function_privilege('anon', p.oid, 'execute')
      and p.proname not in ('get_match_pick_count', 'get_overall_leaderboard', 'get_public_stats',
-                           'get_round_leaderboard', 'get_round_pool', 'round_lock_at', 'round_is_bettable');
+                           'get_round_leaderboard', 'get_round_pool', 'round_lock_at', 'round_is_bettable',
+                           'get_match_pick_split');
   if t is not null then raise exception 'FAIL: logged-out visitors can run privileged functions: %', t; end if;
 
   select string_agg(p.proname, ', ') into t from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -346,5 +347,26 @@ do $$ begin
   end if;
   raise notice 'ok  challenges: winner gets 90%% of the pot, empty challenges refunded, cancel refunds';
 end $$;
+
+-- ---------- match prediction pages -----------------------------------------
+reset role;
+insert into public.match_previews (match_id, pick_home, pick_away, verdict, is_published)
+  select id, 2, 1, 'Home side should edge a tight game here.', false from public.matches where home_team = 'Home FC';
+set role anon;
+do $$ declare r record; begin
+  if exists (select 1 from public.match_previews) then raise exception 'FAIL: visitors can read unpublished previews'; end if;
+  begin insert into public.match_previews (match_id, pick_home, pick_away, verdict)
+          select id, 1, 1, 'A sneaky preview written by a visitor.' from public.matches limit 1;
+        raise exception 'FAIL: a visitor wrote a match preview';
+  exception when insufficient_privilege then null; end;
+  -- pick split never shows percentages before kickoff
+  reset role;
+  insert into public.matches (home_team, away_team, kickoff_at) values ('Split A', 'Split B', now() + interval '3 days');
+  set role anon;
+  select * into r from public.get_match_pick_split((select id from public.matches where home_team = 'Split A'));
+  if r.home_win is not null or r.top_score is not null then raise exception 'FAIL: pick split shown before kickoff'; end if;
+  raise notice 'ok  match previews: drafts hidden, only the server writes, pick split hidden before kickoff';
+end $$;
+reset role;
 
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

@@ -56,15 +56,19 @@ export function ChallengeBuilder({
   balanceUnits,
   defaultTitle,
   phoneVerified,
+  initialMatchId = null,
 }: {
   matches: UpcomingMatch[];
   balanceUnits: number;
   defaultTitle: string;
   phoneVerified: boolean;
+  initialMatchId?: number | null;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
-  const [picked, setPicked] = useState<Record<number, Score>>({});
+  const [picked, setPicked] = useState<Record<number, Score>>(() =>
+    initialMatchId && matches.some((m) => m.id === initialMatchId) ? { [initialMatchId]: { home: "", away: "" } } : {},
+  );
   const [comp, setComp] = useState<string>("All");
   const [title, setTitle] = useState(defaultTitle);
   const [stake, setStake] = useState("1000");

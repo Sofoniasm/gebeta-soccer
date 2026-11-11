@@ -5,7 +5,7 @@ import { SITE_URL } from "@/lib/site";
 const PRIVATE = [
   "/api/", "/admin", "/dashboard", "/todo", "/wallet", "/profile", "/notifications", "/career",
   "/certificates", "/leaderboard", "/results", "/fixtures", "/match/", "/leagues", "/join/",
-  "/verify", "/tma", "/login", "/auth/",
+  "/verify", "/tma", "/login", "/auth/", "/challenges",
 ];
 
 export default function robots(): MetadataRoute.Robots {

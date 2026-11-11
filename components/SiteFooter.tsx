@@ -4,7 +4,7 @@ import { TELEGRAM_URL } from "@/lib/config";
 
 const COLS = [
   { title: "Play", links: [["Create account", "/register"], ["Log in", "/login"], ["My predictions", "/dashboard"], ["Tournaments", "/tournaments"]] },
-  { title: "Learn", links: [["How to play", "/how-to-play"], ["News", "/news"], ["Get the app", "/apps"], ["Terms", "/terms"]] },
+  { title: "Learn", links: [["Predictions", "/predictions"], ["How to play", "/how-to-play"], ["News", "/news"], ["Get the app", "/apps"], ["Terms", "/terms"]] },
   { title: "Company", links: [["About us", "/about"], ["For businesses", "/business"], ["Telegram", TELEGRAM_URL]] },
 ];
 

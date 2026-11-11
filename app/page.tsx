@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { predictionPath } from "@/lib/predictions";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentRound, getRoundPool } from "@/lib/rounds";
 import { unitsToEtb, ETB_PER_UNIT, DEFAULT_HOUSE_CUT } from "@/lib/money";
@@ -47,11 +48,11 @@ export default async function Home() {
   const stats = (statsRow ?? { players: 0, predictions: 0, rounds: 0 }) as { players: number; predictions: number; rounds: number };
 
   // Featured matches: this round's fixtures, else the next upcoming ones
-  let featured: { home_team: string; away_team: string; kickoff_at: string; competition: string | null; home_crest?: string | null; away_crest?: string | null }[] = [];
+  let featured: { id: number; home_team: string; away_team: string; kickoff_at: string; competition: string | null; home_crest?: string | null; away_crest?: string | null }[] = [];
   if (activeRound) {
     const { data } = await supabase
       .from("matches")
-      .select("home_team, away_team, kickoff_at, competition, home_crest, away_crest")
+      .select("id, home_team, away_team, kickoff_at, competition, home_crest, away_crest")
       .eq("round_id", activeRound.id)
       .gt("kickoff_at", new Date().toISOString())
       .order("kickoff_at")
@@ -61,7 +62,7 @@ export default async function Home() {
   if (featured.length === 0) {
     const { data } = await supabase
       .from("matches")
-      .select("home_team, away_team, kickoff_at, competition, home_crest, away_crest")
+      .select("id, home_team, away_team, kickoff_at, competition, home_crest, away_crest")
       .eq("status", "scheduled")
       .gt("kickoff_at", new Date().toISOString())
       .order("kickoff_at")
@@ -138,7 +139,7 @@ export default async function Home() {
               {featured.map((m, i) => (
                 <Link
                   key={i}
-                  href={ctaHref}
+                  href={predictionPath(m)}
                   className="group w-[78%] shrink-0 snap-center overflow-hidden rounded-[1.75rem] border md:w-auto border-white/10 bg-[#141022]/75 backdrop-blur-xl transition hover:-translate-y-1 hover:border-lilac/40"
                 >
                   <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.04] px-5 py-3 text-xs">
@@ -157,7 +158,7 @@ export default async function Home() {
                     </div>
                   </div>
                   <div className="border-t border-white/5 px-5 py-3 text-center text-xs font-bold uppercase tracking-widest text-lilac transition group-hover:bg-lilac group-hover:text-ink">
-                    Predict the score →
+                    See our prediction →
                   </div>
                 </Link>
               ))}

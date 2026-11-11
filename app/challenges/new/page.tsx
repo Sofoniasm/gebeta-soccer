@@ -7,7 +7,8 @@ import { ChallengeBuilder, type UpcomingMatch } from "./ChallengeBuilder";
 export const metadata = { title: "New challenge · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-export default async function NewChallengePage() {
+export default async function NewChallengePage({ searchParams }: { searchParams: Promise<{ match?: string }> }) {
+  const { match } = await searchParams;
   const me = await getMe("/challenges/new");
   const supabase = await createClient();
   const from = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -29,6 +30,7 @@ export default async function NewChallengePage() {
         balanceUnits={me.balance_units}
         defaultTitle={`${me.username}'s challenge`.slice(0, 60)}
         phoneVerified={!!me.phone_verified_at}
+        initialMatchId={match ? Number(match) : null}
       />
     </AppShell>
   );
