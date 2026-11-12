@@ -123,7 +123,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
           <Step n={1} title="Get matches" done={upcoming.length > 0 || roundMatches.length > 0}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-mist">
-                Pull the next 7 days of fixtures from football-data.org. {upcoming.length > 0 && <b className="text-white">{upcoming.length} upcoming matches ready.</b>}
+                Pull the next 9 days of fixtures from football-data.org. {upcoming.length > 0 && <b className="text-white">{upcoming.length} upcoming matches ready.</b>}
               </p>
               <form action={syncNow}>
                 <SubmitButton className={secondaryButtonClass}><RefreshIcon size={14} /> Sync matches</SubmitButton>
