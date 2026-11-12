@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { waitForWebApp } from "@/lib/tma";
+import { initDataFromUrl, waitForWebApp } from "@/lib/tma";
 import { Logo } from "@/components/Logo";
 import { SpinnerIcon } from "@/components/icons";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
@@ -29,18 +29,26 @@ export function TmaEntry() {
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
+    document.documentElement.dataset.tmaReady = "1"; // the page's code is running (see the fallback in page.tsx)
     (async () => {
-      const wa = await waitForWebApp();
-      if (!wa) return setState({ kind: "browser" });
+      // Signed data straight from the address works even before Telegram's script has loaded.
+      const fromUrl = initDataFromUrl();
+      const wa = fromUrl ? null : await waitForWebApp();
+      const initData = fromUrl ?? wa?.initData ?? null;
+      if (!initData) return setState({ kind: "browser" });
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
       try {
         const res = await fetch("/api/telegram/miniapp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ initData: wa.initData }),
+          body: JSON.stringify({ initData }),
+          signal: ctrl.signal,
         });
+        clearTimeout(timer);
         const data = (await res.json()) as { status: string; message?: string; firstName?: string; loggedIn?: boolean };
         if (data.status === "ok") {
-          wa.HapticFeedback?.notificationOccurred("success");
+          (wa ?? window.Telegram?.WebApp)?.HapticFeedback?.notificationOccurred("success");
           router.replace(next);
           router.refresh();
         } else if (data.status === "unlinked" && data.loggedIn) {
@@ -51,7 +59,8 @@ export function TmaEntry() {
           setState({ kind: "error", message: data.message ?? "Something went wrong." });
         }
       } catch {
-        setState({ kind: "error", message: "No connection. Check your internet and try again." });
+        clearTimeout(timer);
+        setState({ kind: "error", message: "The connection is too slow or was lost. Check your internet and try again." });
       }
     })();
   }, [router, next]);
@@ -90,6 +99,7 @@ export function TmaEntry() {
         <div className="max-w-sm space-y-4">
           <p className="text-sm text-rose-200">{state.message}</p>
           <button onClick={() => location.reload()} className={primaryButtonClass}>Try again</button>
+          <a href="/dashboard" target="_blank" rel="noopener" className={`${secondaryButtonClass} w-full justify-center`}>Open in the browser instead</a>
         </div>
       )}
     </main>

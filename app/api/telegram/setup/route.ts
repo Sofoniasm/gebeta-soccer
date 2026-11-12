@@ -5,6 +5,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { tg, telegramEnabled } from "@/lib/telegram";
+import { BOT_COMMANDS } from "@/lib/bot-commands";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,8 @@ export async function GET(req: NextRequest) {
     allowed_updates: ["message"],
     drop_pending_updates: true,
   });
-  await tg("setMyCommands", { commands: [{ command: "start", description: "Open GebetaSoccer" }] });
+  await tg("setMyCommands", { commands: BOT_COMMANDS.en });
+  await tg("setMyCommands", { commands: BOT_COMMANDS.am, language_code: "am" });
   // "Play" button next to the message box opens the Mini App
   const menu = await tg("setChatMenuButton", {
     menu_button: { type: "web_app", text: "Play", web_app: { url: `${req.nextUrl.origin}/tma` } },

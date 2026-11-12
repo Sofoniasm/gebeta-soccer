@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 import { markPhoneVerified } from "@/lib/verification";
 import { sendMessage } from "@/lib/telegram";
+import { handleBotCommand } from "@/lib/bot-commands";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,13 @@ export async function POST(req: NextRequest) {
   const chatId = msg.chat.id;
 
   try {
+    // ---- /help, /balance, /rounds, /settings, /english, /amharic
+    if (msg.text?.startsWith("/") && !msg.text.startsWith("/start")) {
+      const handled = await handleBotCommand(chatId, msg.from?.id, msg.text);
+      if (!handled) await sendMessage(chatId, "Send /help to see what I can do. · ምን ማድረግ እንደምችል ለማየት /help ይላኩ።");
+      return NextResponse.json({ ok: true });
+    }
+
     // ---- /start <token>
     if (msg.text?.startsWith("/start")) {
       const token = msg.text.split(" ")[1]?.trim();
