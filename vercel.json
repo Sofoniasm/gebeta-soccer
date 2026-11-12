@@ -1,4 +1,5 @@
 {
+  "regions": ["dub1"],
   "crons": [
     { "path": "/api/sync-matches", "schedule": "0 6 * * *" }
   ]
