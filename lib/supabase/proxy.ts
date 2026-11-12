@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
 import { LANG_COOKIE, LANG_HEADER, isTranslatable, localPath, stripLang } from "@/lib/i18n";
 
-const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates", "/leagues", "/join", "/challenges"];
+const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates", "/leagues", "/join", "/challenges", "/premium", "/slip"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function updateSession(request: NextRequest) {
@@ -56,7 +56,33 @@ export async function updateSession(request: NextRequest) {
     pagePath.startsWith("/tma") ||
     pagePath.startsWith("/auth") ||
     pagePath.startsWith("/api");
-  if (!needsSession) return response;
+  // A logged-in visitor on a public page: refresh the login if it has expired,
+  // so the new tokens are saved in the browser. (Pages can't save cookies; if
+  // they refreshed instead, the one-time refresh token would be used up without
+  // being stored and the player would be logged out.) No network call unless
+  // the token has actually expired.
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+  if (!needsSession && !hasAuthCookie) return response;
+  if (!needsSession) {
+    const publicClient = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = makeResponse();
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        },
+      },
+    });
+    try {
+      await publicClient.auth.getSession();
+    } catch {
+      /* the page still works logged out */
+    }
+    return response;
+  }
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {

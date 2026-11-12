@@ -7,17 +7,11 @@ export interface TickerMatch {
   competition: string | null;
 }
 
-const FALLBACK: TickerMatch[] = [
-  { home_team: "Arsenal", away_team: "Chelsea", kickoff_at: "", competition: "Premier League" },
-  { home_team: "Liverpool", away_team: "Man City", kickoff_at: "", competition: "Premier League" },
-  { home_team: "Man United", away_team: "Spurs", kickoff_at: "", competition: "Premier League" },
-  { home_team: "Newcastle", away_team: "Aston Villa", kickoff_at: "", competition: "Premier League" },
-  { home_team: "Brighton", away_team: "West Ham", kickoff_at: "", competition: "Premier League" },
-];
-
 /** Endless scrolling strip of upcoming fixtures, like a sportsbook ticker. */
 export function MatchTicker({ matches }: { matches: TickerMatch[] }) {
-  const items = matches.length > 0 ? matches : FALLBACK;
+  // Real fixtures only: with none coming up (e.g. an international break) the strip is hidden.
+  if (matches.length === 0) return null;
+  const items = matches;
   const loop = [...items, ...items]; // duplicated for a seamless loop
 
   return (
