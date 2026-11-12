@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 import { checkLoginLock, clientIp, loginKey, recordLoginAttempt } from "@/lib/login-lock";
+import { checkResetToken, deliverResetLink, resetThrottled } from "@/lib/password-reset";
+import { PAGES } from "@/lib/i18n/pages";
+import { pushNotifications } from "@/lib/notify";
 
 export type AuthState = { error?: string; success?: string } | undefined;
 
@@ -154,4 +157,53 @@ export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
+}
+
+// -------------------------------------------------------- forgot password
+const langOf = (formData: FormData) => (formData.get("lang") === "am" ? "am" : "en");
+
+/** Step 1: send a one-time reset link to the player's Telegram (or SMS). Same answer whether the number exists or not. */
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const t = PAGES[langOf(formData)].auth;
+  const phone = normalizeEthiopianPhone(String(formData.get("phone") ?? ""));
+  if (!phone) return { error: t.forgotBadPhone };
+  const ip = await clientIp();
+  const { data: p } = await createAdminClient().from("profiles").select("id").eq("phone_number", phone).maybeSingle();
+  if (!(await resetThrottled(p?.id ?? null, ip)) && p) {
+    await deliverResetLink(p.id, ip);
+  }
+  return { success: t.forgotSent };
+}
+
+/** Step 2: the link's page sets the new password. */
+export async function resetPassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const t = PAGES[langOf(formData)].auth;
+  const token = String(formData.get("token") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+  if (password.length < 8) return { error: t.resetTooShort };
+  if (password !== confirm) return { error: t.resetMismatch };
+  const found = await checkResetToken(token);
+  if (!found) return { error: t.resetBadLink };
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(found.userId, { password });
+  if (error) return { error: error.message.toLowerCase().includes("password") ? t.resetTooShort : t.resetFailed };
+  await admin.from("password_resets").update({ used_at: new Date().toISOString() }).eq("user_id", found.userId).is("used_at", null);
+
+  // Unlock the login (wrong-password lock) and tell the player on Telegram.
+  const { data: p } = await admin.from("profiles").select("phone_number, username, email").eq("id", found.userId).single();
+  for (const id of [p?.phone_number, p?.username, p?.email].filter(Boolean) as string[]) {
+    await admin.rpc("clear_login_lock", { p_key: loginKey(id) });
+  }
+  await admin.from("notifications").insert({
+    user_id: found.userId,
+    kind: "security",
+    title: "🔑 Password changed",
+    body: "Your GebetaSoccer password was just changed. If this wasn't you, contact support on Telegram right away.",
+    link: "/profile",
+    push: true,
+  });
+  await pushNotifications([found.userId]);
+  redirect("/login?reset=1");
 }

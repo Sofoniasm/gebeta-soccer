@@ -7,7 +7,7 @@ import { formatKickoff } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Banner, secondaryButtonClass } from "@/components/ui";
 import { SubmitButton } from "../../SubmitButton";
-import { adjustUnits, removePlayerPhoto, unlockLogin } from "../../actions";
+import { adjustUnits, removePlayerPhoto, sendPlayerResetLink, showPlayerResetLink, unlockLogin } from "../../actions";
 import { Avatar } from "@/components/Avatar";
 
 export const metadata = { title: "Player · Admin · GebetaSoccer" };
@@ -158,10 +158,24 @@ export default async function PlayerDetailPage({
               </SubmitButton>
             </div>
           </form>
-          <form action={unlockLogin} className="mt-4 border-t border-white/10 pt-4">
-            <input type="hidden" name="userId" value={p.id} />
-            <SubmitButton className="text-xs font-bold uppercase tracking-wider text-mist hover:text-white">Unlock login</SubmitButton>
-          </form>
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 pt-4">
+            <form action={unlockLogin}>
+              <input type="hidden" name="userId" value={p.id} />
+              <SubmitButton className="text-xs font-bold uppercase tracking-wider text-mist hover:text-white">Unlock login</SubmitButton>
+            </form>
+            <form action={sendPlayerResetLink}>
+              <input type="hidden" name="userId" value={p.id} />
+              <SubmitButton confirm="Send a password reset link to this player's Telegram?" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">
+                Send reset link
+              </SubmitButton>
+            </form>
+            <form action={showPlayerResetLink}>
+              <input type="hidden" name="userId" value={p.id} />
+              <SubmitButton confirm="Show a one-time reset link? Only give it to the player after confirming it's them." className="text-xs font-bold uppercase tracking-wider text-mist hover:text-white">
+                Show a reset link
+              </SubmitButton>
+            </form>
+          </div>
         </section>
       </div>
 

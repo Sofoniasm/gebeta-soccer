@@ -7,7 +7,7 @@ export type Lang = "en" | "am";
 export const LANG_HEADER = "x-gs-lang";
 
 /** Public pages that have an Amharic version. */
-const TRANSLATED = ["/", "/how-to-play", "/terms", "/predictions", "/news", "/apps", "/about", "/business", "/tournaments", "/login", "/register"];
+const TRANSLATED = ["/", "/how-to-play", "/terms", "/predictions", "/news", "/apps", "/about", "/business", "/tournaments", "/login", "/register", "/forgot", "/reset"];
 
 export function isTranslatable(path: string): boolean {
   return TRANSLATED.includes(path) || path.startsWith("/predictions/") || path.startsWith("/news/");

@@ -10,15 +10,16 @@ export async function generateMetadata() {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string; confirmed?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; confirmed?: string; reset?: string }>;
 }) {
-  const { next, error, confirmed } = await searchParams;
+  const { next, error, confirmed, reset } = await searchParams;
   const lang = await getLang();
   const t = PAGES[lang].auth;
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">{t.loginTitle}</h1>
       {confirmed && <Banner kind="success">{t.confirmed}</Banner>}
+      {reset && <Banner kind="success">{t.resetDone}</Banner>}
       {error && <Banner kind="error">{error}</Banner>}
       <LoginForm next={next} lang={lang} />
     </div>

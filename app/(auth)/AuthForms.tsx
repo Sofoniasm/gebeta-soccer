@@ -32,6 +32,9 @@ export function LoginForm({ next, lang = "en" }: { next?: string; lang?: Lang })
       <Field label={t.password}>
         <input name="password" type="password" autoComplete="current-password" required className={inputClass} placeholder="••••••••" />
       </Field>
+      <p className="-mt-2 text-right text-xs">
+        <Link href={localPath("/forgot", lang)} className="font-semibold text-lilac">{t.forgot}</Link>
+      </p>
       <button type="submit" disabled={pending} className={primaryButtonClass}>
         {pending && <SpinnerIcon size={18} />} {t.logIn}
       </button>

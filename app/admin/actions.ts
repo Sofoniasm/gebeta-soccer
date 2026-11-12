@@ -15,6 +15,7 @@ import { formatUnits } from "@/lib/money";
 import { pushNotifications } from "@/lib/notify";
 import { settleLeague } from "@/lib/league-settle";
 import { settleDueRounds, settleRoundNow } from "@/lib/round-settle";
+import { createResetLink, deliverResetLink } from "@/lib/password-reset";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -313,4 +314,21 @@ export async function setAutoSettle(formData: FormData) {
   const { error } = await createAdminClient().from("rounds").update({ auto_settle: on }).eq("id", roundId);
   if (error) return done("err", error.message);
   return done("msg", on ? "This round will settle by itself when its last match ends." : "Automatic settling turned off. Settle it with the button.");
+}
+
+// ------------------------------------------------------------ password reset
+/** Send the player a one-time reset link on their Telegram (or SMS). */
+export async function sendPlayerResetLink(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const how = await deliverResetLink(userId, null);
+  return done(how ? "msg" : "err", how ? `Reset link sent by ${how === "telegram" ? "Telegram" : "SMS"}. It works once and expires in 30 minutes.` : "This player has no linked Telegram (and SMS is off). Use “Show a reset link” and send it to them yourself.");
+}
+
+/** For a player who lost access to Telegram: show a one-time link the admin can pass on (expires in 30 minutes). */
+export async function showPlayerResetLink(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const link = await createResetLink(userId, "admin", null);
+  return done("msg", `One-time reset link (30 minutes, works once). Only give it to the player after checking it's really them: ${link}`);
 }
