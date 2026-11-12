@@ -66,6 +66,18 @@ async function syncNowFromSite() {
   back(r.ok ? "msg" : "err", (r.ok ? `Synced ${r.upserted} matches from ${r.competitions.join(", ")}.` : `Sync finished with errors: ${r.errors.join(" | ")}`) + autoNote);
 }
 
+async function loadHistory() {
+  "use server";
+  await requireAdminId("/admin/site");
+  const r = await syncMatches({ history: true });
+  back(
+    r.ok ? "msg" : "err",
+    r.ok
+      ? `Loaded ${r.upserted} finished matches from ${r.competitions.join(", ")}. The team form bars now use them.`
+      : `Some leagues failed: ${r.errors.join(" | ")} (the free plan allows 10 requests a minute; wait a minute and try again).`,
+  );
+}
+
 export default async function AdminSitePage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
   await requireAdminId("/admin/site");
   const { msg, err } = await searchParams;
@@ -175,6 +187,15 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
         <p className="text-sm text-mist">After changing leagues, sync so the new fixtures show up straight away.</p>
         <form action={syncNowFromSite}>
           <SubmitButton className="rounded-full border border-white/60 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10">Sync matches now</SubmitButton>
+        </form>
+      </section>
+      <section className={`${card} mt-5 flex flex-wrap items-center justify-between gap-3`}>
+        <p className="text-sm text-mist">
+          <b className="text-white">Team form bars</b> (last 5 results on each pick card) need past results. Press once after adding a league;
+          normal syncs keep them up to date. Uses one request per league.
+        </p>
+        <form action={loadHistory}>
+          <SubmitButton className="rounded-full border border-white/60 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10">Load past results</SubmitButton>
         </form>
       </section>
       <p className="mt-4 text-xs text-mist">

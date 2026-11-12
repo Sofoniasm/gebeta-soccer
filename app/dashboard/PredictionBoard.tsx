@@ -8,6 +8,8 @@ import { calculateMatchPoints } from "@/lib/scoring";
 import type { MatchRow } from "@/lib/rounds";
 import { Banner, primaryButtonClass } from "@/components/ui";
 import { CheckIcon, ClockIcon, LockIcon, SpinnerIcon } from "@/components/icons";
+import { FormBar } from "@/components/FormBar";
+import type { Chances, FormMap } from "@/lib/form";
 
 export interface SlipData {
   id: number;
@@ -23,6 +25,10 @@ interface Props {
   balanceUnits: number;
   matches: MatchRow[];
   slips: SlipData[];
+  /** Last 5 results per team name. */
+  form?: FormMap;
+  /** Premium only: rough result chances per match id. */
+  chances?: Record<number, Chances>;
 }
 
 type Draft = Record<number, { home: string; away: string }>;
@@ -67,7 +73,7 @@ const draftFrom = (matches: MatchRow[], slip?: SlipData): Draft => {
  * The betting slip: 10 matches, one score each. A player can place several
  * slips (each paid separately) and edit them for free until the first kickoff.
  */
-export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entryFeeLabel, balanceUnits, matches, slips }: Props) {
+export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entryFeeLabel, balanceUnits, matches, slips, form = {}, chances }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<number | typeof NEW>(slips.length ? slips[0].id : NEW);
   const slip = useMemo(() => slips.find((s) => s.id === selected), [slips, selected]);
@@ -218,6 +224,7 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
                   <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
                     <Crest src={m.home_crest} name={m.home_team} />
                     <span className="w-full truncate text-sm font-semibold">{m.home_team}</span>
+                    <FormBar team={m.home_team} form={form[m.home_team]} />
                   </div>
                   <div className="flex items-center gap-2">
                     <ScoreInput label={`${m.home_team} score`} value={draft[m.id]?.home ?? ""} disabled={!open} onChange={(v) => update(m.id, "home", v)} />
@@ -227,8 +234,15 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
                   <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
                     <Crest src={m.away_crest} name={m.away_team} />
                     <span className="w-full truncate text-sm font-semibold">{m.away_team}</span>
+                    <FormBar team={m.away_team} form={form[m.away_team]} />
                   </div>
                 </div>
+                {chances?.[m.id] && (
+                  <p className="mt-2 text-center text-[11px] text-mist" title="Rough guide from each team's last 5 results and home advantage. Not a prediction.">
+                    ⭐ Form guide: <b className="text-white">{m.home_team} {chances[m.id].home}%</b> · Draw {chances[m.id].draw}% ·{" "}
+                    <b className="text-white">{m.away_team} {chances[m.id].away}%</b>
+                  </p>
+                )}
 
                 {finished && (
                   <div className="mt-3 flex items-center justify-between rounded-xl bg-black/30 px-3 py-2 text-sm">

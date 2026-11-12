@@ -32,12 +32,14 @@ export function footballDataProvider(apiKey: string): FootballProvider {
   return {
     name: "football-data",
 
-    async fetchMatches({ competitions, dateFrom, dateTo }) {
+    async fetchMatches({ competitions, dateFrom, dateTo, finishedOnly }) {
       const matches: NormalizedMatch[] = [];
       const errors: string[] = [];
 
       for (const code of competitions) {
-        const url = `${API_BASE}/competitions/${code}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
+        const url = finishedOnly
+          ? `${API_BASE}/competitions/${code}/matches?status=FINISHED`
+          : `${API_BASE}/competitions/${code}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
         const res = await fetch(url, { headers: { "X-Auth-Token": apiKey }, cache: "no-store" });
         if (!res.ok) {
           errors.push(`${code}: HTTP ${res.status} ${await res.text().catch(() => "")}`.slice(0, 300));

@@ -49,6 +49,7 @@ export default async function PremiumPage() {
           <h2 className="text-lg font-extrabold">What you get</h2>
           <ul className="mt-3 space-y-3 text-sm text-mist">
             <li>📊 <b className="text-white">Crowd picks while a round is open:</b> for every match, how many slips pick home, draw or away, and the most picked score. Anonymous, shown once 5 slips are in.</li>
+            <li>📈 <b className="text-white">Form guide on every pick card:</b> a rough home / draw / away % from both teams&apos; last 5 results and home advantage (everyone sees the coloured form blocks).</li>
             <li>🔍 <b className="text-white">Full slips of any player</b> on the leaderboard, all 10 picks with live points, as soon as the round locks.</li>
             <li>🔒 <b className="text-white">Fair for everyone:</b> nobody, Premium or not, can see another player&apos;s picks before the round locks. Private challenges stay completely private.</li>
           </ul>

@@ -16,6 +16,7 @@ import { calculateMatchPoints } from "@/lib/scoring";
 import { RecentWinners } from "@/components/RecentWinners";
 import { CrowdPicks } from "@/components/CrowdPicks";
 import { getMyPremium } from "@/lib/premium";
+import { formChances, getForm, type Chances } from "@/lib/form";
 import { slotHours, slotInfo, type Slot } from "@/lib/round-slots";
 
 export const metadata = { title: "Predict · GebetaSoccer" };
@@ -105,6 +106,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
 
   const premium = (await getMyPremium(supabase, me.id)).active;
+  // Team form (last 5 results) on every pick card; Premium also gets a rough result guide.
+  const form = matches.length ? await getForm(supabase, matches.flatMap((m) => [m.home_team, m.away_team])) : {};
+  const chances: Record<number, Chances> = {};
+  if (premium) {
+    for (const m of matches) {
+      const c = formChances(form[m.home_team] ?? [], form[m.away_team] ?? []);
+      if (c) chances[m.id] = c;
+    }
+  }
 
   // Nothing open: show the next matches so the page is never empty.
   let upcoming: MatchRow[] = [];
@@ -302,6 +312,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             entryFeeUnits={Number(round.entry_fee_units)}
             matches={matches}
             slips={slips}
+            form={form}
+            chances={premium ? chances : undefined}
           />
           {bettable && <CrowdPicks roundId={round.id} matches={matches} premium={premium} />}
         </>

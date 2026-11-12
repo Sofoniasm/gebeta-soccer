@@ -29,6 +29,8 @@ export interface FetchMatchesOptions {
   competitions: string[];
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;   // YYYY-MM-DD
+  /** Ignore the dates and fetch every finished match of the season (one request per league). */
+  finishedOnly?: boolean;
 }
 
 export interface FootballProvider {

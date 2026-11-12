@@ -10,6 +10,8 @@ export interface SyncOptions {
   competitions?: string[];
   daysBack?: number;  // default 3
   daysAhead?: number; // default 7 (window max 10 days total)
+  /** Load this season's finished matches (for the team form bar). One request per league. */
+  history?: boolean;
 }
 
 export interface SyncResult {
@@ -36,7 +38,7 @@ export async function syncMatches(opts: SyncOptions = {}): Promise<SyncResult> {
   const dateTo = isoDate(new Date(now + daysAhead * 86_400_000));
 
   const provider = getFootballProvider();
-  const { matches, errors } = await provider.fetchMatches({ competitions, dateFrom, dateTo });
+  const { matches, errors } = await provider.fetchMatches({ competitions, dateFrom, dateTo, finishedOnly: opts.history });
 
   // round_id is deliberately left out so assigned matches stay in their round.
   const rows = matches.map((m) => ({
