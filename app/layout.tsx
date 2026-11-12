@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Montserrat, Noto_Sans_Ethiopic } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import { getLang } from "@/lib/i18n-server";
 import { TelegramBridge } from "@/components/TelegramBridge";
 import { SITE_URL } from "@/lib/site";
@@ -8,8 +8,6 @@ import { DEFAULT_DESCRIPTION } from "@/lib/seo";
 import "./globals.css";
 
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
-// Amharic letters (Montserrat has no Ethiopic script)
-const ethiopic = Noto_Sans_Ethiopic({ subsets: ["ethiopic"], weight: ["400", "600", "700", "800"], variable: "--font-ethiopic", display: "swap", preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -42,7 +40,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const lang = await getLang();
   return (
-    <html lang={lang} className={`${montserrat.variable} ${ethiopic.variable} bg-plum`}>
+    <html lang={lang} className={`${montserrat.variable} bg-plum`}>
       <body className="relative isolate min-h-dvh font-sans text-[#ece9f6] antialiased selection:bg-lilac/30">
         {children}
         {/* Telegram Mini App support (does nothing in a normal browser) */}

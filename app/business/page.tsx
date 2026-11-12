@@ -1,7 +1,7 @@
 import { PAGES } from "@/lib/i18n/pages";
 import { getLang } from "@/lib/i18n-server";
 import { localPath } from "@/lib/i18n";
-import { getPublicContext } from "@/lib/public";
+import { getPublicContext, getPublicStats } from "@/lib/public";
 import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -20,7 +20,8 @@ export default async function BusinessPage() {
   const lang = await getLang();
   const t = PAGES[lang].business;
   const site = await getSiteSettings();
-  const { loggedIn, stats } = await getPublicContext();
+  const { supabase, loggedIn } = await getPublicContext();
+  const stats = site.show_public_stats ? await getPublicStats(supabase) : { players: 0, predictions: 0, rounds: 0 };
   return (
     <div className="relative">
       <SiteHeader loggedIn={loggedIn} />

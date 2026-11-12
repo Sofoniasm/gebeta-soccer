@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminId } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AppShell } from "@/components/AppShell";
 import { Banner, inputClass } from "@/components/ui";
-import { ALL_COMPETITIONS, getSiteSettings } from "@/lib/site-settings";
+import { ALL_COMPETITIONS, SITE_SETTINGS_TAG, getSiteSettings } from "@/lib/site-settings";
 import { syncMatches } from "@/lib/football/sync";
 import { SubmitButton } from "../SubmitButton";
 
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 const MAX_LEAGUES = 9; // football-data.org free plan: 10 requests a minute, one per league per sync
 
 function back(kind: "msg" | "err", text: string): never {
+  updateTag(SITE_SETTINGS_TAG); // the saved settings show up immediately
   revalidatePath("/", "layout");
   redirect(`/admin/site?${kind}=${encodeURIComponent(text)}`);
 }

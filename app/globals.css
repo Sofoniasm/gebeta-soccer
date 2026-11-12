@@ -2,7 +2,9 @@
 
 /* GebetaSoccer — calm plum & lavender theme */
 @theme inline {
-  --font-sans: var(--font-montserrat), var(--font-ethiopic), ui-sans-serif, system-ui, sans-serif;
+  /* Amharic uses the font already on the phone/computer (no download, no flicker):
+     Android: Noto Sans Ethiopic · Windows: Nyala / Ebrima · iPhone & Mac: Kefa */
+  --font-sans: var(--font-montserrat), "Noto Sans Ethiopic", "Nyala", "Ebrima", "Kefa", "Abyssinica SIL", ui-sans-serif, system-ui, sans-serif;
 
   --color-ink: #1f1b2e;        /* deepest: footer, inputs, phone mockup */
   --color-plum: #2c2740;       /* page background */

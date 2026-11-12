@@ -3,7 +3,7 @@ import { getLang } from "@/lib/i18n-server";
 import { localPath } from "@/lib/i18n";
 import { getSiteSettings } from "@/lib/site-settings";
 import Link from "next/link";
-import { getPublicContext } from "@/lib/public";
+import { getPublicContext, getPublicStats } from "@/lib/public";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
@@ -21,8 +21,9 @@ const COLORS = ["text-lilac-soft", "text-[#f0b4c8]", "text-[#9fd8c0]", "text-[#f
 export default async function AboutPage() {
   const lang = await getLang();
   const t = PAGES[lang].about;
-  const { loggedIn, stats } = await getPublicContext();
   const site = await getSiteSettings();
+  const { supabase, loggedIn } = await getPublicContext();
+  const stats = site.show_public_stats ? await getPublicStats(supabase) : { players: 0, predictions: 0, rounds: 0 };
   return (
     <div className="relative">
       <SiteHeader loggedIn={loggedIn} />

@@ -4,6 +4,7 @@
  * defaults so the site works before anything is saved.
  */
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/env";
 import { TELEGRAM_URL } from "@/lib/config";
@@ -76,14 +77,25 @@ function merge(rows: { key: string; value: unknown }[]): SiteSettings {
   return s;
 }
 
-/** Cached for the request. Never throws: on any problem the defaults are used. */
-export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
-  try {
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return DEFAULT_SETTINGS;
+export const SITE_SETTINGS_TAG = "site-settings";
+
+/** Settings rows, cached on the server for 5 minutes (Admin -> Site clears the cache on save). */
+const loadRows = unstable_cache(
+  async (): Promise<{ key: string; value: unknown }[] | null> => {
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null;
     const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false } });
     const { data, error } = await sb.from("site_settings").select("key, value");
-    if (error || !data) return DEFAULT_SETTINGS;
-    return merge(data as { key: string; value: unknown }[]);
+    return error || !data ? null : (data as { key: string; value: unknown }[]);
+  },
+  ["site-settings-v1"],
+  { revalidate: 300, tags: [SITE_SETTINGS_TAG] },
+);
+
+/** Never throws: on any problem the defaults are used. */
+export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
+  try {
+    const rows = await loadRows();
+    return rows ? merge(rows) : DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }

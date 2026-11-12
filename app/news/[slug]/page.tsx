@@ -2,6 +2,7 @@ import { PAGES } from "@/lib/i18n/pages";
 import { getLang } from "@/lib/i18n-server";
 import { localPath } from "@/lib/i18n";
 import Link from "next/link";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { getPublicContext } from "@/lib/public";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -18,7 +19,8 @@ export const dynamic = "force-dynamic";
 const COLS = "id, slug, title, excerpt, body, cover_image, tag, is_published, published_at, updated_at";
 
 /** Published article for everyone; drafts and scheduled ones only for admins (as a preview). */
-async function loadPost(slug: string): Promise<{ post: NewsPost; preview: boolean; loggedIn: boolean } | null> {
+/** Cached per request: the page title and the page share one load. */
+const loadPost = cache(async (slug: string): Promise<{ post: NewsPost; preview: boolean; loggedIn: boolean } | null> => {
   const { supabase, loggedIn } = await getPublicContext();
   const { data } = await supabase.from("news_posts").select(COLS).eq("slug", slug).maybeSingle();
   if (data) return { post: data as NewsPost, preview: false, loggedIn };
@@ -28,7 +30,7 @@ async function loadPost(slug: string): Promise<{ post: NewsPost; preview: boolea
   if (!me?.is_admin) return null;
   const { data: draft } = await createAdminClient().from("news_posts").select(COLS).eq("slug", slug).maybeSingle();
   return draft ? { post: draft as NewsPost, preview: true, loggedIn } : null;
-}
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

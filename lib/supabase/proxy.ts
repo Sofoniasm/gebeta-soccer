@@ -45,6 +45,19 @@ export async function updateSession(request: NextRequest) {
   }
   let response = makeResponse();
 
+  // Public pages (home, news, predictions, how to play...) don't need the login
+  // check here: skipping it saves a round trip to the auth server on every view.
+  // Private pages, sign-in pages and the Mini App still check the session.
+  const pagePath = stripLang(rawPath);
+  const needsSession =
+    PRIVATE_PREFIXES.some((p) => pagePath.startsWith(p)) ||
+    AUTH_PAGES.includes(pagePath) ||
+    pagePath === "/verify" ||
+    pagePath.startsWith("/tma") ||
+    pagePath.startsWith("/auth") ||
+    pagePath.startsWith("/api");
+  if (!needsSession) return response;
+
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
       getAll() {

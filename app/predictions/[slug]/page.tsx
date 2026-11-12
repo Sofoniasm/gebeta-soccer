@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cache } from "react";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getPublicContext } from "@/lib/public";
@@ -19,7 +20,8 @@ export const dynamic = "force-dynamic";
 
 type Preview = MatchPreview & { verdict_am?: string | null; body_am?: string | null };
 
-async function load(slug: string) {
+/** Cached per request: the page title and the page share one load. */
+const load = cache(async (slug: string) => {
   const id = idFromSlug(slug);
   if (!id) return null;
   const { supabase, loggedIn } = await getPublicContext();
@@ -44,7 +46,7 @@ async function load(slug: string) {
     split: s ? { ...s, picks: Number(s.picks ?? 0) } : null,
     indexable: isIndexable(match, preview, roundIsLive),
   };
-}
+});
 
 /** Admin text in the page's language (Amharic falls back to English if not written). */
 function previewText(p: Preview, lang: Lang) {

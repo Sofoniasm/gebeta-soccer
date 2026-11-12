@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { predictionPath } from "@/lib/predictions";
-import { createClient } from "@/lib/supabase/server";
+import { getPublicContext, getPublicStats } from "@/lib/public";
 import { getActiveRounds, getRoundPool } from "@/lib/rounds";
 import { unitsToEtb, ETB_PER_UNIT, DEFAULT_HOUSE_CUT } from "@/lib/money";
 import { POINTS } from "@/lib/scoring";
@@ -34,48 +34,39 @@ const pill =
 export default async function Home() {
   const lang = await getLang();
   const t = HOME[lang];
-  const site = await getSiteSettings();
-  const supabase = await createClient();
-  // Daily rounds: feature the round closing soonest (or the one in play).
-  const [{ data: auth }, active] = await Promise.all([supabase.auth.getUser(), getActiveRounds(supabase)]);
-  const activeRound = active[0] ?? null;
-  const pool = activeRound ? await getRoundPool(supabase, activeRound.id) : null;
-  const loggedIn = !!auth.user;
-  const { data: upcoming } = await supabase
-    .from("matches")
-    .select("home_team, away_team, kickoff_at, competition")
-    .eq("status", "scheduled")
-    .gt("kickoff_at", new Date().toISOString())
-    .order("kickoff_at", { ascending: true })
-    .limit(12);
-  const tickerMatches = (upcoming ?? []) as TickerMatch[];
-
-  // Public numbers (needs migration 0008; falls back gracefully)
-  const { data: statsRow } = await supabase.rpc("get_public_stats").maybeSingle();
-  const stats = (statsRow ?? { players: 0, predictions: 0, rounds: 0 }) as { players: number; predictions: number; rounds: number };
-
-  // Featured matches: this round's fixtures, else the next upcoming ones
-  let featured: { id: number; home_team: string; away_team: string; kickoff_at: string; competition: string | null; home_crest?: string | null; away_crest?: string | null }[] = [];
-  if (activeRound) {
-    const { data } = await supabase
-      .from("matches")
-      .select("id, home_team, away_team, kickoff_at, competition, home_crest, away_crest")
-      .eq("round_id", activeRound.id)
-      .gt("kickoff_at", new Date().toISOString())
-      .order("kickoff_at")
-      .limit(3);
-    featured = data ?? [];
-  }
-  if (featured.length === 0) {
-    const { data } = await supabase
+  // Everything is loaded in two parallel batches (was ~8 calls one after another).
+  type Featured = { id: number; home_team: string; away_team: string; kickoff_at: string; competition: string | null; home_crest?: string | null; away_crest?: string | null };
+  const { supabase, loggedIn } = await getPublicContext();
+  const nowIso = new Date().toISOString();
+  const [site, active, { data: upcoming }] = await Promise.all([
+    getSiteSettings(),
+    getActiveRounds(supabase), // daily rounds: the one closing soonest comes first
+    supabase
       .from("matches")
       .select("id, home_team, away_team, kickoff_at, competition, home_crest, away_crest")
       .eq("status", "scheduled")
-      .gt("kickoff_at", new Date().toISOString())
-      .order("kickoff_at")
-      .limit(3);
-    featured = data ?? [];
-  }
+      .gt("kickoff_at", nowIso)
+      .order("kickoff_at", { ascending: true })
+      .limit(12),
+  ]);
+  const activeRound = active[0] ?? null;
+  const tickerMatches = (upcoming ?? []) as TickerMatch[];
+  const [pool, roundFeatured, stats] = await Promise.all([
+    activeRound ? getRoundPool(supabase, activeRound.id) : Promise.resolve(null),
+    activeRound
+      ? supabase
+          .from("matches")
+          .select("id, home_team, away_team, kickoff_at, competition, home_crest, away_crest")
+          .eq("round_id", activeRound.id)
+          .gt("kickoff_at", nowIso)
+          .order("kickoff_at")
+          .limit(3)
+          .then((r) => (r.data ?? []) as Featured[])
+      : Promise.resolve([] as Featured[]),
+    site.show_public_stats ? getPublicStats(supabase) : Promise.resolve({ players: 0, predictions: 0, rounds: 0 }),
+  ]);
+  // Featured matches: this round's fixtures, else the next upcoming ones
+  const featured: Featured[] = roundFeatured.length ? roundFeatured : ((upcoming ?? []) as Featured[]).slice(0, 3);
 
   const houseCut = activeRound ? Number(activeRound.house_cut) : DEFAULT_HOUSE_CUT;
   const prizePct = Math.round((1 - houseCut) * 100);
