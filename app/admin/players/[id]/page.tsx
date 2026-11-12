@@ -44,7 +44,7 @@ export default async function PlayerDetailPage({
   const { data: limitRaw } = await admin.rpc("effective_deposit_limit", { p_user_id: id });
   const depositLimit = limitRaw === null || limitRaw === undefined ? null : Number(limitRaw);
   const keys = [p.phone_number, p.username?.toLowerCase(), p.email?.toLowerCase()].filter(Boolean) as string[];
-  const [{ data: authUser }, { data: ledger }, { data: withdrawals }, { data: entries }, { data: leagues }, { data: logins }, { data: notes }, { data: preds }] =
+  const [{ data: authUser }, { data: ledger }, { data: withdrawals }, { data: entries }, { data: leagues }, { data: logins }, { data: notes }, { data: preds }, { data: resets }] =
     await Promise.all([
       admin.auth.admin.getUserById(id),
       admin.from("wallet_ledger").select("id, amount_units, kind, reference, created_at, rounds(name), leagues(name)").eq("user_id", id).order("created_at", { ascending: false }).limit(200),
@@ -56,6 +56,7 @@ export default async function PlayerDetailPage({
         : Promise.resolve({ data: [] }),
       admin.from("notifications").select("title, body, created_at, read_at, telegram_sent_at").eq("user_id", id).order("created_at", { ascending: false }).limit(15),
       admin.from("predictions").select("points_earned, is_default").eq("user_id", id).limit(5000),
+      admin.from("password_resets").select("id, channel, requested_ip, outcome, delivered, delivery_error, attempts, used_at, expires_at, created_at").eq("user_id", id).order("created_at", { ascending: false }).limit(15),
     ]);
 
   type L = { id: number; amount_units: number; kind: string; reference: string | null; created_at: string; rounds: { name: string } | null; leagues: { name: string } | null };
@@ -165,14 +166,14 @@ export default async function PlayerDetailPage({
             </form>
             <form action={sendPlayerResetLink}>
               <input type="hidden" name="userId" value={p.id} />
-              <SubmitButton confirm="Send a password reset link to this player's Telegram?" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">
-                Send reset link
+              <SubmitButton confirm="Send a 6-digit reset code to this player's Telegram?" className="text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">
+                Send reset code
               </SubmitButton>
             </form>
             <form action={showPlayerResetLink}>
               <input type="hidden" name="userId" value={p.id} />
-              <SubmitButton confirm="Show a one-time reset link? Only give it to the player after confirming it's them." className="text-xs font-bold uppercase tracking-wider text-mist hover:text-white">
-                Show a reset link
+              <SubmitButton confirm="Create a reset code to tell the player? Only do it after confirming it's really them." className="text-xs font-bold uppercase tracking-wider text-mist hover:text-white">
+                Create a code for the player
               </SubmitButton>
             </form>
           </div>
@@ -264,6 +265,37 @@ export default async function PlayerDetailPage({
                 ))}
               </ul>
             )}
+          </section>
+
+          <section className={card}>
+            <h2 className="mb-3 text-lg font-extrabold">Password resets</h2>
+            <ul className="space-y-2 text-xs">
+              {((resets ?? []) as { id: string; channel: string | null; requested_ip: string | null; outcome: string | null; delivered: string | null; delivery_error: string | null; attempts: number; used_at: string | null; expires_at: string; created_at: string }[]).map((r) => {
+                const status =
+                  r.outcome === "changed"
+                    ? `✅ Password changed ${r.used_at ? formatKickoff(r.used_at) : ""}`
+                    : r.outcome === "locked"
+                      ? "🔒 Locked after 5 wrong codes"
+                      : r.outcome === "replaced"
+                        ? "↻ Replaced by a newer code"
+                        : r.used_at || new Date(r.expires_at) < new Date()
+                          ? "⌛ Expired, not used"
+                          : "⏳ Waiting for the player to enter the code";
+                return (
+                  <li key={r.id}>
+                    <p className="font-semibold text-white">{status}</p>
+                    <p className="text-mist">
+                      {formatKickoff(r.created_at)} · {r.channel === "admin" ? "created by admin" : "asked by player"}
+                      {r.delivered ? ` · ${r.delivered === "shown_to_admin" ? "code shown to admin" : `sent by ${r.delivered}`}` : ""}
+                      {r.delivery_error ? ` · not delivered: ${r.delivery_error}` : ""}
+                      {r.attempts > 0 ? ` · ${r.attempts} wrong ${r.attempts === 1 ? "try" : "tries"}` : ""}
+                      {r.requested_ip ? ` · IP ${r.requested_ip}` : ""}
+                    </p>
+                  </li>
+                );
+              })}
+              {(resets ?? []).length === 0 && <li className="text-mist">None.</li>}
+            </ul>
           </section>
 
           <section className={card}>

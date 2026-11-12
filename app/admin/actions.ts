@@ -15,7 +15,7 @@ import { formatUnits } from "@/lib/money";
 import { pushNotifications } from "@/lib/notify";
 import { settleLeague } from "@/lib/league-settle";
 import { settleDueRounds, settleRoundNow } from "@/lib/round-settle";
-import { createResetLink, deliverResetLink } from "@/lib/password-reset";
+import { createResetCode, deliverResetCode } from "@/lib/password-reset";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -317,18 +317,24 @@ export async function setAutoSettle(formData: FormData) {
 }
 
 // ------------------------------------------------------------ password reset
-/** Send the player a one-time reset link on their Telegram (or SMS). */
+/** Send the player a 6-digit reset code on their Telegram (or SMS). */
 export async function sendPlayerResetLink(formData: FormData) {
   await requireAdmin();
   const userId = String(formData.get("userId") ?? "");
-  const how = await deliverResetLink(userId, null);
-  return done(how ? "msg" : "err", how ? `Reset link sent by ${how === "telegram" ? "Telegram" : "SMS"}. It works once and expires in 30 minutes.` : "This player has no linked Telegram (and SMS is off). Use “Show a reset link” and send it to them yourself.");
+  const r = await deliverResetCode(userId, null);
+  return done(
+    r.via ? "msg" : "err",
+    r.via
+      ? `Reset code sent by ${r.via === "telegram" ? "Telegram" : "SMS"}. The player enters it at Log in → Forgot password? (valid 10 minutes).`
+      : `Could not send the code (${r.error}). Use “Create a code for the player” and tell it to them yourself.`,
+  );
 }
 
-/** For a player who lost access to Telegram: show a one-time link the admin can pass on (expires in 30 minutes). */
+/** For a player who can't get Telegram: create a code to tell them (after checking it's really them). */
 export async function showPlayerResetLink(formData: FormData) {
   await requireAdmin();
   const userId = String(formData.get("userId") ?? "");
-  const link = await createResetLink(userId, "admin", null);
-  return done("msg", `One-time reset link (30 minutes, works once). Only give it to the player after checking it's really them: ${link}`);
+  const { code, id } = await createResetCode(userId, "admin", null);
+  await createAdminClient().from("password_resets").update({ delivered: "shown_to_admin" }).eq("id", id);
+  return done("msg", `Reset code ${code} (valid 10 minutes, one use). Only tell it to the player after checking it's really them. They enter it at Log in → Forgot password?, with their phone number.`);
 }

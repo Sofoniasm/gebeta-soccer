@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 import { checkLoginLock, clientIp, loginKey, recordLoginAttempt } from "@/lib/login-lock";
-import { checkResetToken, deliverResetLink, resetThrottled } from "@/lib/password-reset";
+import { deliverResetCode, resetThrottled, verifyResetCode } from "@/lib/password-reset";
 import { PAGES } from "@/lib/i18n/pages";
 import { pushNotifications } from "@/lib/notify";
 
@@ -164,48 +164,69 @@ export async function signOut(): Promise<void> {
 // -------------------------------------------------------- forgot password
 const langOf = (formData: FormData) => (formData.get("lang") === "am" ? "am" : "en");
 
-/** Step 1: send a one-time reset link to the player's Telegram (or SMS). Same answer whether the number exists or not. */
-export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+export type ForgotState = { stage: "phone" | "code"; phone?: string; error?: string; info?: string } | undefined;
+
+/** Step 1: send a 6-digit code to the player's Telegram (or SMS). Same answer whether the number exists or not. */
+export async function requestResetCode(_prev: ForgotState, formData: FormData): Promise<ForgotState> {
   const t = PAGES[langOf(formData)].auth;
   const phone = normalizeEthiopianPhone(String(formData.get("phone") ?? ""));
-  if (!phone) return { error: t.forgotBadPhone };
+  if (!phone) return { stage: "phone", error: t.forgotBadPhone };
   const ip = await clientIp();
   const { data: p } = await createAdminClient().from("profiles").select("id").eq("phone_number", phone).maybeSingle();
-  if (!(await resetThrottled(p?.id ?? null, ip)) && p) {
-    await deliverResetLink(p.id, ip);
-  }
-  return { success: t.forgotSent };
+  if (await resetThrottled(p?.id ?? null, ip)) return { stage: "phone", phone, error: t.tooManyRequests };
+  if (p) await deliverResetCode(p.id, ip);
+  return { stage: "code", phone, info: t.codeSent(phone) };
 }
 
-/** Step 2: the link's page sets the new password. */
-export async function resetPassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+/** Step 2: check the code and set the new password. Wrong codes are rejected (5 tries max). */
+export async function confirmResetCode(prev: ForgotState, formData: FormData): Promise<ForgotState> {
   const t = PAGES[langOf(formData)].auth;
-  const token = String(formData.get("token") ?? "");
+  const phone = normalizeEthiopianPhone(String(formData.get("phone") ?? ""));
+  const code = String(formData.get("code") ?? "").replace(/\D/g, "");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  if (password.length < 8) return { error: t.resetTooShort };
-  if (password !== confirm) return { error: t.resetMismatch };
-  const found = await checkResetToken(token);
-  if (!found) return { error: t.resetBadLink };
+  const keep = { stage: "code" as const, phone: phone ?? undefined, info: prev?.info };
+  if (!phone) return { stage: "phone", error: t.forgotBadPhone };
+  if (password.length < 8) return { ...keep, error: t.resetTooShort };
+  if (password !== confirm) return { ...keep, error: t.resetMismatch };
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(found.userId, { password });
-  if (error) return { error: error.message.toLowerCase().includes("password") ? t.resetTooShort : t.resetFailed };
-  await admin.from("password_resets").update({ used_at: new Date().toISOString() }).eq("user_id", found.userId).is("used_at", null);
+  const { data: p } = await admin.from("profiles").select("id, username, phone_number, email").eq("phone_number", phone).maybeSingle();
+  const check = await verifyResetCode(p?.id ?? null, code);
+  if (!check.ok) {
+    const error = check.reason === "wrong" ? (check.triesLeft ? t.wrongCode(check.triesLeft) : t.codeExpired) : check.reason === "locked" ? t.codeLocked : t.codeExpired;
+    return { ...keep, error };
+  }
 
-  // Unlock the login (wrong-password lock) and tell the player on Telegram.
-  const { data: p } = await admin.from("profiles").select("phone_number, username, email").eq("id", found.userId).single();
+  const { error } = await admin.auth.admin.updateUserById(check.userId, { password });
+  if (error) return { ...keep, error: error.message.toLowerCase().includes("password") ? t.resetTooShort : t.resetFailed };
+  await admin.from("password_resets").update({ used_at: new Date().toISOString(), outcome: "changed" }).eq("id", check.resetId);
+
+  // Unlock the login (wrong-password lock), tell the player and the admins.
   for (const id of [p?.phone_number, p?.username, p?.email].filter(Boolean) as string[]) {
     await admin.rpc("clear_login_lock", { p_key: loginKey(id) });
   }
   await admin.from("notifications").insert({
-    user_id: found.userId,
+    user_id: check.userId,
     kind: "security",
     title: "🔑 Password changed",
-    body: "Your GebetaSoccer password was just changed. If this wasn't you, contact support on Telegram right away.",
+    body: "Your GebetaSoccer password was just changed with a Telegram code. If this wasn't you, contact support on Telegram right away.",
     link: "/profile",
     push: true,
   });
-  await pushNotifications([found.userId]);
+  const { data: admins } = await admin.from("profiles").select("id").eq("is_admin", true);
+  if (admins?.length) {
+    await admin.from("notifications").insert(
+      admins.map((a: { id: string }) => ({
+        user_id: a.id,
+        kind: "admin",
+        title: "🔑 Password reset",
+        body: `${p?.username ?? "A player"} (${p?.phone_number ?? "no phone"}) reset their password with a Telegram code.`,
+        link: `/admin/players/${check.userId}`,
+        push: false,
+      })),
+    );
+  }
+  await pushNotifications([check.userId]);
   redirect("/login?reset=1");
 }
