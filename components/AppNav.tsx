@@ -37,6 +37,7 @@ const ME: Item[] = [
   { href: "/career", label: "Career", icon: ChartIcon },
   { href: "/certificates", label: "Certificates", icon: AwardIcon },
   { href: "/wallet", label: "Wallet", icon: WalletIcon },
+  { href: "/premium", label: "Premium", icon: StarIcon },
   { href: "/profile", label: "Profile", icon: UsersIcon },
 ];
 
@@ -46,6 +47,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/players", label: "Players", icon: UsersIcon },
   { href: "/admin/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/admin/deposits", label: "Deposits", icon: WalletIcon },
+  { href: "/admin/subscriptions", label: "Premium", icon: StarIcon },
   { href: "/admin/challenges", label: "Challenges", icon: VersusIcon },
   { href: "/admin/previews", label: "Previews", icon: StarIcon },
   { href: "/admin/news", label: "News", icon: NewsIcon },

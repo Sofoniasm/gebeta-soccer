@@ -4,6 +4,8 @@ import { getActiveRounds, getCurrentRound } from "@/lib/rounds";
 import { AppShell } from "@/components/AppShell";
 import { TrophyIcon } from "@/components/icons";
 import { Avatar } from "@/components/Avatar";
+import { getMe } from "@/lib/me";
+import { getMyPremium } from "@/lib/premium";
 
 export const metadata = { title: "Leaderboard · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -21,6 +23,7 @@ interface Row {
   wins?: number;
   slip_no?: number;
   slips_count?: number;
+  slip_id?: number;
 }
 
 function Medal({ rank }: { rank: number }) {
@@ -49,6 +52,10 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
     rows = (data ?? []) as Row[];
   }
   const me = rows.find((r) => r.is_me);
+  const viewer = await getMe("/leaderboard");
+  const premium = (await getMyPremium(supabase, viewer.id)).active;
+  // Picks become visible when the round locks (first kickoff); before that, secret for everyone.
+  const locked = !!round && (round.status !== "open" || !active.find((r) => r.id === round.id)?.bettable);
   const names = [...new Set(rows.map((r) => r.username))];
   const { data: avatarRows } = names.length ? await supabase.rpc("get_avatars", { p_usernames: names }) : { data: [] };
   const avatarOf = new Map(((avatarRows ?? []) as { username: string; avatar_url: string }[]).map((a) => [a.username, a.avatar_url]));
@@ -89,6 +96,16 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
         <p className="mb-4 text-xs text-mist">Live: points update as matches finish, including Slam Points. To win, a slip needs more than half the match points (more than 15 of 30). Ties: correct results → exact scores → close picks.</p>
       )}
 
+      {tab !== "all" && round && !premium && rows.length > 0 && (
+        <Link href="/premium" className="mb-4 flex items-center gap-3 rounded-2xl border border-amber-200/25 bg-amber-200/5 px-4 py-3 hover:border-amber-200/50">
+          <span className="text-xl">⭐</span>
+          <span className="min-w-0 flex-1 text-sm">
+            <b className="text-white">See the leaders&apos; full slips</b>
+            <span className="block text-xs text-mist">Gebeta Premium unlocks every slip once the round locks, plus crowd picks while it&apos;s open.</span>
+          </span>
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-100">Go Premium →</span>
+        </Link>
+      )}
       {rows.length === 0 ? (
         <div className="rounded-[2rem] border border-white/5 bg-card/60 p-10 text-center">
           <TrophyIcon size={32} className="mx-auto text-lilac" />
@@ -124,7 +141,20 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                     : ` · ${Number(r.correct_results ?? 0)} correct${Number(r.slam_points ?? 0) > 0 ? ` · +${Number(r.slam_points)} slam` : ""}`}
                 </p>
               </div>
-              <p className="text-right text-xl font-extrabold text-lilac-soft">{Number(r.points)}</p>
+              <div className="flex items-center justify-end gap-3">
+                {tab !== "all" && r.slip_id && locked && (
+                  r.is_me || premium ? (
+                    <Link href={`/slip/${r.slip_id}`} className="rounded-full border border-white/15 px-3 py-1 text-[11px] font-bold text-white hover:border-lilac">
+                      Picks
+                    </Link>
+                  ) : (
+                    <Link href="/premium" title="Gebeta Premium" className="rounded-full border border-amber-200/30 px-3 py-1 text-[11px] font-bold text-amber-100 hover:bg-amber-200/10">
+                      🔒 Picks
+                    </Link>
+                  )
+                )}
+                <p className="text-right text-xl font-extrabold text-lilac-soft">{Number(r.points)}</p>
+              </div>
             </div>
           ))}
         </div>

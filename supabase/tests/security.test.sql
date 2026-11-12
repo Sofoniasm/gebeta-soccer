@@ -501,4 +501,91 @@ do $$ begin
 end $$;
 reset role;
 
+-- 0031: Gebeta Premium
+reset role;
+select set_config('request.jwt.claim.sub', '', false) \g /dev/null
+insert into public.rounds (name, entry_fee_units, status) values ('Premium test', 1, 'draft');
+insert into public.matches (round_id, home_team, away_team, kickoff_at)
+select (select max(id) from public.rounds where name = 'Premium test'), 'H' || g, 'A' || g, now() + interval '2 days' + g * interval '1 minute'
+  from generate_series(1, 10) g;
+update public.rounds set status = 'open' where name = 'Premium test';
+insert into public.slips (round_id, user_id, slip_no)
+select r.id, '11111111-0000-0000-0000-000000000001', g from public.rounds r, generate_series(1, 4) g where r.name = 'Premium test';
+insert into public.slip_picks (slip_id, match_id, home, away)
+select s.id, m.id, 2, 1 from public.slips s join public.rounds r on r.id = s.round_id and r.name = 'Premium test' join public.matches m on m.round_id = r.id;
+select public.admin_add_units((select id from public.profiles where username = 'grownup'), 25, 'test', null);
+create table public.tests_prem as
+  select r.id as rid, (select min(s.id) from public.slips s where s.round_id = r.id) as sid from public.rounds r where r.name = 'Premium test';
+grant select on public.tests_prem to authenticated;
+
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000ab', false) \g /dev/null
+set role authenticated;
+do $$ begin
+  begin perform * from public.get_round_crowd((select rid from public.tests_prem));
+        raise exception 'FAIL: crowd picks without Premium';
+  exception when raise_exception then if sqlerrm not like 'premium only%' then raise exception 'FAIL: wrong reason: %', sqlerrm; end if; end;
+  begin perform * from public.get_slip_detail((select sid from public.tests_prem));
+        raise exception 'FAIL: slip shown without Premium';
+  exception when raise_exception then if sqlerrm not like 'premium only%' then raise exception 'FAIL: wrong reason: %', sqlerrm; end if; end;
+  begin perform public.buy_premium('weekly'); raise exception 'FAIL: unknown plan accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  perform public.buy_premium('monthly');
+  perform public.buy_premium('yearly');
+  if (select balance_units from public.profiles where id = auth.uid()) <> 3 then raise exception 'FAIL: Premium price not taken from the wallet'; end if;
+  if (select current_period_end from public.subscriptions where user_id = auth.uid()) < now() + interval '394 days' then
+    raise exception 'FAIL: yearly not added on top of monthly';
+  end if;
+  begin perform public.buy_premium('yearly'); raise exception 'FAIL: Premium bought without enough Units';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  -- 4 slips: too few for crowd stats (could reveal someone's picks)
+  if exists (select 1 from public.get_round_crowd((select rid from public.tests_prem))) then
+    raise exception 'FAIL: crowd stats with fewer than 5 slips';
+  end if;
+  -- before the lock even Premium can't see a slip
+  begin perform * from public.get_slip_detail((select sid from public.tests_prem));
+        raise exception 'FAIL: Premium saw picks before the lock';
+  exception when raise_exception then if sqlerrm not like '%secret%' then raise exception 'FAIL: wrong reason: %', sqlerrm; end if; end;
+  begin update public.subscriptions set current_period_end = now() + interval '50 years'; 
+        if found then raise exception 'FAIL: player extended their own Premium'; end if;
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+insert into public.slips (round_id, user_id, slip_no)
+select r.id, '11111111-0000-0000-0000-000000000001', 5 from public.rounds r where r.name = 'Premium test';
+insert into public.slip_picks (slip_id, match_id, home, away)
+select s.id, m.id, 0, 0 from public.slips s join public.matches m on m.round_id = s.round_id
+ where s.slip_no = 5 and s.round_id = (select rid from public.tests_prem);
+set role authenticated;
+do $$
+declare c record;
+begin
+  select * into c from public.get_round_crowd((select rid from public.tests_prem)) limit 1;
+  if c.slips <> 5 or c.home_pct <> 80 or c.draw_pct <> 20 or c.top_score <> '2-1' then raise exception 'FAIL: crowd stats wrong: %', c; end if;
+end $$;
+reset role;
+update public.matches set kickoff_at = now() - interval '1 hour' where round_id = (select rid from public.tests_prem);
+set role authenticated;
+do $$ begin
+  if (select count(*) from public.get_slip_detail((select sid from public.tests_prem))) <> 10 then
+    raise exception 'FAIL: Premium could not see a slip after the lock';
+  end if;
+end $$;
+reset role;
+-- renewals: renews from the wallet, then ends quietly when the money runs out
+update public.subscriptions set current_period_end = now() - interval '1 hour', plan = 'monthly' where user_id = (select id from public.profiles where username = 'grownup');
+do $$ begin
+  if public.renew_due_subscriptions() <> 1 then raise exception 'FAIL: Premium not renewed'; end if;
+  if (select balance_units from public.profiles where username = 'grownup') <> 1 then raise exception 'FAIL: renewal not charged'; end if;
+end $$;
+update public.subscriptions set current_period_end = now() - interval '1 hour' where user_id = (select id from public.profiles where username = 'grownup');
+do $$ begin
+  if public.renew_due_subscriptions() <> 0 then raise exception 'FAIL: renewed without enough Units'; end if;
+  if (select auto_renew from public.subscriptions where user_id = (select id from public.profiles where username = 'grownup')) then
+    raise exception 'FAIL: auto-renew still on after a failed renewal';
+  end if;
+  if (select balance_units from public.profiles where username = 'grownup') <> 1 then raise exception 'FAIL: failed renewal touched the wallet'; end if;
+  raise notice 'ok  premium: paid from the wallet, renews or ends, crowd stats need 5 slips, slips only after the lock';
+end $$;
+drop table public.tests_prem;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

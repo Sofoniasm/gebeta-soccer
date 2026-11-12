@@ -18,6 +18,7 @@ const KIND_LABEL: Record<string, string> = {
   payout: "Winnings",
   refund: "Refund",
   adjustment: "Adjustment",
+  subscription: "Gebeta Premium",
 };
 
 const STATUS_STYLE: Record<string, string> = {

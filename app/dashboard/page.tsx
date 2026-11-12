@@ -14,6 +14,8 @@ import { MatchLine, PointsChip, groupByDay } from "@/components/MatchLine";
 import type { MatchRow } from "@/lib/rounds";
 import { calculateMatchPoints } from "@/lib/scoring";
 import { RecentWinners } from "@/components/RecentWinners";
+import { CrowdPicks } from "@/components/CrowdPicks";
+import { getMyPremium } from "@/lib/premium";
 import { slotHours, slotInfo, type Slot } from "@/lib/round-slots";
 
 export const metadata = { title: "Predict · GebetaSoccer" };
@@ -101,6 +103,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
   }
 
+
+  const premium = (await getMyPremium(supabase, me.id)).active;
 
   // Nothing open: show the next matches so the page is never empty.
   let upcoming: MatchRow[] = [];
@@ -299,6 +303,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             matches={matches}
             slips={slips}
           />
+          {bettable && <CrowdPicks roundId={round.id} matches={matches} premium={premium} />}
         </>
       ) : (
         <>

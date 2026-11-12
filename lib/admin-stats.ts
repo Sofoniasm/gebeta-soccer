@@ -151,6 +151,7 @@ export async function getOverview() {
       payout: ["🏆", `won ${where} +${fmt(l.amount_units)}`, "plus"],
       withdrawal: ["⏳", `requested withdrawal of ${fmt(l.amount_units)}`, "warn"],
       refund: ["↩️", `refund +${fmt(l.amount_units)}`, "plus"],
+      subscription: ["⭐", `paid for Gebeta Premium ${fmt(-l.amount_units)}`, "plus"],
       adjustment: [l.amount_units > 0 ? "➕" : "➖", `${l.amount_units > 0 ? "units added" : "units deducted"} ${fmt(l.amount_units)}`, l.amount_units > 0 ? "plus" : "minus"],
     };
     const m = map[l.kind];

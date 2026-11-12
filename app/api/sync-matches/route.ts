@@ -39,7 +39,16 @@ export async function GET(req: NextRequest) {
     if (Number(settled) > 0 || roundsSettled.length > 0) await pushNotifications();
     // Morning / Evening / Night rounds (EAT) open by themselves when a slot has 10 matches.
     const autoRounds = await createDueAutoRounds();
-    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0), roundsSettled, autoRounds }, { status: result.ok ? 200 : 207 });
+    // Gebeta Premium renewals (from the wallet; ends quietly when there aren't enough Units).
+    let premiumRenewed = 0;
+    try {
+      const { data: n } = await createAdminClient().rpc("renew_due_subscriptions");
+      premiumRenewed = Number(n ?? 0);
+      await pushNotifications();
+    } catch {
+      /* 0031 not run yet */
+    }
+    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0), roundsSettled, autoRounds, premiumRenewed }, { status: result.ok ? 200 : 207 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
