@@ -26,14 +26,17 @@ export function LoginForm({ next, lang = "en" }: { next?: string; lang?: Lang })
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
       <input type="hidden" name="next" value={next ?? "/dashboard"} />
+      <input type="hidden" name="lang" value={lang} />
       <Field label={t.phone} hint={t.phoneHintLogin}>
         <input name="identifier" type="tel" inputMode="tel" autoComplete="tel" autoCapitalize="none" required className={inputClass} placeholder="0911 223 344" />
       </Field>
       <Field label={t.password}>
         <input name="password" type="password" autoComplete="current-password" required className={inputClass} placeholder="••••••••" />
       </Field>
-      <p className="-mt-2 text-right text-xs">
-        <Link href={localPath("/forgot", lang)} className="font-semibold text-lilac">{t.forgot}</Link>
+      <p className="-mt-1 text-right text-sm">
+        <Link href={localPath("/forgot", lang)} className="font-bold text-lilac underline decoration-lilac/40 underline-offset-4 hover:text-lilac-soft">
+          🔑 {t.forgot}
+        </Link>
       </p>
       <button type="submit" disabled={pending} className={primaryButtonClass}>
         {pending && <SpinnerIcon size={18} />} {t.logIn}
@@ -67,6 +70,7 @@ export function RegisterForm({ next, lang = "en" }: { next?: string; lang?: Lang
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
       {next && <input type="hidden" name="next" value={next} />}
+      <input type="hidden" name="lang" value={lang} />
       <Field label={t.phone} hint={t.phoneHintRegister}>
         <input name="phone" type="tel" inputMode="tel" autoComplete="tel" required className={inputClass} placeholder="0911 223 344" />
       </Field>

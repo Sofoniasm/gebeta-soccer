@@ -49,21 +49,22 @@ async function resolveLoginEmail(identifier: string): Promise<string | null> {
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const identifier = String(formData.get("identifier") ?? "");
   const password = String(formData.get("password") ?? "");
-  if (!identifier.trim() || !password) return { error: "Enter your phone number and password." };
+  const tt = PAGES[formData.get("lang") === "am" ? "am" : "en"].auth;
+  if (!identifier.trim() || !password) return { error: tt.errEnterBoth };
 
   // Brute-force protection: 5 wrong passwords per login, or too many from one
   // network, locks it for 15 minutes. Checked before the password is tried.
   const key = loginKey(identifier);
   const ip = await clientIp();
   const locked = await checkLoginLock(key, ip);
-  if (locked) return { error: locked };
+  if (locked) return { error: tt === PAGES.en.auth ? locked : tt.errLocked };
 
   const email = await resolveLoginEmail(identifier);
   // Same message whether the user exists or not — don't reveal who is registered.
   // Unknown logins count as wrong tries too, so guessing usernames is throttled.
   if (!email) {
     await recordLoginAttempt(key, ip, false);
-    return { error: "Wrong phone number or password." };
+    return { error: tt.errWrong };
   }
 
   const supabase = await createClient();
@@ -73,7 +74,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     if (m.includes("email not confirmed")) return { error: "Please confirm your email first — check your inbox (and spam)." };
     if (m.includes("disabled")) return { error: "Logins are temporarily unavailable. Please try again soon." };
     await recordLoginAttempt(key, ip, false);
-    return { error: "Wrong phone number or password." };
+    return { error: tt.errWrong };
   }
   await recordLoginAttempt(key, ip, true);
   redirect(safeNext(formData.get("next")));
@@ -86,18 +87,19 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   const phoneRaw = String(formData.get("phone") ?? "");
   const password = String(formData.get("password") ?? "");
   const dob = String(formData.get("date_of_birth") ?? "").trim();
+  const tr = PAGES[formData.get("lang") === "am" ? "am" : "en"].auth;
 
   const phone = normalizeEthiopianPhone(phoneRaw);
-  if (!phone) return { error: "Enter a valid Ethiopian mobile number, e.g. 0911 223 344." };
-  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (!phone) return { error: tr.errPhone };
+  if (password.length < 8) return { error: tr.resetTooShort };
   if (username && !/^[A-Za-z0-9_]{3,24}$/.test(username)) {
-    return { error: "Display name: 3–24 letters, numbers or _ (no spaces) — or leave it empty." };
+    return { error: tr.errName };
   }
   if (emailInput && !/^\S+@\S+\.\S+$/.test(emailInput)) return { error: "That email doesn't look right (or leave it empty)." };
   const dobProblem = dobError(dob);
   if (dobProblem) return { error: dobProblem };
   if (formData.get("age_ok") !== "on") {
-    return { error: "You must be 18 or older and accept the Terms to play GebetaSoccer." };
+    return { error: tr.errAge };
   }
 
   const supabase = await createClient();
@@ -112,9 +114,9 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
       .single();
     if (availError) return { error: "Could not check availability. Please try again." };
     const a = avail as { username_taken: boolean; phone_taken: boolean };
-    if (a.phone_taken) return { error: "That phone number is already registered. Try logging in." };
+    if (a.phone_taken) return { error: tr.errPhoneTaken };
     if (!a.username_taken) { username = candidate; break; }
-    if (userChose) return { error: "That display name is taken — try another, or leave it empty." };
+    if (userChose) return { error: tr.errNameTaken };
     if (attempt === 5) return { error: "Could not create a display name. Please type one." };
   }
 
@@ -137,7 +139,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     if (m.includes("18 or older")) return { error: "You must be 18 or older to play GebetaSoccer." };
     if (m.includes("database error")) return { error: "That username or phone number is already taken." };
     if (m.includes("password")) return { error: "Please choose a stronger password (at least 8 characters)." };
-    return { error: "Could not create your account. Please try again." };
+    return { error: tr.errGeneric };
   }
 
   // Sign the new player in straight away.
