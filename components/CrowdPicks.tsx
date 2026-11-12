@@ -4,8 +4,8 @@ import type { MatchRow } from "@/lib/rounds";
 
 interface Crowd { match_id: number; slips: number; home_pct: number; draw_pct: number; away_pct: number; top_score: string; top_score_pct: number }
 
-/** Premium: anonymous crowd picks for an open daily round. Free players get a teaser. */
-export async function CrowdPicks({ roundId, matches, premium }: { roundId: number; matches: MatchRow[]; premium: boolean }) {
+/** Anonymous crowd picks: Premium while the round is open, free for everyone once it locks. */
+export async function CrowdPicks({ roundId, matches, premium, locked = false }: { roundId: number; matches: MatchRow[]; premium: boolean; locked?: boolean }) {
   const shell = "mt-6 rounded-[2rem] border border-amber-200/20 bg-card/60 p-5 sm:p-6";
   if (!premium) {
     return (
@@ -20,7 +20,8 @@ export async function CrowdPicks({ roundId, matches, premium }: { roundId: numbe
             ))}
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <p className="text-sm font-bold text-white">See how everyone else is picking</p>
+            <p className="text-sm font-bold text-white">See how everyone else is picking before you bet</p>
+            <p className="text-xs text-mist">Free for everyone once the round locks</p>
             <Link href="/premium" className="mt-2 rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
               Unlock with Premium
             </Link>
@@ -35,7 +36,7 @@ export async function CrowdPicks({ roundId, matches, premium }: { roundId: numbe
   const crowd = new Map(((data ?? []) as Crowd[]).map((c) => [Number(c.match_id), c]));
   return (
     <section className={shell}>
-      <h2 className="text-lg font-extrabold">⭐ Crowd picks</h2>
+      <h2 className="text-lg font-extrabold">{locked ? "📊 How the crowd picked" : "⭐ Crowd picks"}</h2>
       {crowd.size === 0 ? (
         <p className="mt-2 text-sm text-mist">Shown once at least 5 slips are in, so nobody&apos;s own picks can be worked out. Check back soon.</p>
       ) : (

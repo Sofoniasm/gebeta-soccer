@@ -315,7 +315,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             form={form}
             chances={premium ? chances : undefined}
           />
-          {bettable && <CrowdPicks roundId={round.id} matches={matches} premium={premium} />}
+          {/* Premium before the lock; free for everyone once the round has locked. */}
+          <CrowdPicks roundId={round.id} matches={matches} premium={premium || !bettable} locked={!bettable} />
         </>
       ) : (
         <>

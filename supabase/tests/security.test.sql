@@ -570,7 +570,17 @@ do $$ begin
     raise exception 'FAIL: Premium could not see a slip after the lock';
   end if;
 end $$;
+-- 0033: after the lock everyone sees the crowd split (not just Premium)
 reset role;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000002', false) \g /dev/null
+set role authenticated;
+do $$ begin
+  if (select count(*) from public.get_round_crowd((select rid from public.tests_prem))) <> 10 then
+    raise exception 'FAIL: free player cannot see the crowd split after the lock';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000ab', false) \g /dev/null
 -- renewals: renews from the wallet, then ends quietly when the money runs out
 update public.subscriptions set current_period_end = now() - interval '1 hour', plan = 'monthly' where user_id = (select id from public.profiles where username = 'grownup');
 do $$ begin
