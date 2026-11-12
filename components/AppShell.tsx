@@ -16,8 +16,8 @@ import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
  *  - mobile: top bar + bottom tab bar
  */
 export async function AppShell({ children, title, next }: { children: React.ReactNode; title?: string; next?: string }) {
-  const me = await getMe(next);
-  const [unread, todo] = await Promise.all([getUnreadCount(), getTodo()]);
+  // One login check, then everything else at the same time.
+  const [me, unread, todo] = await Promise.all([getMe(next), getUnreadCount(), getTodo()]);
   const units = unitsLabel(me.balance_units);
   const etb = etbLabel(me.balance_units);
   // 18+ only: a player without a saved date of birth can't open any play page.

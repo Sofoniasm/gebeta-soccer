@@ -43,20 +43,41 @@ function Crest({ src, name }: { src: string | null; name: string }) {
   );
 }
 
+const MAX_GOALS = 15;
+
+/** Score box with ▲ / ▼ buttons (0–15). Tap to change; typing still works. */
 function ScoreInput(props: { value: string; disabled: boolean; label: string; onChange: (v: string) => void }) {
+  const n = props.value === "" ? null : Number(props.value);
+  const step = (d: number) => {
+    const next = n === null ? (d > 0 ? 0 : 0) : Math.min(MAX_GOALS, Math.max(0, n + d));
+    props.onChange(String(n === null && d > 0 ? 0 : next));
+  };
+  const btn =
+    "flex h-7 w-14 items-center justify-center rounded-xl text-sm text-mist transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30";
   return (
-    <input
-      aria-label={props.label}
-      inputMode="numeric"
-      pattern="[0-9]*"
-      maxLength={2}
-      value={props.value}
-      disabled={props.disabled}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.onChange(e.target.value.replace(/\D/g, "").slice(0, 2))}
-      onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
-      className="h-14 w-14 rounded-2xl border border-white/15 bg-ink text-center text-2xl font-extrabold text-white outline-none transition focus:border-lilac focus:ring-2 focus:ring-lilac/25 disabled:border-transparent disabled:bg-white/5 disabled:text-mist"
-      placeholder="–"
-    />
+    <div className="flex flex-col items-center gap-1">
+      <button type="button" aria-label={`${props.label}: one more`} disabled={props.disabled || n === MAX_GOALS} onClick={() => step(1)} className={btn}>
+        ▲
+      </button>
+      <input
+        aria-label={props.label}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={2}
+        value={props.value}
+        disabled={props.disabled}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+          props.onChange(digits === "" ? "" : String(Math.min(MAX_GOALS, Number(digits))));
+        }}
+        onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
+        className="h-12 w-14 rounded-2xl border border-white/15 bg-ink text-center text-2xl font-extrabold text-white outline-none transition focus:border-lilac focus:ring-2 focus:ring-lilac/25 disabled:border-transparent disabled:bg-white/5 disabled:text-mist"
+        placeholder="–"
+      />
+      <button type="button" aria-label={`${props.label}: one less`} disabled={props.disabled || n === null || n === 0} onClick={() => step(-1)} className={btn}>
+        ▼
+      </button>
+    </div>
   );
 }
 

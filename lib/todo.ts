@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth-user";
 import type { MatchRow, RoundRow } from "@/lib/rounds";
 
 export interface TodoPick {
@@ -22,10 +23,7 @@ export interface Todo {
 /** What the signed-in player still has to do (cached per request). */
 export const getTodo = cache(async (): Promise<Todo> => {
   const empty: Todo = { join: [], picks: [], notJoinedMatches: 0, count: 0 };
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
   if (!user) return empty;
 
   const { data: rounds } = await supabase.from("rounds").select("*").eq("status", "open").order("id");

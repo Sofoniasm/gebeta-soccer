@@ -273,6 +273,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <TrophyIcon size={13} /> Prize pot
                   </p>
                   <p className="text-3xl font-extrabold text-white">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
+                  <p className="text-[11px] text-mist">
+                    winners&apos; share: 70% of {formatEtb(unitsToEtb(pool.entrants * Number(round.entry_fee_units)))} in bets
+                  </p>
                   <p className="flex items-center justify-end gap-1 text-xs text-mist">
                     <UsersIcon size={13} /> {pool.entrants} slip{pool.entrants === 1 ? "" : "s"} · {pool.players} player{pool.players === 1 ? "" : "s"}
                   </p>

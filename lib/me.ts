@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth-user";
 
 export interface Me {
   id: string;
@@ -18,10 +19,7 @@ export interface Me {
 
 /** The signed-in player's profile (cached per request). Redirects to login if signed out. */
 export const getMe = cache(async (next = "/dashboard"): Promise<Me> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
   if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
 
   const { data } = await supabase
