@@ -222,9 +222,9 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                       <form action={setScore} className="flex items-center gap-1.5">
                         <input type="hidden" name="matchId" value={m.id} />
                         <input type="hidden" name="status" value="finished" />
-                        <input name="home" type="number" min="0" defaultValue={m.actual_home_score ?? ""} className={`${small} w-14 text-center`} aria-label="Home score" />
+                        <input name="home" type="number" min="0" required defaultValue={m.actual_home_score ?? ""} className={`${small} w-14 text-center`} aria-label="Home score" />
                         <span className="text-mist">–</span>
-                        <input name="away" type="number" min="0" defaultValue={m.actual_away_score ?? ""} className={`${small} w-14 text-center`} aria-label="Away score" />
+                        <input name="away" type="number" min="0" required defaultValue={m.actual_away_score ?? ""} className={`${small} w-14 text-center`} aria-label="Away score" />
                         <SubmitButton className={secondaryButtonClass}>Save</SubmitButton>
                       </form>
                       <div className="flex gap-3">

@@ -206,12 +206,23 @@ export async function removeMatch(formData: FormData) {
 export async function setScore(formData: FormData) {
   await requireAdmin();
   const matchId = Number(formData.get("matchId"));
-  const home = Number(formData.get("home"));
-  const away = Number(formData.get("away"));
+  const homeRaw = String(formData.get("home") ?? "").trim();
+  const awayRaw = String(formData.get("away") ?? "").trim();
+  const home = Number(homeRaw);
+  const away = Number(awayRaw);
   const status = String(formData.get("status") ?? "finished");
 
-  if (status === "finished" && (!Number.isInteger(home) || !Number.isInteger(away) || home < 0 || away < 0)) {
-    return done("err", "Enter both scores as whole numbers.");
+  // An empty box must not count as 0.
+  if (status === "finished" && (homeRaw === "" || awayRaw === "" || !Number.isInteger(home) || !Number.isInteger(away) || home < 0 || away < 0)) {
+    return done("err", "Type both scores (whole numbers) before pressing Save.");
+  }
+
+  // A final score before kickoff would close the match for players (and the slip can't be completed).
+  if (status === "finished") {
+    const { data: m } = await createAdminClient().from("matches").select("kickoff_at").eq("id", matchId).single();
+    if (m && new Date(m.kickoff_at).getTime() > Date.now()) {
+      return done("err", "This match hasn't kicked off yet. Enter the final score after the match (or mark it postponed).");
+    }
   }
 
   const { error } = await createAdminClient()
