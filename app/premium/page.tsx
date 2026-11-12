@@ -81,7 +81,8 @@ export default async function PremiumPage() {
             </p>
           )}
           <p className="mt-4 text-xs text-mist">
-            Premium is a paid information service: it doesn&apos;t change your points or your chance to win. Units spent on Premium are not refunded.
+            Premium is a paid information service: it doesn&apos;t change your points or your chance to win. Units spent on Premium are not refunded. By paying you agree to the{" "}
+            <Link href="/terms" className="font-semibold text-lilac">Premium terms (section 3c)</Link>.
           </p>
         </section>
       </div>

@@ -42,6 +42,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "Slam Points per round for correct results: 5–7 correct +1, 8–9 correct +2, 10 correct +3.",
           "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Winning bar: to win, a slip must score MORE than half of the match points available (more than 15 of 30 for 10 matches; Slam Points do not count; a postponed or cancelled match lowers the bar to half of what is left, e.g. more than 13.5 for 9 matches). If no slip clears the bar, there is no winner for that round and the whole pool is kept by GebetaSoccer. Ties are decided by most correct results, then most exact scores, then most close picks, then the smallest total goal difference; remaining ties share the prize equally.",
           "Postponed or cancelled matches score 0 for everyone.",
+          "Daily rounds open automatically by Ethiopian time slot: Morning (kickoffs 06:00–11:59), Evening (12:00–18:59) and Night (19:00–23:59). A round only takes matches from its own slot, and only opens when the slot has 10 matches. Rounds can also be created by GebetaSoccer by hand.",
         ],
       },
       {
@@ -52,6 +53,16 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "Scores can be changed free of charge until the first of the selected matches kicks off; after that nobody can join or change scores. Other players' scores are hidden until then.",
           "Scoring is the same as in rounds (3 / 1.5 / 1 / 0, no Slam Points). Postponed or cancelled matches score 0 for everyone. The highest total wins; ties are decided by most correct results, most exact scores, most close picks and smallest total goal difference, and players still level share the prize equally.",
           "The winner(s) receive 90% of all stakes; 10% is the GebetaSoccer fee. If nobody else joins before the first kickoff, or every selected match is called off, all stakes are refunded. The creator may cancel for a full refund while nobody else has joined. Stakes cannot otherwise be refunded.",
+        ],
+      },
+      {
+        title: "3c. Gebeta Premium",
+        body: [
+          "Gebeta Premium is an optional paid information service. It costs 2 Units (400 ETB) for 30 days or 20 Units (4,000 ETB) for 365 days, paid from your GebetaSoccer wallet when you subscribe. You must be 18 or older and not on a break to buy it.",
+          "Premium renews automatically from your wallet at the end of each period for the same plan and price, unless you turn auto-renew off on the Premium page before the period ends. If your wallet does not have enough Units, Premium simply ends: you are never charged more than your balance and no debt is created. Buying again while Premium is active adds the time on top.",
+          "Premium shows: anonymous crowd picks for open daily rounds (only once at least 5 slips are in), every player's full slip after the round locks, and a form guide (a rough home / draw / away percentage from recent results). These are estimates and information only; they do not change your points, the scoring or your chance of winning, and they are not betting advice.",
+          "Nobody, with or without Premium, can see another player's picks before a round locks. Premium gives no access to private challenges.",
+          "Units spent on Premium are not refunded, including when auto-renew is turned off part way through a period. If we stop offering Premium, we refund the unused days of active subscriptions to your wallet.",
         ],
       },
       {
@@ -114,6 +125,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "በአንድ ዙር ለትክክለኛ አሸናፊዎች የስላም ነጥቦች፦ 5–7 ትክክል +1፣ 8–9 ትክክል +2፣ 10 ትክክል +3።",
           "የሽልማት ገንዳው የመግቢያ ክፍያዎች ድምር ነው። 70% ለአሸናፊ(ዎች) ይከፈላል፤ 30% የአገልግሎት ክፍያ ነው። የማሸነፊያ ገደብ፦ ለማሸነፍ ስሊፕ ከሚገኘው የጨዋታ ነጥብ ከግማሽ በላይ ማስመዝገብ አለበት (ለ10 ጨዋታዎች ከ30 ከ15 በላይ፤ የስላም ነጥቦች አይቆጠሩም፤ የተራዘመ ወይም የተሰረዘ ጨዋታ ገደቡን ወደ ቀሪው ግማሽ ይቀንሳል፣ ለምሳሌ ለ9 ጨዋታዎች ከ13.5 በላይ)። ማንም ስሊፕ ገደቡን ካላለፈ የዚያ ዙር አሸናፊ አይኖርም፤ ሙሉው ገንዳ ለገበጣሶከር ይቀራል። እኩል ሲሆን በብዛት ትክክለኛ አሸናፊ፣ ከዚያ በብዛት ትክክለኛ ውጤት፣ ከዚያ በብዛት ቅርብ ግምት፣ ከዚያ በትንሹ የጎል ልዩነት ይወሰናል፤ አሁንም እኩል የሆኑ ሽልማቱን በእኩል ይካፈላሉ።",
           "የተራዘሙ ወይም የተሰረዙ ጨዋታዎች ለሁሉም 0 ነጥብ ናቸው።",
+          "የዕለት ዙሮች በኢትዮጵያ ሰዓት ክፍለ ጊዜ በራሳቸው ይከፈታሉ፦ ጠዋት (ጨዋታ የሚጀምረው 06:00–11:59)፣ ከሰዓት (12:00–18:59) እና ማታ (19:00–23:59)። አንድ ዙር ከራሱ ክፍለ ጊዜ ጨዋታዎችን ብቻ ይወስዳል፤ የሚከፈተውም ክፍለ ጊዜው 10 ጨዋታዎች ሲኖሩት ብቻ ነው። ገበጣሶከር ዙሮችን በእጅም ሊፈጥር ይችላል።",
         ],
       },
       {
@@ -124,6 +136,16 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "ከተመረጡት ጨዋታዎች የመጀመሪያው እስኪጀመር ድረስ ውጤቶችን በነጻ መቀየር ይቻላል፤ ከዚያ በኋላ ማንም መቀላቀልም ውጤት መቀየርም አይችልም። እስከዚያ ድረስ የሌሎች ተጫዋቾች ግምት ተደብቆ ይቆያል።",
           "ነጥብ አሰጣጡ ከዙሮች ጋር አንድ ነው (3 / 1.5 / 1 / 0፣ የስላም ነጥብ የለም)። የተራዘሙ ወይም የተሰረዙ ጨዋታዎች ለሁሉም 0 ናቸው። ከፍተኛ ድምር ያለው ያሸንፋል፤ እኩል ሲሆን በብዛት ትክክለኛ አሸናፊ፣ በብዛት ትክክለኛ ውጤት፣ በብዛት ቅርብ ግምት እና በትንሹ የጎል ልዩነት ይወሰናል፤ አሁንም እኩል የሆኑ ሽልማቱን በእኩል ይካፈላሉ።",
           "አሸናፊ(ዎች) ከጠቅላላው የውርርድ ገንዘብ 90% ይቀበላሉ፤ 10% የገበጣሶከር ክፍያ ነው። ከመጀመሪያው ጨዋታ በፊት ሌላ ማንም ካልተቀላቀለ፣ ወይም ሁሉም የተመረጡ ጨዋታዎች ከተሰረዙ፣ ሁሉም ገንዘብ ይመለሳል። ሌላ ማንም እስካልተቀላቀለ ድረስ ፈጣሪው ሰርዞ ሙሉ ገንዘቡን መመለስ ይችላል። ከዚህ ውጭ የውርርድ ገንዘብ ተመላሽ አይደረግም።",
+        ],
+      },
+      {
+        title: "3ሐ. ገበጣ ፕሪሚየም",
+        body: [
+          "ገበጣ ፕሪሚየም በፍላጎት የሚገዛ የሚከፈልበት የመረጃ አገልግሎት ነው። ዋጋው ለ30 ቀን 2 ዩኒት (400 ብር) ወይም ለ365 ቀን 20 ዩኒት (4,000 ብር) ሲሆን፣ ሲመዘገቡ ከገበጣሶከር ዋሌትዎ ይከፈላል። ለመግዛት 18 ዓመት ወይም ከዚያ በላይ መሆን እና እረፍት ላይ አለመሆን ያስፈልጋል።",
+          "የፕሪሚየም ገጹ ላይ ራስ-ሰር እድሳትን ከጊዜው መጨረሻ በፊት ካላጠፉት በስተቀር፣ ፕሪሚየም በእያንዳንዱ ጊዜ መጨረሻ በተመሳሳይ እቅድና ዋጋ ከዋሌትዎ በራሱ ይታደሳል። ዋሌትዎ በቂ ዩኒት ከሌለው ፕሪሚየሙ በቀላሉ ያበቃል፦ ካለዎት ቀሪ ሂሳብ በላይ አይከፍሉም፣ ዕዳም አይፈጠርም። ፕሪሚየም ንቁ ሆኖ ሳለ እንደገና ከገዙ ጊዜው ላይ ይጨመራል።",
+          "ፕሪሚየም የሚያሳየው፦ ክፍት ለሆኑ የዕለት ዙሮች ስም የሌለው የብዙሃኑ ግምት (ቢያንስ 5 ስሊፖች ከገቡ በኋላ ብቻ)፣ ዙሩ ከተዘጋ በኋላ የእያንዳንዱን ተጫዋች ሙሉ ስሊፕ፣ እና ከቅርብ ውጤቶች የተሰላ የቡድኖች አቋም መመሪያ (ግምታዊ የቤት / አቻ / እንግዳ መቶኛ)። እነዚህ ግምትና መረጃ ብቻ ናቸው፤ ነጥብዎን፣ ነጥብ አሰጣጡን ወይም የማሸነፍ ዕድልዎን አይቀይሩም፣ የውርርድ ምክርም አይደሉም።",
+          "ፕሪሚየም ያለውም የሌለውም ማንም ሰው ዙሩ ከመዘጋቱ በፊት የሌላ ተጫዋችን ግምት ማየት አይችልም። ፕሪሚየም ለግል ቻሌንጆች ምንም መዳረሻ አይሰጥም።",
+          "ለፕሪሚየም የወጣ ዩኒት ተመላሽ አይደረግም፤ በጊዜው መሃል ራስ-ሰር እድሳትን ቢያጠፉም እንኳ። ፕሪሚየምን ማቅረብ ካቆምን፣ ንቁ ለሆኑ ምዝገባዎች ያልተጠቀሙባቸውን ቀናት ወደ ዋሌትዎ እንመልሳለን።",
         ],
       },
       {
