@@ -10,6 +10,7 @@ import { syncMatches } from "@/lib/football/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
 import { settleDueRounds } from "@/lib/round-settle";
+import { createDueAutoRounds } from "@/lib/auto-rounds";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,9 @@ export async function GET(req: NextRequest) {
       roundsSettled = [`round settle error: ${(e as Error).message}`];
     }
     if (Number(settled) > 0 || roundsSettled.length > 0) await pushNotifications();
-    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0), roundsSettled }, { status: result.ok ? 200 : 207 });
+    // Morning / Evening / Night rounds (EAT) open by themselves when a slot has 10 matches.
+    const autoRounds = await createDueAutoRounds();
+    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0), roundsSettled, autoRounds }, { status: result.ok ? 200 : 207 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

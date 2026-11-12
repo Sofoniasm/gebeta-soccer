@@ -13,6 +13,9 @@ export interface RoundRow {
   created_at: string;
   settled_at: string | null;
   auto_settle?: boolean;
+  /** Set on rounds the system made by itself: morning | evening | night (EAT). */
+  auto_slot?: string | null;
+  auto_date?: string | null;
 }
 
 export interface MatchRow {

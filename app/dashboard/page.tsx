@@ -13,6 +13,8 @@ import { getTodo, picksNeededWithin } from "@/lib/todo";
 import { MatchLine, PointsChip, groupByDay } from "@/components/MatchLine";
 import type { MatchRow } from "@/lib/rounds";
 import { calculateMatchPoints } from "@/lib/scoring";
+import { RecentWinners } from "@/components/RecentWinners";
+import { slotHours, slotInfo, type Slot } from "@/lib/round-slots";
 
 export const metadata = { title: "Predict · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -100,6 +102,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
 
 
+  // Nothing open: show the next matches so the page is never empty.
+  let upcoming: MatchRow[] = [];
+  if (!round && tab !== "results") {
+    const { data: up } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("status", "scheduled")
+      .gt("kickoff_at", new Date().toISOString())
+      .order("kickoff_at", { ascending: true })
+      .limit(5);
+    upcoming = (up ?? []) as MatchRow[];
+  }
+
   return (
     <AppShell next="/dashboard">
       {active.length > 1 && (
@@ -112,9 +127,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 href={`/dashboard?round=${r.id}`}
                 className={`shrink-0 rounded-2xl border px-4 py-2.5 ${on ? "border-lilac bg-lilac/15" : "border-white/10 bg-card/60 hover:border-white/30"}`}
               >
-                <span className="block max-w-[13rem] truncate text-sm font-extrabold">{r.name}</span>
+                <span className="block max-w-[13rem] truncate text-sm font-extrabold">
+                  {slotInfo(r.auto_slot)?.emoji ? `${slotInfo(r.auto_slot)!.emoji} ` : ""}
+                  {r.name}
+                </span>
                 <span className={`block text-[11px] ${r.bettable ? "text-emerald-200" : "text-mist"}`}>
-                  {r.bettable && r.lock_at ? `Open · closes ${formatKickoff(r.lock_at)}` : "In play"}
+                  {r.bettable && r.lock_at ? `Open · locks ${formatKickoff(r.lock_at)} EAT` : "In play"}
                 </span>
               </Link>
             );
@@ -226,7 +244,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <h1 className="mt-1 text-3xl font-extrabold tracking-tight">{round.name}</h1>
                 <p className="mt-1 text-sm text-mist">
                   {matches.length} matches · entry {formatUnits(Number(round.entry_fee_units))}
+                  {round.auto_slot && slotInfo(round.auto_slot) ? ` · ${slotInfo(round.auto_slot)!.emoji} all kickoffs ${slotHours(round.auto_slot as Slot)}` : ""}
                 </p>
+                {lockAt && (
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    🔒 {round.status === "open" && bettable ? "Locks" : "Locked"} at {formatKickoff(lockAt)} EAT
+                    <span className="font-normal text-mist"> (first kickoff)</span>
+                  </p>
+                )}
               </div>
               {pool && (
                 <div className="text-right">
@@ -276,8 +301,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           />
         </>
       ) : (
-        <div className="rounded-[2rem] border border-white/5 bg-card/60 p-10 text-center">
-          <p className="text-lg font-bold">No active round — check back soon</p>
+        <>
+        <div className="rounded-[2rem] border border-white/5 bg-card/60 p-6 text-center sm:p-10">
+          <p className="text-lg font-bold">Waiting for the next round</p>
+          <p className="mt-1 text-sm text-mist">
+            Rounds open by themselves: 🌅 Morning (06–12), 🌇 Evening (12–19) and 🌙 Night (19–24), Ethiopian time, whenever a slot has 10 matches.
+          </p>
+          {upcoming.length > 0 && (
+            <div className="mx-auto mt-5 max-w-xl text-left">
+              <div className="mb-3 flex justify-center">
+                <Countdown to={upcoming[0].kickoff_at} label="Next kickoff in" />
+              </div>
+              <div className="space-y-2">
+                {upcoming.map((m) => (
+                  <MatchLine key={m.id} m={m} sub={<span className="text-[11px] text-mist">{formatKickoff(m.kickoff_at)} EAT</span>} />
+                ))}
+              </div>
+            </div>
+          )}
           <p className="mt-1 text-sm text-mist">
             {lastSettled ? (
               <>
@@ -285,7 +326,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <Link href="/results" className="font-bold text-lilac hover:text-lilac-soft">See the results →</Link>{" "}
               </>
             ) : null}
-            The next round opens soon. Top up your wallet so you&apos;re ready.
+            Top up your wallet so you&apos;re ready.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link href="/wallet" className="rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
@@ -293,12 +334,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </Link>
             {me.is_admin && (
               <Link href="/admin" className="rounded-full border border-white/60 px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-white/10">
-                Create the first round →
+                Create a round now →
               </Link>
             )}
           </div>
         </div>
+        </>
       )}
+      {tab !== "results" && <RecentWinners />}
     </AppShell>
   );
 }

@@ -14,6 +14,7 @@ import { syncMatches } from "@/lib/football/sync";
 import { formatUnits } from "@/lib/money";
 import { pushNotifications } from "@/lib/notify";
 import { settleLeague } from "@/lib/league-settle";
+import { createDueAutoRounds } from "@/lib/auto-rounds";
 import { settleDueRounds, settleRoundNow } from "@/lib/round-settle";
 import { createResetCode, deliverResetCode } from "@/lib/password-reset";
 
@@ -117,8 +118,10 @@ export async function syncNow() {
   try {
     const r = await syncMatches({ daysBack: 3, daysAhead: 7 });
     await settleChallenges();
-    if (!r.ok) return done("err", `Sync finished with errors: ${r.errors.join(" | ")}`);
-    return done("msg", `Synced ${r.upserted} matches (${r.competitions.join(", ")}, ${r.window.dateFrom} → ${r.window.dateTo}).`);
+    const auto = await createDueAutoRounds();
+    const autoNote = auto.length ? ` Automatic rounds: ${auto.join("; ")}.` : "";
+    if (!r.ok) return done("err", `Sync finished with errors: ${r.errors.join(" | ")}${autoNote}`);
+    return done("msg", `Synced ${r.upserted} matches (${r.competitions.join(", ")}, ${r.window.dateFrom} → ${r.window.dateTo}).${autoNote}`);
   } catch (e) {
     // redirect() throws internally — let it through.
     if ((e as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw e;

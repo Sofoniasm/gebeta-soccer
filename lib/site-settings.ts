@@ -16,6 +16,10 @@ export interface SiteSettings {
   contact_phone: string;
   competitions: string[];
   show_public_stats: boolean;
+  /** Create Morning / Evening / Night rounds by themselves at every match sync. */
+  auto_rounds: boolean;
+  /** Entry fee of automatic rounds, in Units. */
+  auto_round_fee: number;
 }
 
 /** Leagues our football data plan can sync (free tier). */
@@ -46,6 +50,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   contact_phone: "",
   competitions: envCompetitions,
   show_public_stats: false,
+  auto_rounds: true,
+  auto_round_fee: 1,
 };
 
 function merge(rows: { key: string; value: unknown }[]): SiteSettings {
@@ -70,6 +76,12 @@ function merge(rows: { key: string; value: unknown }[]): SiteSettings {
         break;
       case "show_public_stats":
         if (typeof v === "boolean") s.show_public_stats = v;
+        break;
+      case "auto_rounds":
+        if (typeof v === "boolean") s.auto_rounds = v;
+        break;
+      case "auto_round_fee":
+        if (typeof v === "number" && v >= 0.5 && v <= 50) s.auto_round_fee = v;
         break;
     }
   }

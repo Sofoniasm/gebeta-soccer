@@ -481,4 +481,24 @@ update public.profiles set date_of_birth = date '1990-01-01' where id = '1111111
 select public.admin_add_units('11111111-0000-0000-0000-000000000001', 5, 'adult ok', null);
 do $$ begin raise notice 'ok  18+ everywhere: deposits refused without an 18+ date of birth'; end $$;
 
+-- 0030: one automatic round per slot per day; winners list is readable, only for settled rounds
+insert into public.rounds (name, entry_fee_units, status, auto_slot, auto_date) values ('Morning 10 · test', 1, 'draft', 'morning', date '2030-01-01');
+do $$ begin
+  begin insert into public.rounds (name, entry_fee_units, status, auto_slot, auto_date) values ('dup', 1, 'draft', 'morning', date '2030-01-01');
+        raise exception 'FAIL: two automatic rounds for the same slot and day';
+  exception when unique_violation then null; end;
+  begin insert into public.rounds (name, entry_fee_units, status, auto_slot, auto_date) values ('bad', 1, 'draft', 'lunch', date '2030-01-01');
+        raise exception 'FAIL: unknown slot accepted';
+  exception when check_violation then null; end;
+end $$;
+set role authenticated;
+do $$ begin
+  if exists (select 1 from public.get_round_winners(array(select id from public.rounds where status <> 'settled'))) then
+    raise exception 'FAIL: winners shown for a round that is not settled';
+  end if;
+  perform * from public.get_round_winners(array(select id from public.rounds));
+  raise notice 'ok  automatic rounds: one per slot per day; winners only for settled rounds';
+end $$;
+reset role;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Banner, inputClass } from "@/components/ui";
 import { ALL_COMPETITIONS, SITE_SETTINGS_TAG, getSiteSettings } from "@/lib/site-settings";
 import { syncMatches } from "@/lib/football/sync";
+import { createDueAutoRounds, SLOTS, slotHours } from "@/lib/auto-rounds";
 import { SubmitButton } from "../SubmitButton";
 
 export const metadata = { title: "Site · Admin · GebetaSoccer" };
@@ -29,12 +30,15 @@ async function saveSettings(formData: FormData) {
   const phone = String(formData.get("contact_phone") ?? "").trim();
   const comps = formData.getAll("competitions").map(String).filter((c) => ALL_COMPETITIONS.some((x) => x.code === c));
   const stats = formData.get("show_public_stats") === "on";
+  const autoRounds = formData.get("auto_rounds") === "on";
+  const autoFee = Number(formData.get("auto_round_fee"));
 
   const tgOk = (v: string) => /^https:\/\/t\.me\/[A-Za-z0-9_+/]{3,}$/.test(v);
   if (!tgOk(tg)) back("err", "Support Telegram link must look like https://t.me/YourName");
   if (channel && !tgOk(channel)) back("err", "Channel link must look like https://t.me/YourChannel (or leave it empty)");
   if (email && !/^\S+@\S+\.\S+$/.test(email)) back("err", "That email doesn't look right.");
   if (comps.length === 0) back("err", "Pick at least one league.");
+  if (!Number.isFinite(autoFee) || autoFee < 0.5 || autoFee > 50) back("err", "Automatic round entry fee must be between 0.5 and 50 Units.");
   if (comps.length > MAX_LEAGUES) back("err", `Pick at most ${MAX_LEAGUES} leagues (the free football data plan allows 10 requests a minute).`);
 
   const now = new Date().toISOString();
@@ -45,6 +49,8 @@ async function saveSettings(formData: FormData) {
     { key: "contact_phone", value: phone },
     { key: "competitions", value: comps },
     { key: "show_public_stats", value: stats },
+    { key: "auto_rounds", value: autoRounds },
+    { key: "auto_round_fee", value: Math.round(autoFee * 2) / 2 },
   ].map((r) => ({ ...r, updated_at: now }));
   const { error } = await createAdminClient().from("site_settings").upsert(rows, { onConflict: "key" });
   if (error) back("err", `Could not save: ${error.message}. Did you run the 0026 SQL?`);
@@ -55,7 +61,9 @@ async function syncNowFromSite() {
   "use server";
   await requireAdminId("/admin/site");
   const r = await syncMatches({ daysBack: 3, daysAhead: 7 });
-  back(r.ok ? "msg" : "err", r.ok ? `Synced ${r.upserted} matches from ${r.competitions.join(", ")}.` : `Sync finished with errors: ${r.errors.join(" | ")}`);
+  const auto = await createDueAutoRounds();
+  const autoNote = auto.length ? ` Automatic rounds: ${auto.join("; ")}.` : " No new automatic round (no slot with 10 free matches, or already made).";
+  back(r.ok ? "msg" : "err", (r.ok ? `Synced ${r.upserted} matches from ${r.competitions.join(", ")}.` : `Sync finished with errors: ${r.errors.join(" | ")}`) + autoNote);
 }
 
 export default async function AdminSitePage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
@@ -120,6 +128,34 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
               </label>
             ))}
           </div>
+        </section>
+
+        <section className={card}>
+          <h2 className="mb-1 text-lg font-extrabold">Automatic daily rounds</h2>
+          <p className="mb-4 text-sm text-mist">
+            Every match sync opens a round by itself for each time slot (Ethiopian time) that has 10 matches from your leagues, for today and tomorrow.
+            Matches never mix slots. The round locks at its first kickoff and pays out by itself when its last match ends.
+          </p>
+          <ul className="mb-4 grid gap-2 sm:grid-cols-3">
+            {SLOTS.map((x) => (
+              <li key={x.key} className="rounded-2xl border border-white/10 bg-ink/40 px-3 py-2.5 text-sm">
+                <b className="text-white">{x.emoji} {x.label}</b>
+                <span className="block text-xs text-mist">Kickoffs {slotHours(x.key)}</span>
+              </li>
+            ))}
+          </ul>
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" name="auto_rounds" defaultChecked={s.auto_rounds} className="mt-0.5 h-4 w-4 accent-violet-300" />
+            <span>
+              <b className="text-white">Create rounds automatically</b>
+              <span className="block text-xs text-mist">Turn off to only use rounds you create by hand in Admin (the Create round button always works).</span>
+            </span>
+          </label>
+          <label className="mt-4 block max-w-xs space-y-1.5">
+            <span className="text-sm font-medium text-mist">Entry fee per slip (Units)</span>
+            <input name="auto_round_fee" type="number" step="0.5" min="0.5" max="50" defaultValue={s.auto_round_fee} className={inputClass} />
+            <span className="block text-xs text-mist">1 Unit = 200 ETB. Applies to new automatic rounds.</span>
+          </label>
         </section>
 
         <section className={card}>
