@@ -5,6 +5,7 @@ import { etbLabel, unitsLabel } from "@/lib/money";
 import { signOut } from "@/app/(auth)/actions";
 import { Logo } from "./Logo";
 import { Avatar } from "./Avatar";
+import { DobForm } from "@/app/profile/DobForm";
 import { FlowLines } from "./FlowLines";
 import { BottomNav, SideNav } from "./AppNav";
 import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
@@ -19,6 +20,10 @@ export async function AppShell({ children, title, next }: { children: React.Reac
   const [unread, todo] = await Promise.all([getUnreadCount(), getTodo()]);
   const units = unitsLabel(me.balance_units);
   const etb = etbLabel(me.balance_units);
+  // 18+ only: a player without a saved date of birth can't open any play page.
+  // Profile, Wallet (withdrawals) and Notifications stay open.
+  const path = (next ?? "").split("?")[0];
+  const needsDob = !me.is_admin && !me.date_of_birth && !DOB_FREE_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
@@ -80,18 +85,46 @@ export async function AppShell({ children, title, next }: { children: React.Reac
               <b>{new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Addis_Ababa", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(me.excluded_until))}</b>. Betting is paused; you can still withdraw.
             </Link>
           )}
-          {!me.date_of_birth && (
-            <Link href="/profile" className="mb-5 block rounded-2xl border border-amber-200/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-50">
-              🎂 Add your date of birth on your Profile to keep playing for money (18+ only).
-            </Link>
+          {needsDob ? (
+            <DobGate />
+          ) : (
+            <>
+              {!me.date_of_birth && !me.is_admin && (
+                <p className="mb-5 rounded-2xl border border-amber-200/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-50">
+                  🎂 Add your date of birth (18+ only) to play. Until then you can only use your Profile and Wallet.
+                </p>
+              )}
+              {title && <h1 className="mb-6 text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</h1>}
+              {children}
+            </>
           )}
-          {title && <h1 className="mb-6 text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</h1>}
-          {children}
         </div>
       </main>
 
       <BottomNav todoCount={todo.count} />
     </div>
+  );
+}
+
+const DOB_FREE_PATHS = ["/profile", "/wallet", "/notifications"];
+
+/** Shown instead of the page until the player saves an 18+ date of birth. */
+function DobGate() {
+  return (
+    <section className="mx-auto mt-6 max-w-lg rounded-[2rem] border border-amber-200/30 bg-gradient-to-br from-amber-200/10 to-card/60 p-6 sm:p-8">
+      <p className="text-4xl">🎂</p>
+      <h1 className="mt-3 text-2xl font-extrabold tracking-tight">Confirm your age to play</h1>
+      <p className="mt-2 text-sm text-mist">
+        GebetaSoccer is for players aged <b className="text-white">18 or older</b>. Enter your date of birth once to unlock predictions, rounds,
+        challenges and leagues. It can&apos;t be changed later, so enter it exactly as on your ID.
+      </p>
+      <div className="mt-5">
+        <DobForm />
+      </div>
+      <p className="mt-4 text-xs text-mist">
+        Under 18? You can&apos;t play for now. If you have Units, you can still <Link href="/wallet" className="font-semibold text-lilac">withdraw them</Link>.
+      </p>
+    </section>
   );
 }
 

@@ -464,4 +464,21 @@ end $$;
 reset role;
 update public.profiles set date_of_birth = date '1990-01-01' where id = '11111111-0000-0000-0000-000000000001';
 
+-- 0029: deposits need a saved 18+ date of birth too
+update public.profiles set date_of_birth = null where id = '11111111-0000-0000-0000-000000000001';
+do $$ begin
+  begin perform public.admin_add_units('11111111-0000-0000-0000-000000000001', 5, 'no dob', null);
+        raise exception 'FAIL: deposit accepted without a date of birth';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+update public.profiles set date_of_birth = (now() - interval '16 years')::date where id = '11111111-0000-0000-0000-000000000001';
+do $$ begin
+  begin perform public.admin_add_units('11111111-0000-0000-0000-000000000001', 5, 'kid', null);
+        raise exception 'FAIL: deposit accepted from an under-18 player';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+update public.profiles set date_of_birth = date '1990-01-01' where id = '11111111-0000-0000-0000-000000000001';
+select public.admin_add_units('11111111-0000-0000-0000-000000000001', 5, 'adult ok', null);
+do $$ begin raise notice 'ok  18+ everywhere: deposits refused without an 18+ date of birth'; end $$;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

@@ -77,6 +77,12 @@ export async function recordDeposit(_prev: DepositState, formData: FormData): Pr
     if (error.message.includes("weekly deposit limit")) {
       return { ok: false, message: `Refused: the player set a weekly deposit limit and this would go over it (${error.message.split(": ").pop()}). Don't take their money; send it back.` };
     }
+    if (error.message.includes("date of birth")) {
+      return { ok: false, message: "Refused: this player hasn't added their date of birth yet. Ask them to open GebetaSoccer and confirm they're 18+, then add the deposit." };
+    }
+    if (error.message.includes("18 or older")) {
+      return { ok: false, message: "Refused: this player is under 18. Don't take their money; send it back." };
+    }
     return { ok: false, message: error.message };
   }
 
