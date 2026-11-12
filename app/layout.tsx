@@ -21,7 +21,17 @@ export const metadata: Metadata = {
   ],
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
   other: { "geo.region": "ET", "geo.placename": "Addis Ababa" },
-  icons: { icon: "/icon.svg", apple: "/apple-icon.png" },
+  icons: {
+    // Google Search shows the site icon next to results: it wants a square image that is a multiple of 48 px.
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/icon-96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-icon.png",
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "GebetaSoccer", statusBarStyle: "black-translucent" },
   openGraph: {
