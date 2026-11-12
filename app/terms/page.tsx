@@ -62,7 +62,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "Premium renews automatically from your wallet at the end of each period for the same plan and price, unless you turn auto-renew off on the Premium page before the period ends. If your wallet does not have enough Units, Premium simply ends: you are never charged more than your balance and no debt is created. Buying again while Premium is active adds the time on top.",
           "Premium shows: anonymous crowd picks for open daily rounds (only once at least 5 slips are in), every player's full slip after the round locks, and a form guide (a rough home / draw / away percentage from recent results). These are estimates and information only; they do not change your points, the scoring or your chance of winning, and they are not betting advice.",
           "Nobody, with or without Premium, can see another player's picks before a round locks. Premium gives no access to private challenges.",
-          "Units spent on Premium are not refunded, including when auto-renew is turned off part way through a period. If we stop offering Premium, we refund the unused days of active subscriptions to your wallet.",
+          "Units spent on Premium are not refunded, including when auto-renew is turned off part way through a period. If GebetaSoccer stops offering Premium and you have an active yearly subscription, the unused part is refunded to your wallet: the yearly price minus the months already used at the standard monthly rate (400 ETB a month), where a month that has started counts as used. For example, after 2 months and 10 days you get 4,000 − 3 × 400 = 2,800 ETB. The refund is never below zero, and there is no refund for a partly used month, including on the monthly plan.",
         ],
       },
       {
@@ -145,7 +145,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "የፕሪሚየም ገጹ ላይ ራስ-ሰር እድሳትን ከጊዜው መጨረሻ በፊት ካላጠፉት በስተቀር፣ ፕሪሚየም በእያንዳንዱ ጊዜ መጨረሻ በተመሳሳይ እቅድና ዋጋ ከዋሌትዎ በራሱ ይታደሳል። ዋሌትዎ በቂ ዩኒት ከሌለው ፕሪሚየሙ በቀላሉ ያበቃል፦ ካለዎት ቀሪ ሂሳብ በላይ አይከፍሉም፣ ዕዳም አይፈጠርም። ፕሪሚየም ንቁ ሆኖ ሳለ እንደገና ከገዙ ጊዜው ላይ ይጨመራል።",
           "ፕሪሚየም የሚያሳየው፦ ክፍት ለሆኑ የዕለት ዙሮች ስም የሌለው የብዙሃኑ ግምት (ቢያንስ 5 ስሊፖች ከገቡ በኋላ ብቻ)፣ ዙሩ ከተዘጋ በኋላ የእያንዳንዱን ተጫዋች ሙሉ ስሊፕ፣ እና ከቅርብ ውጤቶች የተሰላ የቡድኖች አቋም መመሪያ (ግምታዊ የቤት / አቻ / እንግዳ መቶኛ)። እነዚህ ግምትና መረጃ ብቻ ናቸው፤ ነጥብዎን፣ ነጥብ አሰጣጡን ወይም የማሸነፍ ዕድልዎን አይቀይሩም፣ የውርርድ ምክርም አይደሉም።",
           "ፕሪሚየም ያለውም የሌለውም ማንም ሰው ዙሩ ከመዘጋቱ በፊት የሌላ ተጫዋችን ግምት ማየት አይችልም። ፕሪሚየም ለግል ቻሌንጆች ምንም መዳረሻ አይሰጥም።",
-          "ለፕሪሚየም የወጣ ዩኒት ተመላሽ አይደረግም፤ በጊዜው መሃል ራስ-ሰር እድሳትን ቢያጠፉም እንኳ። ፕሪሚየምን ማቅረብ ካቆምን፣ ንቁ ለሆኑ ምዝገባዎች ያልተጠቀሙባቸውን ቀናት ወደ ዋሌትዎ እንመልሳለን።",
+          "ለፕሪሚየም የወጣ ዩኒት ተመላሽ አይደረግም፤ በጊዜው መሃል ራስ-ሰር እድሳትን ቢያጠፉም እንኳ። ገበጣሶከር ፕሪሚየምን ማቅረብ ካቆመ እና ንቁ የዓመት ምዝገባ ካለዎት፣ ያልተጠቀሙበት ክፍል ወደ ዋሌትዎ ይመለሳል፦ ከዓመቱ ዋጋ ላይ የተጠቀሙባቸው ወራት በመደበኛው የወር ዋጋ (በወር 400 ብር) ተቀንሰው፤ የተጀመረ ወር እንደተጠቀሙበት ይቆጠራል። ለምሳሌ ከ2 ወር ከ10 ቀን በኋላ 4,000 − 3 × 400 = 2,800 ብር ይመለስልዎታል። ተመላሹ ከዜሮ አያንስም፤ በከፊል ለተጠቀሙበት ወር፣ የወር እቅድንም ጨምሮ፣ ተመላሽ የለም።",
         ],
       },
       {

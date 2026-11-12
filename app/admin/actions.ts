@@ -116,7 +116,7 @@ async function settleChallenges() {
 export async function syncNow() {
   await requireAdmin();
   try {
-    const r = await syncMatches({ daysBack: 3, daysAhead: 7 });
+    const r = await syncMatches({ daysBack: 1, daysAhead: 9 });
     await settleChallenges();
     const auto = await createDueAutoRounds();
     const autoNote = auto.length ? ` Automatic rounds: ${auto.join("; ")}.` : "";

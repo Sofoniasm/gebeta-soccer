@@ -1,6 +1,6 @@
 /**
  * Automatic daily rounds in Ethiopian time (EAT, UTC+3, no daylight saving).
- * Every match sync calls createDueAutoRounds(): for today and tomorrow it
+ * Every match sync calls createDueAutoRounds(): for today and the next 2 days it
  * makes one round per time slot that has 10 matches, opens it and marks it
  * "settle automatically". Matches never mix slots, so nobody waits 12 hours.
  * The database allows one round per slot per day (0030).
@@ -20,9 +20,10 @@ export async function createDueAutoRounds(now = new Date()): Promise<string[]> {
     const admin = createAdminClient();
     const leagueNames: string[] = ALL_COMPETITIONS.filter((c) => settings.competitions.includes(c.code)).map((c) => c.name);
 
-    const dates = [eatDate(now), eatDate(now, 1)];
+    // Today and the next 2 days, so weekend rounds are ready to play from Thursday.
+    const dates = [eatDate(now), eatDate(now, 1), eatDate(now, 2)];
     const { start } = slotWindow(dates[0], "morning");
-    const { end } = slotWindow(dates[1], "night");
+    const { end } = slotWindow(dates[dates.length - 1], "night");
     const { data: free } = await admin
       .from("matches")
       .select("id, kickoff_at, competition")

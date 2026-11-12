@@ -60,7 +60,7 @@ async function saveSettings(formData: FormData) {
 async function syncNowFromSite() {
   "use server";
   await requireAdminId("/admin/site");
-  const r = await syncMatches({ daysBack: 3, daysAhead: 7 });
+  const r = await syncMatches({ daysBack: 1, daysAhead: 9 });
   const auto = await createDueAutoRounds();
   const autoNote = auto.length ? ` Automatic rounds: ${auto.join("; ")}.` : " No new automatic round (no slot with 10 free matches, or already made).";
   back(r.ok ? "msg" : "err", (r.ok ? `Synced ${r.upserted} matches from ${r.competitions.join(", ")}.` : `Sync finished with errors: ${r.errors.join(" | ")}`) + autoNote);
@@ -145,7 +145,7 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
         <section className={card}>
           <h2 className="mb-1 text-lg font-extrabold">Automatic daily rounds</h2>
           <p className="mb-4 text-sm text-mist">
-            Every match sync opens a round by itself for each time slot (Ethiopian time) that has 10 matches from your leagues, for today and tomorrow.
+            Every match sync opens a round by itself for each time slot (Ethiopian time) that has 10 matches from your leagues, for today and the next 2 days.
             Matches never mix slots. The round locks at its first kickoff and pays out by itself when its last match ends.
           </p>
           <ul className="mb-4 grid gap-2 sm:grid-cols-3">

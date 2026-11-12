@@ -324,6 +324,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <p className="mt-1 text-sm text-mist">
             Rounds open by themselves: 🌅 Morning (06–12), 🌇 Evening (12–19) and 🌙 Night (19–24), Ethiopian time, whenever a slot has 10 matches.
           </p>
+          {upcoming.length === 0 && (
+            <p className="mx-auto mt-4 max-w-xl rounded-2xl border border-amber-200/20 bg-amber-200/5 px-4 py-3 text-sm text-amber-50">
+              ⚽ No league matches in the next few days, usually an international break. Rounds open by themselves as soon as the leagues are back.
+            </p>
+          )}
           {upcoming.length > 0 && (
             <div className="mx-auto mt-5 max-w-xl text-left">
               <div className="mb-3 flex justify-center">

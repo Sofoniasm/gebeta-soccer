@@ -8,8 +8,8 @@ import { getFootballProvider } from "@/lib/football";
 
 export interface SyncOptions {
   competitions?: string[];
-  daysBack?: number;  // default 3
-  daysAhead?: number; // default 7 (window max 10 days total)
+  daysBack?: number;  // default 1 (the cron runs every 15 minutes, so results come in the same day)
+  daysAhead?: number; // default 9 (window max 10 days total) so next weekend shows up during a midweek or an international break
   /** Load this season's finished matches (for the team form bar). One request per league. */
   history?: boolean;
 }
@@ -31,8 +31,8 @@ export async function syncMatches(opts: SyncOptions = {}): Promise<SyncResult> {
   const competitions =
     opts.competitions && opts.competitions.length > 0 ? opts.competitions : (await getSiteSettings()).competitions;
 
-  const daysBack = Math.min(Math.max(opts.daysBack ?? 3, 0), 10);
-  const daysAhead = Math.min(Math.max(opts.daysAhead ?? 7, 0), 10 - daysBack);
+  const daysBack = Math.min(Math.max(opts.daysBack ?? 1, 0), 10);
+  const daysAhead = Math.min(Math.max(opts.daysAhead ?? 9, 0), 10 - daysBack);
   const now = Date.now();
   const dateFrom = isoDate(new Date(now - daysBack * 86_400_000));
   const dateTo = isoDate(new Date(now + daysAhead * 86_400_000));
