@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 import { markPhoneVerified } from "@/lib/verification";
-import { sendMessage } from "@/lib/telegram";
+import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
 import { getBotLang, handleBotCommand } from "@/lib/bot-commands";
 import { askAssistant } from "@/lib/assistant";
 
@@ -26,13 +26,7 @@ interface TgMessage {
   contact?: { phone_number: string; user_id?: number };
 }
 
-const shareKeyboard = {
-  reply_markup: {
-    keyboard: [[{ text: "📱 Share my phone number", request_contact: true }]],
-    resize_keyboard: true,
-    one_time_keyboard: true,
-  },
-};
+const shareKeyboard = shareContactKeyboard;
 const removeKeyboard = { reply_markup: { remove_keyboard: true } };
 /** Inline button that opens the Mini App inside Telegram. */
 const playButton = {

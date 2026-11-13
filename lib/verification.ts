@@ -3,6 +3,7 @@
  */
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
 
 const TELEGRAM_TTL_MIN = 15;
 const SMS_TTL_MIN = 10;
@@ -90,4 +91,27 @@ export async function checkSmsCode(userId: string, code: string): Promise<{ ok: 
   await admin.from("phone_verifications").update({ verified_at: new Date().toISOString() }).eq("id", row.id);
   await markPhoneVerified(userId);
   return { ok: true };
+}
+
+/**
+ * Telegram verification without pressing START: the player allowed our bot to
+ * message them (Telegram login with "write" access), so the bot writes first
+ * with the one-tap "Share my phone number" button. The webhook finishes it
+ * exactly like the /start flow (the private chat id equals the Telegram user id).
+ */
+export async function startTelegramVerificationDm(
+  userId: string,
+  telegramUserId: number,
+): Promise<"sent" | "taken" | "failed"> {
+  const admin = createAdminClient();
+  const { data: other } = await admin.from("profiles").select("id").eq("telegram_user_id", telegramUserId).neq("id", userId).maybeSingle();
+  if (other) return "taken";
+  const token = await createTelegramToken(userId);
+  await admin.from("phone_verifications").update({ telegram_chat_id: telegramUserId }).eq("token", token);
+  const res = await sendMessage(
+    telegramUserId,
+    "✅ Your GebetaSoccer account is ready.\n\nLast step: tap <b>Share my phone number</b> below to confirm it's your number. 👇",
+    shareContactKeyboard,
+  ).catch(() => ({ ok: false }));
+  return res.ok ? "sent" : "failed";
 }

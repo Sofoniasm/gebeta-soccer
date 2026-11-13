@@ -11,13 +11,13 @@ import { signOut } from "../(auth)/actions";
 export const metadata = { title: "Verify your phone · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ err?: string; next?: string }> }) {
+export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ err?: string; next?: string; tg?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/verify");
 
   const { data: profile } = await supabase.from("profiles").select("username, phone_number, phone_verified_at").eq("id", user.id).single();
-  const { err, next } = await searchParams;
+  const { err, next, tg } = await searchParams;
   const after = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
   if (profile?.phone_verified_at) redirect(after);
 
@@ -43,6 +43,13 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
           </p>
 
           {err && <div className="mt-4"><Banner kind="error">{err}</Banner></div>}
+          {tg === "sent" && !err && (
+            <div className="mt-4">
+              <Banner kind="success">
+                📩 We just messaged you in Telegram. Open the chat with <b>@{TELEGRAM_BOT_USERNAME}</b> and tap <b>Share my phone number</b>. This page continues by itself.
+              </Banner>
+            </div>
+          )}
 
           <div className="mt-6 space-y-5">
             {tgOn ? (

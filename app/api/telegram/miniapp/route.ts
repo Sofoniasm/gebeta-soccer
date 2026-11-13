@@ -15,6 +15,7 @@ import { verifyInitData } from "@/lib/telegram-initdata";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { checkLoginLock, clientIp, recordLoginAttempt } from "@/lib/login-lock";
+import { startSessionFor } from "@/lib/telegram-session";
 
 export const dynamic = "force-dynamic";
 
@@ -51,23 +52,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "unlinked", loggedIn: !!current, firstName: v.user.first_name ?? "" });
   }
 
-  // Mint a one-time login for this player and redeem it right here, on the
-  // server, which writes the normal session cookies. Nothing is emailed.
-  const { data: authUser } = await admin.auth.admin.getUserById(profile.id);
-  const email = authUser.user?.email;
-  if (!email) return NextResponse.json({ status: "error", message: "Account has no login address." }, { status: 500 });
-
-  const { data: link, error: linkError } = await admin.auth.admin.generateLink({ type: "magiclink", email });
-  const tokenHash = link?.properties?.hashed_token;
-  if (linkError || !tokenHash) {
-    return NextResponse.json({ status: "error", message: "Could not start your session." }, { status: 500 });
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash: tokenHash });
-  if (error) {
+  // Start the normal website session for this player (same cookies as the website).
+  const session = await startSessionFor(profile.id);
+  if (!session.ok) {
     await recordLoginAttempt(key, ip, false);
-    return NextResponse.json({ status: "error", message: "Could not start your session." }, { status: 500 });
+    return NextResponse.json({ status: "error", message: session.message }, { status: 500 });
   }
   await recordLoginAttempt(key, ip, true);
   return NextResponse.json({ status: "ok", username: profile.username });

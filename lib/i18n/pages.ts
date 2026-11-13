@@ -162,6 +162,10 @@ export const PAGES = {
       newCode: "Send a new code",
       otherPhone: "Use another number",
       tooManyRequests: "Too many requests. Please wait an hour, or contact support on Telegram.",
+      tgOr: "or",
+      tgLoginHint: "Tap “Log in with Telegram” and allow messages: our bot will send your results and wins straight to Telegram.",
+      tgSignupHint: "Fastest: sign up with Telegram, then confirm your number with one tap in the chat.",
+      tgConnected: (name: string) => `Telegram connected${name ? `, ${name}` : ""}! Fill in the rest below. Right after, our bot sends you a button in Telegram to confirm your number with one tap.`,
     },
   },
   am: {
@@ -324,6 +328,10 @@ export const PAGES = {
       newCode: "አዲስ ኮድ ላክ",
       otherPhone: "ሌላ ቁጥር ይጠቀሙ",
       tooManyRequests: "በጣም ብዙ ጥያቄዎች። እባክዎ አንድ ሰዓት ይጠብቁ ወይም በቴሌግራም ድጋፍ ያግኙ።",
+      tgOr: "ወይም",
+      tgLoginHint: "“Log in with Telegram” ይጫኑና መልዕክቶችን ይፍቀዱ፦ ቦታችን ውጤቶችዎንና ሽልማቶችዎን በቀጥታ ወደ ቴሌግራም ይልካል።",
+      tgSignupHint: "በፍጥነት፦ በቴሌግራም ይመዝገቡ፣ ከዚያ ቁጥርዎን በቻቱ ውስጥ በአንድ ንክኪ ያረጋግጡ።",
+      tgConnected: (name: string) => `ቴሌግራም ተገናኝቷል${name ? `፣ ${name}` : ""}! ቀሪውን ከታች ይሙሉ። ወዲያውኑ ቦታችን ቁጥርዎን በአንድ ንክኪ ለማረጋገጥ የሚያስችል ቁልፍ በቴሌግራም ይልክልዎታል።`,
     },
   },
 } satisfies Record<Lang, unknown>;

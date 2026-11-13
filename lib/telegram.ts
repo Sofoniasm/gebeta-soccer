@@ -23,3 +23,12 @@ export async function tg(method: string, body: Record<string, unknown>) {
 export function sendMessage(chatId: number, text: string, extra: Record<string, unknown> = {}) {
   return tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", ...extra });
 }
+
+/** Reply keyboard with Telegram's one-tap "share my number" button. */
+export const shareContactKeyboard = {
+  reply_markup: {
+    keyboard: [[{ text: "📱 Share my phone number", request_contact: true }]],
+    resize_keyboard: true,
+    one_time_keyboard: true,
+  },
+};

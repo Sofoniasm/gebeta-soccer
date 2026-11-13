@@ -9,6 +9,9 @@ import { checkLoginLock, clientIp, loginKey, recordLoginAttempt } from "@/lib/lo
 import { deliverResetCode, resetThrottled, verifyResetCode } from "@/lib/password-reset";
 import { PAGES } from "@/lib/i18n/pages";
 import { pushNotifications } from "@/lib/notify";
+import { cookies } from "next/headers";
+import { PENDING_COOKIE, readPending } from "@/lib/telegram-login";
+import { startTelegramVerificationDm } from "@/lib/verification";
 
 export type AuthState = { error?: string; success?: string } | undefined;
 
@@ -151,7 +154,22 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     return { success: "Account created. Log in with your phone number to confirm it." };
   }
   const next = safeNext(formData.get("next"));
-  redirect(next !== "/dashboard" ? `/verify?next=${encodeURIComponent(next)}` : "/verify");
+
+  // Came through "Sign up with Telegram"? The bot may message them first, so it
+  // sends the one-tap "Share my phone number" button straight away.
+  let tgSent = false;
+  const botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
+  const jar = await cookies();
+  const pendingTg = readPending(jar.get(PENDING_COOKIE)?.value, botToken);
+  if (pendingTg) {
+    jar.delete(PENDING_COOKIE);
+    const { data: created } = await createAdminClient().from("profiles").select("id").eq("phone_number", phone).maybeSingle();
+    if (created) tgSent = (await startTelegramVerificationDm(created.id, pendingTg.id).catch(() => "failed")) === "sent";
+  }
+  const q = new URLSearchParams();
+  if (next !== "/dashboard") q.set("next", next);
+  if (tgSent) q.set("tg", "sent");
+  redirect(q.size ? `/verify?${q}` : "/verify");
 }
 
 // -------------------------------------------------------------- sign out
