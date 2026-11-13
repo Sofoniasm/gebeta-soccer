@@ -62,7 +62,7 @@ export const PRED = {
     aHow: (inRound: boolean) =>
       `Create a free GebetaSoccer account and predict the score. An exact score earns 3 points, a close score 1.5 and the right result 1. ${
         inRound
-          ? "This match is part of one of our daily 10-match rounds, where the top slip with more than 15 points wins 70% of the pool."
+          ? "This match is part of one of our daily 10-match rounds, where the top slip wins 70% of the pool."
           : "You can also put it in a private challenge against friends; the winner takes 90% of the stakes."
       }`,
     more: "More predictions",
@@ -129,7 +129,7 @@ export const PRED = {
     aHow: (inRound: boolean) =>
       `በነጻ የገበጣሶከር መለያ ይክፈቱና ውጤቱን ይገምቱ። ትክክለኛ ውጤት 3 ነጥብ፣ ቅርብ ውጤት 1.5 እና ትክክለኛ አሸናፊ 1 ነጥብ ያስገኛል። ${
         inRound
-          ? "ይህ ጨዋታ ከዕለታዊ የ10 ጨዋታ ዙሮቻችን የአንዱ አካል ነው፤ ከ15 በላይ ነጥብ ያለው ቀዳሚ ስሊፕ የገንዳውን 70% ያሸንፋል።"
+          ? "ይህ ጨዋታ ከዕለታዊ የ10 ጨዋታ ዙሮቻችን የአንዱ አካል ነው፤ ቀዳሚው ስሊፕ የገንዳውን 70% ያሸንፋል።"
           : "በግል ቻሌንጅም ከጓደኞችዎ ጋር መወዳደር ይችላሉ፤ አሸናፊው ከውርርዱ 90% ይወስዳል።"
       }`,
     more: "ተጨማሪ ትንበያዎች",

@@ -193,7 +193,7 @@ export default async function LeaguePage({
               )}
               <p className="mt-3 text-xs text-mist">
                 Each member&apos;s <b className="text-white">Slip #1</b> in {league.rounds?.name ?? "the round"} is their league entry, so place a slip on the Predict page to play. Same scoring as the main game: exact 3 · close 1.5 · result 1, plus Slam Points.
-                {fee > 0 && " The winner takes 70% of the league pot (ties share it) when the round is settled. To win, they need more than 15 of the 30 match points; otherwise the pot goes to the house."}
+                {fee > 0 && " The winner takes 70% of the league pot (ties share it) when the round is settled."}
               </p>
             </section>
           )}

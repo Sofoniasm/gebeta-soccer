@@ -6,7 +6,7 @@ import { TrophyIcon } from "./icons";
 
 interface Winner { round_id: number; username: string; slip_no: number; units: number; points: number }
 
-/** Last settled rounds: pool, slips and who won (or that nobody passed the bar). Public, for trust. */
+/** Last settled rounds: pool, slips and who won (there is always a winner when anyone played). Public, for trust. */
 export async function RecentWinners({ limit = 3 }: { limit?: number }) {
   const supabase = await createClient();
   const { data: rounds } = await supabase
@@ -55,7 +55,7 @@ export async function RecentWinners({ limit = 3 }: { limit?: number }) {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-1.5 text-sm text-mist">No winner: nobody passed the winning bar, so the pool stayed with the house.</p>
+                <p className="mt-1.5 text-sm text-mist">No winner this round.</p>
               )}
             </li>
           );

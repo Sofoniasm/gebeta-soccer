@@ -266,7 +266,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                         }`}
                       >
                         <p className="font-extrabold">
-                          {slipCalc.result.barMet ? "✓ Winning bar reached" : "✗ Nobody reached the winning bar: the house keeps the whole pool"}
+                          {slipCalc.result.barMet ? "✓ Best slip wins (no minimum score)" : "✗ No winner: the house keeps the whole pool"}
                         </p>
                         <p className="mt-1 text-xs opacity-80">
                           Bar: more than {slipCalc.result.winningBar} match points (half of {slipCalc.result.winningBar * 2}). Best slip: {slipCalc.result.topMatchPoints} match points (Slam Points not counted).

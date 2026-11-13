@@ -69,7 +69,7 @@ export function CreateLeagueForm({ rounds, balance }: { rounds: { id: number; na
           </label>
           <p className="text-xs text-mist">
             = <b className="text-white">{(feeN * ETB).toLocaleString("en-US")} ETB</b> each. With 10 friends the winner gets{" "}
-            <b className="text-emerald-200">{(feeN * 10 * 0.7 * ETB).toLocaleString("en-US")} ETB</b> (70% of the pot, if they score more than 15 points).
+            <b className="text-emerald-200">{(feeN * 10 * 0.7 * ETB).toLocaleString("en-US")} ETB</b> (70% of the pot).
           </p>
           <p className="text-xs text-mist">
             {balance >= feeN

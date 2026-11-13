@@ -1,14 +1,12 @@
 /**
  * Settle one private league with the same scoring as rounds:
  * league members only, 70% of the league pot to the winner(s) (ties share),
- * 30% house. Paid leagues use the same winning bar as the main pool: the
- * winner needs MORE than half the match points (more than 15 of 30), else
- * the house keeps the league pot. Free leagues settle with no money moving.
+ * 30% house. The best member always wins (no minimum score).
+ * Free leagues settle with no money moving.
  * Server only (uses the secret-key client).
  */
 import { createAdminClient } from "@/lib/supabase/admin";
 import { settleRound } from "@/lib/settlement";
-import { winningBar } from "@/lib/scoring";
 
 export interface LeagueSettleResult {
   ok: boolean;
@@ -51,8 +49,7 @@ export async function settleLeague(leagueId: number, adminId: string | null): Pr
     entrantIds: memberIds,
     entryFeeUnits: Number(league.entry_fee_units),
     houseCut: Number(league.house_cut),
-    // Paid leagues: same winning bar as the main pool.
-    ...(paidLeague ? { minMatchPoints: winningBar(results.length) } : {}),
+    // No winning bar: the best member always wins, whatever the score.
     results,
     predictions: ((preds ?? []) as Row[]).map((p) => ({
       predictionId: p.id,

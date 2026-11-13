@@ -40,7 +40,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "You can edit a placed slip free of charge until the round locks at its first kickoff. After that no slips can be placed or changed. Placed slips are not refundable. Everyone's slips become visible once the round locks.",
           "Scoring: exact score 3 points; close (correct result and one goal away, or two goals away with the same goal difference, e.g. 1-1 vs 2-2) 1.5 points; correct result 1 point; wrong result 0 points.",
           "Slam Points per round for correct results: 5–7 correct +1, 8–9 correct +2, 10 correct +3.",
-          "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. Winning bar: to win, a slip must score MORE than half of the match points available (more than 15 of 30 for 10 matches; Slam Points do not count; a postponed or cancelled match lowers the bar to half of what is left, e.g. more than 13.5 for 9 matches). If no slip clears the bar, there is no winner for that round and the whole pool is kept by GebetaSoccer. Ties are decided by most correct results, then most exact scores, then most close picks, then the smallest total goal difference; remaining ties share the prize equally.",
+          "The prize pool is the total of entry fees. 70% is paid to the winner(s); 30% is the house fee. There is always a winner: the slip with the most points wins, whatever its score. Ties are decided by most correct results, then most exact scores, then most close picks, then the smallest total goal difference; remaining ties share the prize equally.",
           "Postponed or cancelled matches score 0 for everyone.",
           "Daily rounds open automatically by Ethiopian time slot: Morning (kickoffs 06:00–11:59), Evening (12:00–18:59) and Night (19:00–23:59). A round only takes matches from its own slot, and only opens when the slot has 10 matches. Rounds can also be created by GebetaSoccer by hand.",
         ],
@@ -48,7 +48,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
       {
         title: "3b. Private leagues and challenges",
         body: [
-          "Paid private leagues use Slip #1 of each member. The league winner(s) receive 70% of the league pot (30% house fee) under the same winning bar as rounds: more than half of the match points available. If no member clears the bar, the league pot is kept by GebetaSoccer. Free leagues move no money.",
+          "Paid private leagues use Slip #1 of each member. The league winner(s) receive 70% of the league pot (30% house fee) The member with the most points always wins, whatever the score. Free leagues move no money.",
           "A player can create a challenge on 1 to 10 upcoming matches with a stake per player of 200 to 1,000,000 ETB. The stake is taken from the creator's wallet when the challenge is created and from each player's wallet when they join. A player can only join with enough Units in their wallet.",
           "Scores can be changed free of charge until the first of the selected matches kicks off; after that nobody can join or change scores. Other players' scores are hidden until then.",
           "Scoring is the same as in rounds (3 / 1.5 / 1 / 0, no Slam Points). Postponed or cancelled matches score 0 for everyone. The highest total wins; ties are decided by most correct results, most exact scores, most close picks and smallest total goal difference, and players still level share the prize equally.",
@@ -123,7 +123,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
           "ዙሩ በመጀመሪያው ጨዋታ መጀመሪያ ሰዓት እስኪቆለፍ ድረስ የገባ ስሊፕን በነጻ ማስተካከል ይችላሉ። ከዚያ በኋላ ስሊፕ ማስገባትም መቀየርም አይቻልም። የገቡ ስሊፖች ተመላሽ አይደረጉም። ዙሩ ሲቆለፍ የሁሉም ስሊፖች ይታያሉ።",
           "ነጥብ አሰጣጥ፦ ትክክለኛ ውጤት 3 ነጥብ፤ ቅርብ (ትክክለኛ አሸናፊ እና በአንድ ጎል ልዩነት፣ ወይም በሁለት ጎል ልዩነት ግን ተመሳሳይ የጎል ልዩነት፣ ለምሳሌ 1-1 እና 2-2) 1.5 ነጥብ፤ ትክክለኛ አሸናፊ 1 ነጥብ፤ የተሳሳተ 0 ነጥብ።",
           "በአንድ ዙር ለትክክለኛ አሸናፊዎች የስላም ነጥቦች፦ 5–7 ትክክል +1፣ 8–9 ትክክል +2፣ 10 ትክክል +3።",
-          "የሽልማት ገንዳው የመግቢያ ክፍያዎች ድምር ነው። 70% ለአሸናፊ(ዎች) ይከፈላል፤ 30% የአገልግሎት ክፍያ ነው። የማሸነፊያ ገደብ፦ ለማሸነፍ ስሊፕ ከሚገኘው የጨዋታ ነጥብ ከግማሽ በላይ ማስመዝገብ አለበት (ለ10 ጨዋታዎች ከ30 ከ15 በላይ፤ የስላም ነጥቦች አይቆጠሩም፤ የተራዘመ ወይም የተሰረዘ ጨዋታ ገደቡን ወደ ቀሪው ግማሽ ይቀንሳል፣ ለምሳሌ ለ9 ጨዋታዎች ከ13.5 በላይ)። ማንም ስሊፕ ገደቡን ካላለፈ የዚያ ዙር አሸናፊ አይኖርም፤ ሙሉው ገንዳ ለገበጣሶከር ይቀራል። እኩል ሲሆን በብዛት ትክክለኛ አሸናፊ፣ ከዚያ በብዛት ትክክለኛ ውጤት፣ ከዚያ በብዛት ቅርብ ግምት፣ ከዚያ በትንሹ የጎል ልዩነት ይወሰናል፤ አሁንም እኩል የሆኑ ሽልማቱን በእኩል ይካፈላሉ።",
+          "የሽልማት ገንዳው የመግቢያ ክፍያዎች ድምር ነው። 70% ለአሸናፊ(ዎች) ይከፈላል፤ 30% የአገልግሎት ክፍያ ነው። ሁልጊዜ አሸናፊ አለ፦ ብዙ ነጥብ ያስመዘገበው ስሊፕ ያሸንፋል፣ ነጥቡ ምንም ያህል ቢሆን። እኩል ሲሆን በብዛት ትክክለኛ አሸናፊ፣ ከዚያ በብዛት ትክክለኛ ውጤት፣ ከዚያ በብዛት ቅርብ ግምት፣ ከዚያ በትንሹ የጎል ልዩነት ይወሰናል፤ አሁንም እኩል የሆኑ ሽልማቱን በእኩል ይካፈላሉ።",
           "የተራዘሙ ወይም የተሰረዙ ጨዋታዎች ለሁሉም 0 ነጥብ ናቸው።",
           "የዕለት ዙሮች በኢትዮጵያ ሰዓት ክፍለ ጊዜ በራሳቸው ይከፈታሉ፦ ጠዋት (ጨዋታ የሚጀምረው 06:00–11:59)፣ ከሰዓት (12:00–18:59) እና ማታ (19:00–23:59)። አንድ ዙር ከራሱ ክፍለ ጊዜ ጨዋታዎችን ብቻ ይወስዳል፤ የሚከፈተውም ክፍለ ጊዜው 10 ጨዋታዎች ሲኖሩት ብቻ ነው። ገበጣሶከር ዙሮችን በእጅም ሊፈጥር ይችላል።",
         ],
@@ -131,7 +131,7 @@ const T: Record<Lang, { metaTitle: string; metaDescription: string; h1: string; 
       {
         title: "3ለ. የግል ሊጎች እና ቻሌንጆች",
         body: [
-          "የሚከፈልባቸው የግል ሊጎች የእያንዳንዱን አባል ስሊፕ #1 ይጠቀማሉ። የሊጉ አሸናፊ(ዎች) ከሊጉ ገንዳ 70% ይቀበላሉ (30% የአገልግሎት ክፍያ)፤ ከዙሮች ጋር ተመሳሳይ የማሸነፊያ ገደብ ይሰራል፦ ከሚገኘው የጨዋታ ነጥብ ከግማሽ በላይ። ማንም አባል ገደቡን ካላለፈ የሊጉ ገንዳ ለገበጣሶከር ይቀራል። ነጻ ሊጎች ገንዘብ አያንቀሳቅሱም።",
+          "የሚከፈልባቸው የግል ሊጎች የእያንዳንዱን አባል ስሊፕ #1 ይጠቀማሉ። የሊጉ አሸናፊ(ዎች) ከሊጉ ገንዳ 70% ይቀበላሉ (30% የአገልግሎት ክፍያ)። ብዙ ነጥብ ያለው አባል ሁልጊዜ ያሸንፋል፣ ነጥቡ ምንም ያህል ቢሆን። ነጻ ሊጎች ገንዘብ አያንቀሳቅሱም።",
           "ተጫዋች ከ1 እስከ 10 በሚመጡ ጨዋታዎች ላይ፣ ለእያንዳንዱ ተጫዋች ከ200 እስከ 1,000,000 ብር የውርርድ መጠን ያለው ቻሌንጅ መፍጠር ይችላል። መጠኑ ቻሌንጁ ሲፈጠር ከፈጣሪው ዋሌት፣ ሌሎች ሲቀላቀሉ ደግሞ ከእያንዳንዳቸው ዋሌት ይቀነሳል። መቀላቀል የሚቻለው በዋሌት በቂ ዩኒት ሲኖር ብቻ ነው።",
           "ከተመረጡት ጨዋታዎች የመጀመሪያው እስኪጀመር ድረስ ውጤቶችን በነጻ መቀየር ይቻላል፤ ከዚያ በኋላ ማንም መቀላቀልም ውጤት መቀየርም አይችልም። እስከዚያ ድረስ የሌሎች ተጫዋቾች ግምት ተደብቆ ይቆያል።",
           "ነጥብ አሰጣጡ ከዙሮች ጋር አንድ ነው (3 / 1.5 / 1 / 0፣ የስላም ነጥብ የለም)። የተራዘሙ ወይም የተሰረዙ ጨዋታዎች ለሁሉም 0 ናቸው። ከፍተኛ ድምር ያለው ያሸንፋል፤ እኩል ሲሆን በብዛት ትክክለኛ አሸናፊ፣ በብዛት ትክክለኛ ውጤት፣ በብዛት ቅርብ ግምት እና በትንሹ የጎል ልዩነት ይወሰናል፤ አሁንም እኩል የሆኑ ሽልማቱን በእኩል ይካፈላሉ።",

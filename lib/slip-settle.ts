@@ -6,7 +6,6 @@
  * the house keeps the whole pool.
  */
 import { settleRound, type SettlementResult } from "@/lib/settlement";
-import { winningBar } from "@/lib/scoring";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
@@ -60,7 +59,7 @@ export async function computeSlipSettlement(admin: Admin, round: { id: number; e
     entryFeeUnits: Number(round.entry_fee_units),
     houseCut: Number(round.house_cut),
     // Main pool rule: more than half the match points available to win.
-    minMatchPoints: winningBar(results.length),
+    // No winning bar: the best slip always wins, whatever its score.
     results,
     predictions: ((pickData ?? []) as { id: number; slip_id: number; match_id: number; home: number; away: number }[]).map((p) => ({
       predictionId: p.id,

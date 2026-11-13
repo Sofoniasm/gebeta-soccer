@@ -89,7 +89,7 @@ export function siteJsonLd() {
         applicationCategory: "GameApplication",
         operatingSystem: "Web, Android, iOS, Telegram",
         description:
-          "Daily football prediction game: predict the score of 10 matches. Exact score 3 points, close 1.5, correct result 1, plus Slam Points. The top slip with more than 15 of 30 points takes 70% of the pool. Private challenges against friends on 1 to 10 matches.",
+          "Daily football prediction game: predict the score of 10 matches. Exact score 3 points, close 1.5, correct result 1, plus Slam Points. The top slip takes 70% of the pool. Private challenges against friends on 1 to 10 matches.",
         audience: { "@type": "PeopleAudience", suggestedMinAge: 18 },
         areaServed: { "@type": "Country", name: "Ethiopia" },
         offers: { "@type": "Offer", price: "200", priceCurrency: "ETB", description: "Typical entry: 1 Unit = 200 ETB per round" },

@@ -9,7 +9,7 @@ export async function GET() {
   const TELEGRAM_URL = (await getSiteSettings()).telegram_support;
   const body = `# GebetaSoccer
 
-> GebetaSoccer (${SITE_URL}) is a daily football score-prediction game for players in Ethiopia (18+). Each round has exactly 10 big matches (Premier League and other top competitions), with new rounds every day. Players predict the score of every match, earn points for accuracy, and the best slip with more than half the points wins the prize pool, paid in Ethiopian birr (ETB).
+> GebetaSoccer (${SITE_URL}) is a daily football score-prediction game for players in Ethiopia (18+). Each round has exactly 10 big matches (Premier League and other top competitions), with new rounds every day. Players predict the score of every match, earn points for accuracy, and the best slip wins the prize pool, paid in Ethiopian birr (ETB).
 
 ## How it works
 - Each round has exactly 10 matches. Players fill a slip with a score for all 10 matches and pay the entry fee when placing it. Several slips per round are allowed; each is paid and ranked separately.
@@ -18,7 +18,7 @@ export async function GET() {
 - Slam Points per round: 5-7 correct results +1, 8-9 correct +2, all 10 correct +3.
 - Tie-breaks: most correct results, then most exact scores, then most close picks, then smallest total goal difference. Players still tied share the prize.
 - Prize: the round winner(s) receive 70% of the entry pool; 30% is the house fee.
-- Winning bar: a slip must score more than half the match points available (more than 15 of 30; Slam Points not counted) to win. If no slip clears it, there is no winner and the house keeps the pool.
+- There is always a winner: the slip with the most points wins, whatever its score.
 - Everyone's slips are hidden until the round locks, then visible on the match page.
 
 ## Money
@@ -27,7 +27,7 @@ export async function GET() {
 - Withdrawals: any amount; 1 Unit always stays in the account. Paid to the player's Telebirr number after review.
 
 ## Private leagues
-- Any player can create a free league (bragging rights) or a paid league (5-50 Units per player, winner takes 70% of the league pot if they score more than 15 of 30 match points, otherwise the house keeps it) and invite friends with a link or code.
+- Any player can create a free league (bragging rights) or a paid league (5-50 Units per player, winner takes 70% of the league pot) and invite friends with a link or code.
 
 ## Match predictions
 - ${SITE_URL}/predictions lists this week's matches with GebetaSoccer score tips and kickoff times in Ethiopia time (EAT).
