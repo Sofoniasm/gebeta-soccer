@@ -53,3 +53,10 @@ test("every account lookup in the assistant is pinned to the asking player", () 
   const hist = src.slice(src.indexOf("async function serverHistory"), src.indexOf("async function underLimit"));
   assert.match(hist, /\.eq\("user_id", userId\)/);
 });
+
+test("hand-over: never asks for contact details or shows an email", () => {
+  const p = systemPrompt(FACTS, "@support", "en", true);
+  assert.match(p, /Never ask for a phone number, Telegram username, email/);
+  assert.doesNotMatch(p, /@gebetasoccer\.com/);
+  assert.doesNotMatch(p, /they can also message/);
+});

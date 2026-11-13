@@ -28,8 +28,7 @@ export function HelpChat({ lang = "en", loggedIn, compact = false }: { lang?: "e
     try {
       const res = await fetch("/api/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: question, history, lang }) });
       const data = (await res.json()) as { reply?: string; handedOff?: boolean };
-      const extra = data.handedOff ? (lang === "am" ? "\n\n🆘 ጥያቄዎ ለሰራተኞቻችን ተልኳል።" : "\n\n🆘 Your question was sent to our team.") : "";
-      setTurns((t) => [...t, { role: "assistant", content: (data.reply ?? "…") + extra }]);
+      setTurns((t) => [...t, { role: "assistant", content: (data.handedOff ? "🆘 " : "") + (data.reply ?? "…") }]);
     } catch {
       setTurns((t) => [...t, { role: "assistant", content: lang === "am" ? "ግንኙነቱ ተቋርጧል። እንደገና ይሞክሩ።" : "Connection lost. Please try again." }]);
     } finally {

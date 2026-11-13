@@ -12,6 +12,15 @@ import { ASSISTANT_KB } from "@/lib/assistant-kb";
 export const ESCALATE = "[[HANDOFF]]";
 export interface Turn { role: "user" | "assistant"; content: string }
 
+/** Shown to the person when their question goes to the team. */
+export const FORWARDED = {
+  en: "We've forwarded your issue to our team and will contact you directly as soon as it's resolved.",
+  am: "ጉዳይዎን ለቡድናችን አስተላልፈናል። እንደተፈታ በቀጥታ እናገኝዎታለን።",
+  // A web visitor who is not logged in: we have no way to reach them.
+  guestEn: "This needs our team. Please log in (or message our Telegram bot) and ask again, so we can contact you directly once it's resolved.",
+  guestAm: "ይህ የቡድናችንን እርዳታ ይፈልጋል። እንድናገኝዎ እባክዎ ይግቡ (ወይም የቴሌግራም ቦታችንን ይጻፉ) እና እንደገና ይጠይቁ።",
+} as const;
+
 export const REFUSE = {
   privacy: {
     en: "I can only provide information about your own account. For privacy reasons, I cannot share other players' data.",
@@ -47,7 +56,8 @@ OTHER RULES:
 - Never invent features, prices, dates or rules that are not in the HELP. If you don't know, say so and offer a person.
 - Never ask for or accept passwords, reset codes or PINs. If someone shares one, tell them to change it.
 - Never promise a payment, refund, deposit or bonus, and never say money "has been sent": only the admin does that.
-- Hand over to a person when: money is missing or wrong (deposit not added, withdrawal late, wrong payout), a dispute about results, a locked or hacked account, a request to change a phone number or birth date, a complaint, or anything you can't solve from the HELP. Then tell them a person from GebetaSoccer will contact them (usually on Telegram), that they can also message ${support}, and end your reply with ${ESCALATE} on its own line.
+- Hand over to a person when: money is missing or wrong (deposit not added, withdrawal late, wrong payout), a dispute about results, a locked or hacked account, a request to change a phone number or birth date, a complaint, or anything you can't solve from the HELP. Then DO NOT answer the person: write only a short note for our team (1-2 sentences, third person, in English: what the problem is and any amounts, dates or round names they gave), then ${ESCALATE} on its own line. The person is shown a standard "forwarded to our team" message instead.
+- Never ask for a phone number, Telegram username, email or any contact details: we already have them. Never show any email address.
 - If they seem to be losing control (chasing losses, borrowing to play), kindly point them to Take a break and the deposit limit on the Profile page.
 - Plain text only (no markdown tables).
 

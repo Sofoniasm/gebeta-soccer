@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 import { SITE_URL as SITE } from "@/lib/site";
 
-interface TgUser { id: number; first_name?: string }
+interface TgUser { id: number; first_name?: string; last_name?: string; username?: string }
 interface TgMessage {
   chat: { id: number; type: string };
   from?: TgUser;
@@ -106,9 +106,10 @@ export async function POST(req: NextRequest) {
         chatId,
         channel: "telegram",
         lang,
+        telegram: msg.from ?? null,
       });
       const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      await sendMessage(chatId, esc(reply) + (handedOff ? (lang === "am" ? "\n\n🆘 ጥያቄዎ ለሰራተኞቻችን ተልኳል።" : "\n\n🆘 Your question was sent to our team.") : ""));
+      await sendMessage(chatId, (handedOff ? "🆘 " : "") + esc(reply));
       return NextResponse.json({ ok: true });
     }
 

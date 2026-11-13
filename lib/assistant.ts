@@ -10,7 +10,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
 import { getSiteSettings } from "@/lib/site-settings";
-import { cleanHistory, ESCALATE, systemPrompt, type Turn } from "@/lib/assistant-prompt";
+import { cleanHistory, ESCALATE, FORWARDED, systemPrompt, type Turn } from "@/lib/assistant-prompt";
 import { formatUnits } from "@/lib/money";
 
 export type Channel = "web" | "telegram";
@@ -78,31 +78,47 @@ async function underLimit(userId: string | null, chatId: number | null, ip: stri
   return (count ?? 0) < (userId ? LIMIT_PLAYER_PER_HOUR : LIMIT_GUEST_PER_HOUR);
 }
 
+/** Internal email to the team (never shown to players). Needs RESEND_API_KEY and a verified sending domain in Resend. */
 async function emailSupport(subject: string, text: string) {
   const key = process.env.RESEND_API_KEY;
-  const to = process.env.SUPPORT_EMAIL;
-  if (!key || !to) return;
+  const to = process.env.SUPPORT_EMAIL || "admin@gebetasoccer.com";
+  if (!key) return;
   try {
-    await fetch("https://api.resend.com/emails", {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: process.env.SUPPORT_EMAIL_FROM || "GebetaSoccer <onboarding@resend.dev>", to: [to], subject, text }),
+      body: JSON.stringify({ from: process.env.SUPPORT_EMAIL_FROM || "GebetaSoccer Support <support@gebetasoccer.com>", to: [to], subject, text }),
     });
+    if (!res.ok) console.error("support email failed:", res.status, await res.text());
   } catch (e) {
     console.error("support email:", (e as Error).message);
   }
 }
 
-/** Create a support request and tell every admin. */
-async function handOff(opts: { userId: string | null; chatId: number | null; channel: Channel; question: string; summary: string }) {
+export interface TelegramSender { id: number; username?: string; first_name?: string; last_name?: string }
+
+/**
+ * Create a support request with the player's contact details (taken from their
+ * account / Telegram, never asked for), tell every admin, and email the team.
+ */
+async function handOff(opts: { userId: string | null; chatId: number | null; channel: Channel; question: string; summary: string; history: Turn[]; tg?: TelegramSender | null }) {
   const admin = createAdminClient();
+  const { data: who } = opts.userId
+    ? await admin.from("profiles").select("username, phone_number, telegram_user_id").eq("id", opts.userId).single()
+    : { data: null };
+  const contact = {
+    username: who?.username ?? null,
+    phone: who?.phone_number ?? null,
+    telegram_id: opts.tg?.id ?? (who?.telegram_user_id ? Number(who.telegram_user_id) : null) ?? opts.chatId,
+    telegram_username: opts.tg?.username ? `@${opts.tg.username}` : null,
+    telegram_name: [opts.tg?.first_name, opts.tg?.last_name].filter(Boolean).join(" ") || null,
+  };
   const { data: req } = await admin
     .from("support_requests")
-    .insert({ user_id: opts.userId, chat_id: opts.chatId, channel: opts.channel, question: opts.question.slice(0, 2000), summary: opts.summary.slice(0, 1000) })
+    .insert({ user_id: opts.userId, chat_id: opts.chatId, channel: opts.channel, question: opts.question.slice(0, 2000), summary: opts.summary.slice(0, 1000), contact })
     .select("id")
     .single();
-  const { data: who } = opts.userId ? await admin.from("profiles").select("username, phone_number").eq("id", opts.userId).single() : { data: null };
-  const name = who ? `${who.username} (${who.phone_number ?? "no phone"})` : opts.chatId ? `Telegram chat ${opts.chatId}` : "A visitor";
+  const name = who ? `${who.username} (${who.phone_number ?? "no phone"})` : contact.telegram_username ?? (opts.chatId ? `Telegram chat ${opts.chatId}` : "A visitor");
   const { data: admins } = await admin.from("profiles").select("id").eq("is_admin", true);
   const body = `${name} via ${opts.channel}: "${opts.question.slice(0, 220)}"`;
   if (admins?.length) {
@@ -111,7 +127,32 @@ async function handOff(opts: { userId: string | null; chatId: number | null; cha
     );
     await pushNotifications();
   }
-  await emailSupport(`GebetaSoccer support request #${req?.id ?? ""}`, `${body}\n\nAssistant's reply:\n${opts.summary}\n\nOpen: https://www.gebetasoccer.com/admin/support`);
+  const line = (k: string, v: unknown) => `${k}: ${v ?? "-"}`;
+  const convo = [...opts.history, { role: "user" as const, content: opts.question }]
+    .map((t) => `${t.role === "user" ? "Player" : "Assistant"}: ${t.content}`)
+    .join("\n");
+  await emailSupport(
+    `Support request #${req?.id ?? ""}: ${name}`,
+    [
+      `New support request #${req?.id ?? ""} (${opts.channel}), handed over by the help assistant.`,
+      "",
+      "CONTACT",
+      line("Account", contact.username),
+      line("Phone", contact.phone),
+      line("Telegram ID", contact.telegram_id),
+      line("Telegram username", contact.telegram_username),
+      line("Telegram name", contact.telegram_name),
+      "",
+      "ISSUE (assistant's summary)",
+      opts.summary,
+      "",
+      "CONVERSATION",
+      convo,
+      "",
+      "Open: https://www.gebetasoccer.com/admin/support",
+      contact.telegram_username ? `Message on Telegram: https://t.me/${contact.telegram_username.slice(1)}` : "",
+    ].join("\n"),
+  );
 }
 
 /**
@@ -125,6 +166,8 @@ export async function askAssistant(opts: {
   ip?: string | null;
   channel: Channel;
   lang?: "en" | "am" | null;
+  /** Telegram sender of the message (bot only), for the team to reach them. */
+  telegram?: TelegramSender | null;
 }): Promise<{ reply: string; handedOff: boolean }> {
   const { telegram_support } = await getSiteSettings();
   const question = opts.question.trim().slice(0, 1500);
@@ -164,8 +207,13 @@ export async function askAssistant(opts: {
   }
 
   const handedOff = text.includes(ESCALATE);
-  const reply = text.replace(ESCALATE, "").trim() || (am ? "ይቅርታ፣ እንደገና ይሞክሩ።" : "Sorry, please try again.");
-  await createAdminClient().from("assistant_messages").insert({ user_id: opts.userId, chat_id: chatId, ip, channel: opts.channel, question, answer: reply, escalated: handedOff });
-  if (handedOff) await handOff({ userId: opts.userId, chatId, channel: opts.channel, question, summary: reply });
-  return { reply, handedOff };
+  const note = text.replace(ESCALATE, "").trim();
+  // A web visitor who isn't logged in can't be reached: ask them to log in instead of filing a request.
+  const reachable = Boolean(opts.userId || chatId);
+  const reply = handedOff
+    ? reachable ? (am ? FORWARDED.am : FORWARDED.en) : am ? FORWARDED.guestAm : FORWARDED.guestEn
+    : note || (am ? "ይቅርታ፣ እንደገና ይሞክሩ።" : "Sorry, please try again.");
+  await createAdminClient().from("assistant_messages").insert({ user_id: opts.userId, chat_id: chatId, ip, channel: opts.channel, question, answer: handedOff ? `[handed over] ${note}` : reply, escalated: handedOff && reachable });
+  if (handedOff && reachable) await handOff({ userId: opts.userId, chatId, channel: opts.channel, question, summary: note || question, history, tg: opts.telegram });
+  return { reply, handedOff: handedOff && reachable };
 }
