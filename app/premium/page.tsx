@@ -66,13 +66,13 @@ export default async function PremiumPage() {
               <p className="font-bold text-white">Monthly</p>
               <p className="mt-1 text-2xl font-extrabold">{planEtb("monthly").toLocaleString("en-US")} ETB</p>
               <p className="mb-3 text-xs text-mist">{formatUnits(PLANS.monthly.units)} · 30 days</p>
-              <BuyButton plan="monthly" label={`Pay ${PLANS.monthly.units} Units`} disabled={Number(me.balance_units) < PLANS.monthly.units} />
+              <BuyButton plan="monthly" label={`Pay ${PLANS.monthly.units} Units`} days={PLANS.monthly.days} units={PLANS.monthly.units} activeUntil={p.active ? p.until : null} disabled={Number(me.balance_units) < PLANS.monthly.units} />
             </div>
             <div className="rounded-2xl border border-amber-200/30 bg-amber-200/5 p-4">
               <p className="font-bold text-white">Yearly <span className="ml-1 rounded-full bg-amber-200/20 px-2 py-0.5 text-[10px] text-amber-100">save {(saving * 200).toLocaleString("en-US")} ETB</span></p>
               <p className="mt-1 text-2xl font-extrabold">{planEtb("yearly").toLocaleString("en-US")} ETB</p>
               <p className="mb-3 text-xs text-mist">{formatUnits(PLANS.yearly.units)} · 365 days</p>
-              <BuyButton plan="yearly" label={`Pay ${PLANS.yearly.units} Units`} disabled={Number(me.balance_units) < PLANS.yearly.units} />
+              <BuyButton plan="yearly" label={`Pay ${PLANS.yearly.units} Units`} days={PLANS.yearly.days} units={PLANS.yearly.units} activeUntil={p.active ? p.until : null} disabled={Number(me.balance_units) < PLANS.yearly.units} />
             </div>
           </div>
           {Number(me.balance_units) < PLANS.monthly.units && (
