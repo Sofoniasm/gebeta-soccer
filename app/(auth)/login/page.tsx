@@ -2,7 +2,7 @@ import { LoginForm } from "../AuthForms";
 import { Banner } from "@/components/ui";
 import { getLang } from "@/lib/i18n-server";
 import { PAGES } from "@/lib/i18n/pages";
-import { TELEGRAM_BOT_USERNAME, telegramEnabled } from "@/lib/telegram";
+import { telegramBotId, telegramEnabled } from "@/lib/telegram";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { OrDivider } from "@/components/OrDivider";
 
@@ -26,8 +26,8 @@ export default async function LoginPage({
       {error && <Banner kind="error">{error}</Banner>}
       {telegramEnabled() && (
         <>
-          <TelegramLoginButton bot={TELEGRAM_BOT_USERNAME} next={next} />
-          <p className="-mt-2 text-center text-xs text-mist">{t.tgLoginHint}</p>
+          <TelegramLoginButton botId={telegramBotId()} next={next} label={t.tgLogin} failedText={t.tgFailed} />
+          <p className="text-center text-xs text-mist">{t.tgLoginHint}</p>
           <OrDivider label={t.tgOr} />
         </>
       )}

@@ -4,7 +4,7 @@ import { getLang } from "@/lib/i18n-server";
 import { PAGES } from "@/lib/i18n/pages";
 import { cookies } from "next/headers";
 import { Banner } from "@/components/ui";
-import { TELEGRAM_BOT_USERNAME, telegramEnabled } from "@/lib/telegram";
+import { telegramBotId, telegramEnabled } from "@/lib/telegram";
 import { PENDING_COOKIE, readPending } from "@/lib/telegram-login";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { OrDivider } from "@/components/OrDivider";
@@ -35,7 +35,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         telegramEnabled() && (
           <>
             <p className="text-center text-xs text-mist">{t.tgSignupHint}</p>
-            <TelegramLoginButton bot={TELEGRAM_BOT_USERNAME} next={safe} />
+            <TelegramLoginButton botId={telegramBotId()} next={safe} label={t.tgSignup} failedText={t.tgFailed} />
             <OrDivider label={t.tgOr} />
           </>
         )
