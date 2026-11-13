@@ -47,7 +47,7 @@ export function CreateLeagueForm({ rounds, balance }: { rounds: { id: number; na
             }`}
           >
             <span className="block text-sm font-extrabold">{t === "free" ? "Free league" : "Paid league"}</span>
-            <span className="block text-xs text-mist">{t === "free" ? "Just for bragging rights" : "Everyone pays · winner (over 15 pts) takes 70%"}</span>
+            <span className="block text-xs text-mist">{t === "free" ? "Just for bragging rights" : "Everyone pays · the winner takes 70%"}</span>
           </button>
         ))}
       </div>

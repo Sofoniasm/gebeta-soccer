@@ -11,7 +11,7 @@ export const HOME = {
     playedBefore: "played by",
     playedAfter: "football fans",
     tagline: "Predict the scores. Win the Gebeta.",
-    sub: (p: number) => `New 10-match rounds every day · score over 15 to win ${p}% of the pool`,
+    sub: (p: number) => `New 10-match rounds every day · top the table and win ${p}% of the pool`,
     makePredictions: "Make predictions",
     createAccount: "Create free account",
     logIn: "Log in",
@@ -50,7 +50,7 @@ export const HOME = {
     cards: (p: number) => [
       ["Predict", "10 big matches in every round. Lock your scores before kickoff."],
       ["Compete", "Earn points for exact scores and correct results."],
-      ["Win", `Top the table with over 15 points and take ${p}% of the pool.`],
+      ["Win", `Top the table and take ${p}% of the pool, every round.`],
       ["Trust", "Every deposit and payout is recorded and can't be edited."],
     ],
     scoringTop: "Scoring",
