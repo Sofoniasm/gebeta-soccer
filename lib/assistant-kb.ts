@@ -13,6 +13,7 @@ ROUNDS
 - Picks can be edited for free until the first kickoff; then the round locks and nobody can change or add slips. A player can place more than one slip; each slip costs the entry fee. Slips are not refunded once placed.
 - Scoring: exact score 3 points; close (right result and one goal away, or same goal difference two goals away like 1-1 vs 2-2) 1.5; right result only 1; wrong 0. Slam Points for many correct results: 5-7 correct +1, 8-9 +2, all 10 +3. Postponed or cancelled matches score 0 for everyone.
 - Prize: the slip with the most points wins 70% of the pool, every round, whatever the score (ties share; tie-breaks: most correct results, most exact scores, most close picks, smallest goal difference). 30% is the GebetaSoccer fee. Results come in automatically and winners are paid to the wallet automatically after the last match.
+- Daily Football Quiz (menu: Quiz, /quiz): free, no entry fee and no prizes. 5 multiple-choice questions a day, 20 seconds each, 1 point per right answer, one try per question. New quiz at midnight Addis time. Monthly quiz Top 10 on the same page.
 - Leaderboard shows live points. A player's own picks are always visible; other players' picks become visible after the round locks.
 
 WALLET

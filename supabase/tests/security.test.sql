@@ -598,4 +598,20 @@ do $$ begin
 end $$;
 drop table public.tests_prem;
 
+-- ---------- quiz: answers and leaderboard are server-only ----------
+do $$
+begin
+  if has_function_privilege('authenticated', 'public.quiz_leaderboard(timestamptz, timestamptz, int)', 'execute')
+     or has_function_privilege('anon', 'public.quiz_leaderboard(timestamptz, timestamptz, int)', 'execute') then
+    raise exception 'FAIL: clients can call quiz_leaderboard directly';
+  end if;
+  if has_table_privilege('authenticated', 'public.quiz_questions', 'select') or has_table_privilege('anon', 'public.quiz_questions', 'select') then
+    raise exception 'FAIL: clients can read quiz questions (and the right answers)';
+  end if;
+  if has_table_privilege('authenticated', 'public.quiz_answers', 'insert') or has_table_privilege('authenticated', 'public.quiz_answers', 'update') then
+    raise exception 'FAIL: players can write their own quiz answers';
+  end if;
+  raise notice 'ok  quiz: questions, answers and leaderboard are server-only';
+end $$;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'
