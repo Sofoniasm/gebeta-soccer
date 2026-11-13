@@ -6,6 +6,7 @@
  * the house keeps the whole pool.
  */
 import { settleRound, type SettlementResult } from "@/lib/settlement";
+import { isSoloEntry } from "@/lib/solo";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = any;
@@ -25,6 +26,8 @@ export interface SlipSettlement {
   slipById: Map<string, SlipInfo>;
   payouts: { slip: SlipInfo; units: number; rank: number }[];
   picks: { id: number; slip_id: number; match_id: number; home: number; away: number }[];
+  /** Only one distinct player (any number of slips): every stake is refunded, nobody wins. */
+  solo: boolean;
 }
 
 export async function computeSlipSettlement(admin: Admin, round: { id: number; entry_fee_units: number; house_cut: number }): Promise<SlipSettlement> {
@@ -73,9 +76,11 @@ export async function computeSlipSettlement(admin: Admin, round: { id: number; e
 
   const slipById = new Map(slips.map((s) => [String(s.id), s]));
   const rankOf = new Map(result.standings.map((s) => [s.userId, s.rank]));
-  const payouts = result.payouts
+  // One player only: no winner, the database refunds every stake in full.
+  const solo = isSoloEntry(slips.map((s) => s.user_id));
+  const payouts = (solo ? [] : result.payouts)
     .filter((p) => p.units > 0)
     .map((p) => ({ slip: slipById.get(p.userId)!, units: p.units, rank: rankOf.get(p.userId) ?? 1 }));
   const picks = (pickData ?? []) as { id: number; slip_id: number; match_id: number; home: number; away: number }[];
-  return { result, slips, slipById, payouts, picks };
+  return { result, slips, slipById, payouts, picks, solo };
 }

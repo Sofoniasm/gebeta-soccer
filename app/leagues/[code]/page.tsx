@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
 import { etbLabel, unitsLabel } from "@/lib/money";
+import { myPrize, myPrizeText, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
 import { AppShell } from "@/components/AppShell";
 import { Banner } from "@/components/ui";
 import { TrophyIcon, UsersIcon } from "@/components/icons";
@@ -94,6 +95,11 @@ export default async function LeaguePage({
   const site = SITE_URL;
   const inviteUrl = `${site}/join/${league.code}`;
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
+  const memberCount = Number(pool.members);
+  const imIn = myStatus === "active";
+  // A member never sees their own entry fee as a prize from others.
+  const mine = fee > 0 && imIn && league.status === "open" ? myPrize(Number(pool.prize_fund_units), fee, memberCount - 1) : null;
+  const soloRefunded = fee > 0 && league.status === "settled" && memberCount === 1;
 
   return (
     <AppShell next={`/leagues/${code}`}>
@@ -116,16 +122,20 @@ export default async function LeaguePage({
             </p>
           </div>
           <div className="text-right">
-            {fee > 0 && (
+            {fee > 0 && !soloRefunded && mine?.kind !== "waiting" && (
               <>
                 <p className="flex items-center justify-end gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">
-                  <TrophyIcon size={13} /> Winner gets
+                  <TrophyIcon size={13} /> {mine ? "You can win" : "Winner gets"}
                 </p>
                 <p className="text-3xl font-extrabold">{etbLabel(Number(pool.prize_fund_units))}</p>
               </>
             )}
+            {mine && (
+              <p className={`ml-auto max-w-xs text-sm font-semibold ${mine.kind === "waiting" ? "text-mist" : "text-white"}`}>{myPrizeText(mine)}</p>
+            )}
+            {soloRefunded && imIn && <p className="ml-auto max-w-xs text-sm font-semibold text-white">{SOLO_REFUND_MESSAGE}</p>}
             <p className="flex items-center justify-end gap-1 text-xs text-mist">
-              <UsersIcon size={13} /> {pool.members} player{Number(pool.members) === 1 ? "" : "s"}
+              <UsersIcon size={13} /> {imIn ? playersLabel(memberCount, true) : `${pool.members} player${memberCount === 1 ? "" : "s"}`}
               {Number(pool.pending) > 0 && ` · ${pool.pending} waiting`}
             </p>
           </div>

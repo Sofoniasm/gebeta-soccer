@@ -11,6 +11,7 @@ import { etbLabel, unitsLabel } from "@/lib/money";
 import { SITE_URL } from "@/lib/site";
 import { TELEGRAM_BOT_USERNAME } from "@/lib/telegram";
 import { challengePrizeUnits, type Challenge } from "@/lib/challenges";
+import { myPrize, myPrizeText, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
 import { CancelChallengeButton, ChallengePicksForm, ShareChallenge } from "./ChallengePlay";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,8 @@ export default async function ChallengePage({ params, searchParams }: { params: 
   const full = c.max_players !== null && c.players >= c.max_players;
   const me_entry = c.entries.find((e) => e.is_me) ?? null;
   const prize = c.status === "settled" && c.prize_units !== null ? c.prize_units : challengePrizeUnits(c.stake_units, c.players);
+  // A player in the challenge never sees their own stake as a prize from others.
+  const mine = c.is_member && c.status === "open" ? myPrize(prize, c.stake_units, c.players - 1) : null;
   const url = `${SITE_URL}/challenges/${c.code}`;
   const tgLink = TELEGRAM_BOT_USERNAME ? `https://t.me/${TELEGRAM_BOT_USERNAME}?start=c_${c.code}` : null;
   const winners = c.entries.filter((e) => e.rank === 1 && (e.payout_units ?? 0) > 0);
@@ -83,13 +86,17 @@ export default async function ChallengePage({ params, searchParams }: { params: 
           </div>
           <div className="rounded-2xl bg-ink/50 p-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-mist">Players</p>
-            <p className="mt-1 text-sm font-extrabold sm:text-lg">{c.players}{c.max_players ? ` / ${c.max_players}` : ""}</p>
+            <p className="mt-1 text-sm font-extrabold sm:text-lg">
+              {c.is_member ? playersLabel(c.players, true) : c.players}
+              {c.max_players ? <span className="text-xs font-bold text-mist">{` / ${c.max_players}`}</span> : null}
+            </p>
           </div>
           <div className="rounded-2xl bg-ink/50 p-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-mist">{c.status === "settled" ? "Paid" : "Prize"}</p>
-            <p className="mt-1 text-sm font-extrabold text-lilac-soft sm:text-lg">{etbLabel(prize)}</p>
+            <p className="mt-1 text-sm font-extrabold text-lilac-soft sm:text-lg">{mine?.kind === "waiting" ? "—" : etbLabel(prize)}</p>
           </div>
         </div>
+        {mine && <p className={`mt-3 text-sm font-semibold ${mine.kind === "waiting" ? "text-mist" : "text-white"}`}>{myPrizeText(mine)}</p>}
         <p className="mt-3 text-xs text-mist">
           {open
             ? `Closes at the first kickoff: ${formatKickoff(c.lock_at)}. Winner takes ${Math.round((1 - Number(c.fee_pct)) * 100)}% of all stakes; ties share.`
@@ -109,7 +116,15 @@ export default async function ChallengePage({ params, searchParams }: { params: 
           </Banner>
         </div>
       )}
-      {c.status === "refunded" && <div className="mb-5"><Banner kind="success">Nobody else joined before the first kickoff (or the matches were called off), so every stake went back to the wallets.</Banner></div>}
+      {c.status === "refunded" && (
+        <div className="mb-5">
+          <Banner kind="success">
+            {c.players <= 1
+              ? c.is_member ? SOLO_REFUND_MESSAGE : "Nobody else joined, so the stake was refunded in full."
+              : "Every match was called off, so every stake went back to the wallets in full."}
+          </Banner>
+        </div>
+      )}
       {c.status === "cancelled" && <div className="mb-5"><Banner kind="success">The creator cancelled this challenge and got the stake back.</Banner></div>}
 
       {/* Share (members, while open) */}

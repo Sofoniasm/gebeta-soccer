@@ -78,7 +78,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
     previewTotals = {
       pool: slipCalc.result.poolUnits,
       prize: slipCalc.payouts.reduce((s, x) => s + x.units, 0),
-      house: slipCalc.result.houseUnits,
+      house: slipCalc.solo ? 0 : slipCalc.result.houseUnits, // solo: everything is refunded
     };
   }
   const slipsPerPlayer = new Map<string, number>();
@@ -283,7 +283,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                     <div className="rounded-2xl border border-lilac/20 bg-lilac/10 p-4">
                       <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-lilac"><TrophyIcon size={14} /> Preview payouts</p>
                       {preview.length === 0 ? (
-                        <p className="text-sm text-mist">{slipCalc && slipCalc.slips.length > 0 ? "No payouts: no slip passed the winning bar." : "No payouts (no players in this round)."}</p>
+                        <p className="text-sm text-mist">{slipCalc?.solo ? "No payouts: only one player, so every stake is refunded in full (no house fee)." : slipCalc && slipCalc.slips.length > 0 ? "No payouts: no slip passed the winning bar." : "No payouts (no players in this round)."}</p>
                       ) : (
                         <ul className="space-y-1 text-sm">
                           {preview.map((p) => (

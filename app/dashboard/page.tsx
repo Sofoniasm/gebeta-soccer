@@ -4,6 +4,7 @@ import { getMe } from "@/lib/me";
 import { getActiveRounds, getCurrentRound, getRoundMatches, getRoundPool } from "@/lib/rounds";
 import { formatKickoff } from "@/lib/format";
 import { formatUnits, unitsToEtb } from "@/lib/money";
+import { myPrize, myPrizeText, playersLabel } from "@/lib/solo";
 import { formatEtb } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Countdown } from "@/components/Countdown";
@@ -67,6 +68,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .eq("leagues.round_id", round.id);
     leagueNames = ((myLeagues ?? []) as unknown as { leagues: { name: string } }[]).map((l) => l.leagues.name);
   }
+  // A player with slips never sees their own stakes as a prize from others.
+  const mine = round && pool && slips.length > 0
+    ? myPrize(pool.prize_fund_units, slips.length * Number(round.entry_fee_units), pool.players - 1)
+    : null;
+
   // The whole round locks at its first kickoff.
   const kickoffs = matches.filter((m) => !["postponed", "cancelled"].includes(m.status)).map((m) => new Date(m.kickoff_at).getTime());
   const lockAt = kickoffs.length ? new Date(Math.min(...kickoffs)).toISOString() : null;
@@ -269,15 +275,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
               {pool && (
                 <div className="text-right">
-                  <p className="flex items-center justify-end gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">
-                    <TrophyIcon size={13} /> Prize pot
-                  </p>
-                  <p className="text-3xl font-extrabold text-white">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
-                  <p className="text-[11px] text-mist">
-                    winners&apos; share: 70% of {formatEtb(unitsToEtb(pool.entrants * Number(round.entry_fee_units)))} in bets
-                  </p>
+                  {mine?.kind !== "waiting" && (
+                    <>
+                      <p className="flex items-center justify-end gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">
+                        <TrophyIcon size={13} /> {mine ? "You can win" : "Prize pot"}
+                      </p>
+                      <p className="text-3xl font-extrabold text-white">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
+                    </>
+                  )}
+                  {mine ? (
+                    <p className={`ml-auto max-w-xs text-sm font-semibold ${mine.kind === "waiting" ? "text-mist" : "text-white"}`}>{myPrizeText(mine)}</p>
+                  ) : (
+                    <p className="text-[11px] text-mist">
+                      winners&apos; share: 70% of {formatEtb(unitsToEtb(pool.entrants * Number(round.entry_fee_units)))} in bets
+                    </p>
+                  )}
                   <p className="flex items-center justify-end gap-1 text-xs text-mist">
-                    <UsersIcon size={13} /> {pool.entrants} slip{pool.entrants === 1 ? "" : "s"} · {pool.players} player{pool.players === 1 ? "" : "s"}
+                    <UsersIcon size={13} /> {pool.entrants} slip{pool.entrants === 1 ? "" : "s"} ·{" "}
+                    {mine ? playersLabel(pool.players, true) : `${pool.players} player${pool.players === 1 ? "" : "s"}`}
                   </p>
                 </div>
               )}

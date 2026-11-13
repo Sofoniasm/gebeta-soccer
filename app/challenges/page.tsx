@@ -73,10 +73,20 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
                     <div className="shrink-0 text-right">
                       {c.status === "settled" && c.my_payout && c.my_payout > 0 ? (
                         <p className="text-sm font-extrabold text-emerald-200">+{etbLabel(c.my_payout)}</p>
+                      ) : c.status === "refunded" || c.status === "cancelled" ? (
+                        <p className="text-sm font-extrabold text-mist">Refunded</p>
+                      ) : c.status === "open" && Number(c.players) < 2 ? (
+                        <p className="text-sm font-extrabold text-mist">Waiting</p>
                       ) : (
-                        <p className="text-sm font-extrabold">{etbLabel(challengePrizeUnits(c.stake_units, c.players))}</p>
+                        <p className="text-sm font-extrabold">{etbLabel(challengePrizeUnits(c.stake_units, Number(c.players)))}</p>
                       )}
-                      <p className="text-[10px] uppercase tracking-wider text-mist">{c.status === "settled" ? (c.my_rank ? `Rank ${c.my_rank}` : "") : "prize"}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-mist">
+                        {c.status === "settled"
+                          ? (c.my_rank ? `Rank ${c.my_rank}` : "")
+                          : c.status === "refunded" || c.status === "cancelled"
+                            ? "stake back"
+                            : c.status === "open" && Number(c.players) < 2 ? "for players" : "prize"}
+                      </p>
                     </div>
                   </Link>
                 </li>

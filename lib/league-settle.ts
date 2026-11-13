@@ -2,11 +2,13 @@
  * Settle one private league with the same scoring as rounds:
  * league members only, 70% of the league pot to the winner(s) (ties share),
  * 30% house. The best member always wins (no minimum score).
- * Free leagues settle with no money moving.
+ * Free leagues settle with no money moving. A paid league with only ONE
+ * member refunds the entry fee in full (no fee, no winner).
  * Server only (uses the secret-key client).
  */
 import { createAdminClient } from "@/lib/supabase/admin";
 import { settleRound } from "@/lib/settlement";
+import { isSoloEntry, SOLO_REFUND_MESSAGE } from "@/lib/solo";
 
 export interface LeagueSettleResult {
   ok: boolean;
@@ -60,8 +62,10 @@ export async function settleLeague(leagueId: number, adminId: string | null): Pr
     })),
   });
 
+  // Only one member: nobody to win money from. The database refunds the fee.
+  const solo = isSoloEntry(memberIds);
   const rankOf = new Map(result.standings.map((s) => [s.userId, s.rank]));
-  const payouts = result.payouts
+  const payouts = (solo ? [] : result.payouts)
     .filter((p) => p.units > 0)
     .map((p) => ({ user_id: p.userId, units: p.units, rank: rankOf.get(p.userId) ?? 1 }));
 
@@ -71,15 +75,18 @@ export async function settleLeague(leagueId: number, adminId: string | null): Pr
   // Tell every member how they finished (winners also get "You won!" from the wallet).
   const total = result.standings.length;
   const winnerIds = new Set(payouts.map((p) => p.user_id));
+  // Paid solo leagues: the refund itself tells the player (wallet message).
   const notes = result.standings
-    .filter((s) => !winnerIds.has(s.userId))
+    .filter((s) => !winnerIds.has(s.userId) && !(solo && paidLeague))
     .map((s) => ({
       user_id: s.userId,
       kind: "league_result",
       title: `📊 ${league.name}: final table`,
       body:
-        `You finished #${s.rank} of ${total} with ${s.totalPoints} points.` +
-        (result.barMet ? "" : ` Nobody scored more than ${result.winningBar} match points, so the league pot goes to the house.`),
+        solo
+          ? `You were the only player, with ${s.totalPoints} points.`
+          : `You finished #${s.rank} of ${total} with ${s.totalPoints} points.` +
+            (result.barMet ? "" : ` Nobody scored more than ${result.winningBar} match points, so the league pot goes to the house.`),
       link: `/leagues/${league.code}`,
     }));
   if (notes.length) await admin.from("notifications").insert(notes);
@@ -89,6 +96,9 @@ export async function settleLeague(leagueId: number, adminId: string | null): Pr
     : { data: [] };
   const winners = ((names ?? []) as Row[]).map((n) => n.username as string);
   const paid = payouts.reduce((s, p) => s + p.units, 0);
+  if (solo && paidLeague) {
+    return { ok: true, winners: [], message: `${league.name}: only one player, entry fee refunded in full (${SOLO_REFUND_MESSAGE})` };
+  }
   return {
     ok: true,
     winners,

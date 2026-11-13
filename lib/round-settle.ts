@@ -1,13 +1,15 @@
 /**
  * Settle one main-pool round: score every slip, pay the winners (70%, winning
  * bar applies), tell everyone their result and settle the round's private
- * leagues. Used by the admin "Settle" button and by the automatic sync for
+ * leagues. Only one player in the round (any number of slips): every stake is
+ * refunded in full, no house fee, no winner. Used by the admin "Settle" button and by the automatic sync for
  * rounds marked "settle automatically". Server only.
  */
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeSlipSettlement } from "@/lib/slip-settle";
 import { settleLeague } from "@/lib/league-settle";
 import { formatUnits } from "@/lib/money";
+import { soloRefunds } from "@/lib/solo";
 import { buildRoundRecaps, type Lang } from "@/lib/round-recap";
 
 export interface RoundSettleResult {
@@ -38,6 +40,7 @@ async function sendRoundRecaps(
   payouts: Settle["payouts"],
   picks: Settle["picks"],
   roundId: number,
+  solo: boolean,
 ) {
   if (result.standings.length === 0) return;
   const userIds = [...new Set(slips.map((s) => s.user_id))];
@@ -59,6 +62,7 @@ async function sendRoundRecaps(
     matches: new Map(((matchData ?? []) as { id: number; home_team: string; away_team: string; actual_home_score: number | null; actual_away_score: number | null }[]).map((m) => [m.id, m])),
     payoutBySlip: new Map(payouts.map((p) => [String(p.slip.id), p.units])),
     langOf: (uid) => langByChat.get(chatOf.get(uid) ?? -1) ?? "en",
+    soloRefund: solo,
   });
   if (notes.length) await admin.from("notifications").insert(notes);
 }
@@ -74,7 +78,7 @@ export async function settleRoundNow(roundId: number, adminId: string | null): P
   if (problem) return { ok: false, message: problem };
 
   // Every slip is an entrant (slips are always complete).
-  const { result, slips, slipById, payouts, picks } = await computeSlipSettlement(admin, round);
+  const { result, slips, slipById, payouts, picks, solo } = await computeSlipSettlement(admin, round);
 
   const { error } = await admin.rpc("settle_round_slips", {
     p_round_id: roundId,
@@ -88,7 +92,7 @@ export async function settleRoundNow(roundId: number, adminId: string | null): P
   // Personal recap for every player (one message each, in their bot language).
   const roundName = (round.name as string) || `Round ${roundId}`;
   try {
-    await sendRoundRecaps(admin, roundName, result, slips, slipById, payouts, picks, roundId);
+    await sendRoundRecaps(admin, roundName, result, slips, slipById, payouts, picks, roundId, solo);
   } catch (e) {
     console.error("round recaps:", (e as Error).message); // never undo a settled round over a message
   }
@@ -101,6 +105,14 @@ export async function settleRoundNow(roundId: number, adminId: string | null): P
     leagueMsgs.push(r.message);
   }
 
+  const leaguesText = leagueMsgs.length ? ` Leagues: ${leagueMsgs.join(" ")}` : "";
+  if (solo) {
+    const refunded = soloRefunds(slips.map((s) => ({ userId: s.user_id, units: Number(round.entry_fee_units) })))?.[0]?.units ?? 0;
+    return {
+      ok: true,
+      message: `${roundName} settled with only one player (${slips[0]?.username ?? "player"}, ${slips.length} slip${slips.length === 1 ? "" : "s"}): ${formatUnits(refunded)} refunded in full, no house fee.${leaguesText}`,
+    };
+  }
   const winners = payouts.length;
   const paid = payouts.reduce((sum, p) => sum + p.units, 0);
   return {
@@ -109,7 +121,7 @@ export async function settleRoundNow(roundId: number, adminId: string | null): P
       (result.barMet
         ? `${roundName} settled. Pool ${formatUnits(result.poolUnits)}, paid ${winners} winning slip${winners === 1 ? "" : "s"} ${formatUnits(paid)}, house ${formatUnits(result.houseUnits)}.`
         : `${roundName} settled with no winner (best slip ${result.topMatchPoints}, bar more than ${result.winningBar}). House keeps the pool: ${formatUnits(result.houseUnits)}.`) +
-      (leagueMsgs.length ? ` Leagues: ${leagueMsgs.join(" ")}` : ""),
+      leaguesText,
   };
 }
 

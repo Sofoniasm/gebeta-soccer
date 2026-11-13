@@ -3,6 +3,7 @@
  * in their bot language. Pure (no database), so it is easy to test.
  */
 import { formatUnits } from "@/lib/money";
+import { SOLO_REFUND_MESSAGE, SOLO_REFUND_MESSAGE_AM } from "@/lib/solo";
 
 export type Lang = "en" | "am";
 
@@ -25,6 +26,8 @@ export interface RecapInput {
   matches: Map<number, RecapMatch>;
   payoutBySlip: Map<string, number>;
   langOf: (userId: string) => Lang;
+  /** Only one player in the round: stakes were refunded, nobody won. */
+  soloRefund?: boolean;
 }
 
 export interface RecapNote { user_id: string; kind: string; title: string; body: string; link: string }
@@ -82,13 +85,13 @@ export function buildRoundRecaps(input: RecapInput): RecapNote[] {
       body =
         `${many ? `ምርጥ ስሊፕዎ (#${bestNo})` : `ስሊፕዎ`} ከ${total} ውስጥ ${best.rank}ኛ ወጥቷል፣ ${pts(best.totalPoints)} ነጥብ (${best.exactScores} ትክክለኛ ውጤት፣ ${best.correctResults} ትክክለኛ አሸናፊ)።` +
         callText +
-        (won > 0 ? ` 🎉 ${formatUnits(won)} አሸንፈዋል፣ ዋሌትዎ ላይ ገብቷል።` : " በዚህ ዙር ሽልማት የለም።") +
+        (input.soloRefund ? ` ${SOLO_REFUND_MESSAGE_AM}` : won > 0 ? ` 🎉 ${formatUnits(won)} አሸንፈዋል፣ ዋሌትዎ ላይ ገብቷል።` : " በዚህ ዙር ሽልማት የለም።") +
         " ለቀጣዩ ዙር ዝግጁ ነዎት? ግምቶችዎን በዳሽቦርድ ላይ ያስገቡ።";
     } else {
       body =
         `${many ? `Your best slip (#${bestNo})` : "Your slip"} finished ${ordinal(best.rank)} of ${total} with ${pts(best.totalPoints)} points (${best.exactScores} exact, ${best.correctResults} correct results).` +
         callText +
-        (won > 0 ? ` 🎉 You won ${formatUnits(won)}, it's in your wallet.` : " No prize this time.") +
+        (input.soloRefund ? ` ${SOLO_REFUND_MESSAGE}` : won > 0 ? ` 🎉 You won ${formatUnits(won)}, it's in your wallet.` : " No prize this time.") +
         " Ready for the next round? Make your picks on the Dashboard.";
     }
     notes.push({
