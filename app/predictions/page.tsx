@@ -32,17 +32,29 @@ export default async function PredictionsPage() {
       .select(`${MATCH_COLS}, match_previews!inner(pick_home, pick_away, verdict, verdict_am)`)
       .gte("kickoff_at", from)
       .lte("kickoff_at", to)
+      .neq("provider", "test")
       .order("kickoff_at")
       .limit(60),
     supabase.from("rounds").select("id").in("status", ["open", "locked"]),
   ]);
+  // Also the next real fixtures from the match sync, so the page is never empty between rounds.
+  const { data: upcomingRows } = await supabase
+    .from("matches")
+    .select(MATCH_COLS)
+    .eq("status", "scheduled")
+    .gte("kickoff_at", new Date().toISOString())
+    .lte("kickoff_at", to)
+    .neq("provider", "test")
+    .order("kickoff_at")
+    .limit(80);
   const roundIds = ((roundRows ?? []) as { id: number }[]).map((r) => r.id);
   const { data: roundMatches } = roundIds.length
-    ? await supabase.from("matches").select(MATCH_COLS).in("round_id", roundIds).order("kickoff_at")
+    ? await supabase.from("matches").select(MATCH_COLS).in("round_id", roundIds).neq("provider", "test").order("kickoff_at")
     : { data: [] };
 
   type Row = PredictionMatch & { match_previews?: { pick_home: number; pick_away: number; verdict: string; verdict_am?: string | null } | null };
   const byId = new Map<number, Row>();
+  for (const m of (upcomingRows ?? []) as Row[]) byId.set(m.id, m);
   for (const m of (roundMatches ?? []) as Row[]) byId.set(m.id, m);
   for (const m of (previewed ?? []) as unknown as Row[]) {
     // one-to-one embed comes back as an object (older PostgREST: a one-item list)

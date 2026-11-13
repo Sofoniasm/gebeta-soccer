@@ -52,12 +52,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       type M = { id: number; home_team: string; away_team: string; kickoff_at: string; updated_at: string };
       const since = new Date(Date.now() - 60 * 86400 * 1000).toISOString();
       const [{ data: tipped }, { data: liveRounds }] = await Promise.all([
-        supabase.from("matches").select("id, home_team, away_team, kickoff_at, updated_at, match_previews!inner(updated_at)").gte("kickoff_at", since).limit(2000),
+        supabase.from("matches").select("id, home_team, away_team, kickoff_at, updated_at, match_previews!inner(updated_at)").gte("kickoff_at", since).neq("provider", "test").limit(2000),
         supabase.from("rounds").select("id").in("status", ["open", "locked", "settled"]),
       ]);
       const ids = ((liveRounds ?? []) as { id: number }[]).map((r) => r.id);
       const { data: roundMatches } = ids.length
-        ? await supabase.from("matches").select("id, home_team, away_team, kickoff_at, updated_at").in("round_id", ids).gte("kickoff_at", since).limit(2000)
+        ? await supabase.from("matches").select("id, home_team, away_team, kickoff_at, updated_at").in("round_id", ids).gte("kickoff_at", since).neq("provider", "test").limit(2000)
         : { data: [] };
       const seen = new Set<number>();
       for (const m of [...((tipped ?? []) as M[]), ...((roundMatches ?? []) as M[])]) {

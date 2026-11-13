@@ -35,13 +35,26 @@ export async function GET(req: NextRequest) {
   });
   // Shown in the empty chat BEFORE the player taps Start (Telegram doesn't let
   // a bot send messages until then), so tell them exactly what to do.
+  // Shown in the empty chat BEFORE the player taps Start: what the bot is for.
   await tg("setMyDescription", {
     description:
-      "👋 Welcome to GebetaSoccer, Ethiopia's daily football prediction game.\n\n" +
-      "To confirm your phone number:\n1️⃣ Tap START below\n2️⃣ Tap “Share my phone number”\n3️⃣ Go back to the website. You're in!\n\nIt's free and takes 5 seconds.",
+      "⚽ GebetaSoccer: Ethiopia's daily football prediction game (18+).\n\n" +
+      "• Predict the scores of 10 big matches in the Morning, Evening or Night round\n" +
+      "• The best slip wins 70% of the pool, every round\n" +
+      "• Challenge friends, check your wallet and get your results right here\n\n" +
+      "Tap START, then Play. Signed up on the website? Tap \"Continue with my Telegram number\" once and you're in.",
+  });
+  await tg("setMyDescription", {
+    language_code: "am",
+    description:
+      "⚽ ገበጣሶከር፦ የኢትዮጵያ የዕለት የእግር ኳስ ውጤት ግምት ጨዋታ (18+)።\n\n" +
+      "• በጠዋት፣ ከሰዓት ወይም ማታ ዙር የ10 ታላላቅ ጨዋታዎችን ውጤት ይገምቱ\n" +
+      "• ምርጡ ስሊፕ በእያንዳንዱ ዙር የገንዳውን 70% ያሸንፋል\n" +
+      "• ጓደኞችዎን ይግጠሙ፣ ዋሌትዎንና ውጤቶችዎን እዚሁ ይመልከቱ\n\n" +
+      "START ን ከዚያ ይጫወቱን ይንኩ። በድረ-ገጹ ተመዝግበዋል? አንድ ጊዜ «በቴሌግራም ቁጥሬ ቀጥል» ን ይንኩ።",
   });
   await tg("setMyShortDescription", {
-    short_description: "Confirm your GebetaSoccer phone number — tap START, then Share my phone number.",
+    short_description: "Predict 10 matches a round, win the pot. Daily rounds, challenges and results. 18+",
   });
   // Profile picture = the GebetaSoccer logo (public/bot-avatar.jpg). Skip with ?photo=0.
   let photo: { ok: boolean; description?: string } = { ok: false, description: "skipped" };

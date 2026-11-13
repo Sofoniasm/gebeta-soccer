@@ -46,6 +46,7 @@ export default async function Home() {
       .select("id, home_team, away_team, kickoff_at, competition, home_crest, away_crest")
       .eq("status", "scheduled")
       .gt("kickoff_at", nowIso)
+      .neq("provider", "test")
       .order("kickoff_at", { ascending: true })
       .limit(12),
   ]);
@@ -59,6 +60,7 @@ export default async function Home() {
           .select("id, home_team, away_team, kickoff_at, competition, home_crest, away_crest")
           .eq("round_id", activeRound.id)
           .gt("kickoff_at", nowIso)
+          .neq("provider", "test")
           .order("kickoff_at")
           .limit(3)
           .then((r) => (r.data ?? []) as Featured[])
