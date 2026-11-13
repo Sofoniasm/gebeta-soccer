@@ -32,9 +32,13 @@ interface Ledger {
   kind: string;
   round_id: number | null;
   league_id: number | null;
+  challenge_id: number | null;
   reference: string | null;
   created_at: string;
 }
+
+/** Where the company's money comes from. */
+export type RevenueSource = "rounds" | "leagues" | "challenges" | "premium" | "bonuses";
 
 export async function getOverview() {
   const admin = createAdminClient();
@@ -50,9 +54,10 @@ export async function getOverview() {
     { data: leagueMembers },
     { count: predictionCount },
     { data: logins },
+    { data: challengeRows },
   ] = await Promise.all([
     admin.from("profiles").select("id, username, phone_number, email, created_at, phone_verified_at, balance_units, is_admin").limit(10000),
-    admin.from("wallet_ledger").select("user_id, amount_units, kind, round_id, league_id, reference, created_at").order("created_at", { ascending: false }).limit(20000),
+    admin.from("wallet_ledger").select("user_id, amount_units, kind, round_id, league_id, challenge_id, reference, created_at").order("created_at", { ascending: false }).limit(20000),
     admin.from("rounds").select("id, name, status, created_at"),
     admin.from("leagues").select("id, name, status, entry_fee_units"),
     admin.from("withdrawal_requests").select("user_id, units, status, created_at, processed_at"),
@@ -60,6 +65,7 @@ export async function getOverview() {
     admin.from("league_members").select("league_id, user_id, status, requested_at, joined_at"),
     admin.from("predictions").select("id", { count: "exact", head: true }),
     admin.from("login_attempts").select("login_key, ip, created_at").eq("success", true).order("created_at", { ascending: false }).limit(300),
+    admin.from("challenges").select("id, status"),
   ]);
 
   const profiles = ((profilesData ?? []) as Profile[]).map((p) => ({ ...p, balance_units: Number(p.balance_units) }));
@@ -108,6 +114,29 @@ export async function getOverview() {
     prizesPaid: roundPaid + leaguePaid,
   };
 
+  // ---- company revenue, by source (Units). Only finished games count:
+  // money still in an open round/league/challenge may yet be paid out.
+  const settledChallenges = new Set(((challengeRows ?? []) as { id: number; status: string }[]).filter((c) => c.status === "settled").map((c) => c.id));
+  const sourceOf = (l: Ledger): RevenueSource | null => {
+    if (l.kind === "subscription") return "premium";
+    if (l.kind === "adjustment") return "bonuses";
+    if (!["entry_fee", "payout", "refund"].includes(l.kind)) return null;
+    if (l.challenge_id) return settledChallenges.has(l.challenge_id) ? "challenges" : null;
+    if (l.league_id) return settledLeagues.has(l.league_id) ? "leagues" : null;
+    if (l.round_id) return settledRounds.has(l.round_id) ? "rounds" : null;
+    return null;
+  };
+  const revenue: Record<RevenueSource, number> = { rounds: 0, leagues: 0, challenges: 0, premium: 0, bonuses: 0 };
+  const revenue30: Record<RevenueSource, number> = { rounds: 0, leagues: 0, challenges: 0, premium: 0, bonuses: 0 };
+  for (const l of ledger) {
+    const src = sourceOf(l);
+    if (!src) continue;
+    revenue[src] -= l.amount_units; // money leaving players = money to the company
+    if (within(l.created_at, 30)) revenue30[src] -= l.amount_units;
+  }
+  const revenueTotal = Object.values(revenue).reduce((a, b) => a + b, 0);
+  const revenueTotal30 = Object.values(revenue30).reduce((a, b) => a + b, 0);
+
   // ---- game
   const lm = (leagueMembers ?? []) as { league_id: number; user_id: string; status: string; requested_at: string; joined_at: string | null }[];
   const game = {
@@ -121,7 +150,7 @@ export async function getOverview() {
   // ---- 30-day charts
   const days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(now - (29 - i) * 86_400_000);
-    return { key: dayKey(d), label: new Intl.DateTimeFormat("en-GB", { timeZone: TZ, day: "numeric" }).format(d), signups: 0, deposits: 0 };
+    return { key: dayKey(d), label: new Intl.DateTimeFormat("en-GB", { timeZone: TZ, day: "numeric" }).format(d), signups: 0, deposits: 0, revenue: 0 };
   });
   const slot = new Map(days.map((d) => [d.key, d]));
   for (const p of profiles) {
@@ -129,9 +158,10 @@ export async function getOverview() {
     if (s) s.signups += 1;
   }
   for (const l of ledger) {
-    if (l.kind !== "deposit") continue;
     const s = slot.get(dayKey(new Date(l.created_at)));
-    if (s) s.deposits += l.amount_units;
+    if (!s) continue;
+    if (l.kind === "deposit") s.deposits += l.amount_units;
+    if (sourceOf(l)) s.revenue -= l.amount_units;
   }
 
   // ---- activity feed (newest first)
@@ -177,5 +207,5 @@ export async function getOverview() {
 
   const newest = [...profiles].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 8);
 
-  return { players, money, game, days, activity: items.slice(0, 60), newest };
+  return { players, money, game, days, activity: items.slice(0, 60), newest, revenue: { bySource: revenue, bySource30: revenue30, total: revenueTotal, total30: revenueTotal30 } };
 }

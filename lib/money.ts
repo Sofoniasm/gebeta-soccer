@@ -12,7 +12,8 @@ export const KEEP_UNITS_ON_WITHDRAWAL = 1;
 export const MAX_DEPOSIT_UNITS = 500;
 
 export function unitsToEtb(units: number): number {
-  return Math.round(units * ETB_PER_UNIT * 100) / 100;
+  const etb = Math.round(units * ETB_PER_UNIT * 100) / 100;
+  return etb === 0 ? 0 : etb; // never show "-0"
 }
 
 const num = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });

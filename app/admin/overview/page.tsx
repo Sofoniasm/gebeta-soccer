@@ -24,7 +24,17 @@ const TONE: Record<string, string> = {
 
 export default async function OverviewPage() {
   await requireAdminId("/admin/overview");
-  const { players, money, game, days, activity, newest } = await getOverview();
+  const { players, money, game, days, activity, newest, revenue } = await getOverview();
+  const SOURCES = [
+    { key: "rounds" as const, label: "Daily rounds", note: "30% house fee + pools nobody won", color: "bg-lilac" },
+    { key: "premium" as const, label: "Gebeta Premium", note: "subscriptions", color: "bg-amber-300" },
+    { key: "challenges" as const, label: "Challenges", note: "10% fee", color: "bg-emerald-300" },
+    { key: "leagues" as const, label: "Private leagues", note: "30% house fee", color: "bg-sky-300" },
+    { key: "bonuses" as const, label: "Bonuses & corrections", note: "units you gave (−) or took back (+)", color: "bg-rose-300" },
+  ];
+  const ranked = [...SOURCES].sort((a, b) => revenue.bySource[b.key] - revenue.bySource[a.key]);
+  const positiveTotal = SOURCES.reduce((sum, x) => sum + Math.max(0, revenue.bySource[x.key]), 0);
+  const maxAbsDay = Math.max(...days.map((d) => Math.abs(d.revenue)), 0.01);
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
   const maxSignups = Math.max(...days.map((d) => d.signups), 1);
   const maxDeposits = Math.max(...days.map((d) => d.deposits), 1);
@@ -34,7 +44,7 @@ export default async function OverviewPage() {
     { label: "Phone confirmed", value: players.verified.toLocaleString("en-US"), sub: `${players.total - players.verified} not confirmed yet`, href: "/admin/players" },
     { label: "Active (30 days)", value: players.active30.toLocaleString("en-US"), sub: `${players.withBalance} with money in wallet` },
     { label: "Deposits received", value: etbLabel(money.deposited), sub: `${etbLabel(money.depositedToday)} today · ${etbLabel(money.depositedWeek)} this week`, href: "/admin/deposits" },
-    { label: "House revenue (30%)", value: etbLabel(money.houseRevenue), sub: `Rounds ${etbLabel(money.houseFromRounds)} · Leagues ${etbLabel(money.houseFromLeagues)}` },
+    { label: "Company revenue", value: etbLabel(revenue.total), sub: `${etbLabel(revenue.total30)} in the last 30 days` },
     { label: "Prizes paid", value: etbLabel(money.prizesPaid), sub: `${game.roundsSettled} round${game.roundsSettled === 1 ? "" : "s"} settled` },
     { label: "In players' wallets", value: etbLabel(money.heldInWallets), sub: `${etbLabel(money.inPlay)} in open rounds/leagues` },
     {
@@ -78,6 +88,73 @@ export default async function OverviewPage() {
           );
         })}
       </div>
+
+      {/* Company revenue: total, by source, last 30 days */}
+      <section className={`${card} mb-5`}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">Company revenue · all time</p>
+            <p className={`mt-1 text-4xl font-extrabold ${revenue.total < 0 ? "text-rose-200" : "text-white"}`}>{etbLabel(revenue.total)}</p>
+            <p className="mt-1 text-sm text-mist">
+              Last 30 days: <b className="text-white">{etbLabel(revenue.total30)}</b>. Counts finished rounds, leagues and challenges only (money in open games may still be paid out).
+            </p>
+          </div>
+          {ranked[0] && revenue.bySource[ranked[0].key] > 0 && (
+            <p className="rounded-full bg-lilac/15 px-4 py-2 text-sm font-bold text-lilac-soft">
+              Top earner: {ranked[0].label} ({positiveTotal > 0 ? Math.round((revenue.bySource[ranked[0].key] / positiveTotal) * 100) : 0}%)
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div>
+            <h3 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-mist">Where the money comes from</h3>
+            <ul className="space-y-3">
+              {ranked.map((x) => {
+                const v = revenue.bySource[x.key];
+                const pct = positiveTotal > 0 && v > 0 ? (v / positiveTotal) * 100 : 0;
+                return (
+                  <li key={x.key}>
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span>
+                        <b className="text-white">{x.label}</b> <span className="text-xs text-mist">{x.note}</span>
+                      </span>
+                      <span className={`shrink-0 font-extrabold ${v < 0 ? "text-rose-200" : "text-white"}`}>
+                        {etbLabel(v)} {v > 0 && <span className="text-xs font-bold text-mist">{Math.round(pct)}%</span>}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/5">
+                      <div className={`h-full rounded-full ${v < 0 ? "bg-rose-400" : x.color}`} style={{ width: `${v < 0 ? Math.min(100, (Math.abs(v) / Math.max(positiveTotal, Math.abs(v))) * 100) : pct}%` }} />
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-mist">last 30 days: {etbLabel(revenue.bySource30[x.key])}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-mist">Earned per day · last 30 days</h3>
+            <div className="relative flex h-44 items-center gap-1">
+              <div className="absolute inset-x-0 top-1/2 border-t border-white/10" />
+              {days.map((d) => {
+                const h = (Math.abs(d.revenue) / maxAbsDay) * 50;
+                return (
+                  <div key={d.key} className="relative flex h-full flex-1 flex-col justify-center" title={`${d.key}: ${etbLabel(d.revenue)}`}>
+                    {d.revenue > 0 && <div className="absolute bottom-1/2 w-full rounded-t bg-gradient-to-t from-emerald-500/70 to-emerald-300" style={{ height: `${Math.max(3, h)}%` }} />}
+                    {d.revenue < 0 && <div className="absolute top-1/2 w-full rounded-b bg-rose-400/80" style={{ height: `${Math.max(3, h)}%` }} />}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-1 flex justify-between text-[9px] text-mist">
+              <span>{days[0].label}</span>
+              <span>{days[14].label}</span>
+              <span>today</span>
+            </div>
+            <p className="mt-2 text-[11px] text-mist">Green: earned that day. Red: the company paid out more than it took (a big win, a bonus). Hover a bar for the amount.</p>
+          </div>
+        </div>
+      </section>
 
       <div className="mb-5 grid gap-5 lg:grid-cols-2">
         {[
