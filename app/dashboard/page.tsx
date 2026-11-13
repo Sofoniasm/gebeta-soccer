@@ -31,9 +31,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // Only an open/in-progress round is "active". A settled one moves to Results.
   // Daily rounds: several can be open at once; ?round=<id> picks one (default: closing soonest).
-  const active = await getActiveRounds(supabase);
+  const active = await getActiveRounds(supabase, { includeTest: me.is_admin });
   const round = active.find((r) => String(r.id) === roundParam) ?? active[0] ?? null;
-  const current = round ? null : await getCurrentRound(supabase);
+  const current = round ? null : await getCurrentRound(supabase, { includeTest: me.is_admin });
   const lastSettled = current?.status === "settled" ? current : null;
   const matches = round ? await getRoundMatches(supabase, round.id) : [];
   const pool = round ? await getRoundPool(supabase, round.id) : null;

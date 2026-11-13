@@ -39,9 +39,9 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const { tab = "round", round: roundParam } = await searchParams;
   const supabase = await createClient();
   // Daily rounds: pick one (default: a round in play, else the one closing soonest, else the last settled).
-  const active = await getActiveRounds(supabase);
+  const active = await getActiveRounds(supabase, { includeTest: (await getMe("/leaderboard")).is_admin });
   const chosen = active.find((r) => String(r.id) === roundParam) ?? active.find((r) => !r.bettable) ?? active[0] ?? null;
-  const round = chosen ?? (await getCurrentRound(supabase));
+  const round = chosen ?? (await getCurrentRound(supabase, { includeTest: (await getMe("/leaderboard")).is_admin }));
 
   let rows: Row[] = [];
   if (tab === "all") {

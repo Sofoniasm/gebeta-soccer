@@ -1,3 +1,4 @@
+import { testRoundIds } from "@/lib/rounds";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatEtb, formatKickoff } from "@/lib/format";
@@ -14,8 +15,10 @@ export async function RecentWinners({ limit = 3 }: { limit?: number }) {
     .select("id, name, settled_at")
     .eq("status", "settled")
     .order("settled_at", { ascending: false })
-    .limit(limit);
-  const list = (rounds ?? []) as { id: number; name: string; settled_at: string | null }[];
+    .limit(limit + 5);
+  const all = (rounds ?? []) as { id: number; name: string; settled_at: string | null }[];
+  const test = await testRoundIds(supabase, all.map((r) => r.id));
+  const list = all.filter((r) => !test.has(r.id)).slice(0, limit);
   if (list.length === 0) return null;
 
   const [{ data: w }, pools] = await Promise.all([

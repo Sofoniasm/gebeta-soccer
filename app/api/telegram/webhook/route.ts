@@ -42,7 +42,9 @@ const mask = (p: string) => p.replace(/^(\+2519?\d{2})\d{4}(\d{2})$/, "$1••�
 
 export async function POST(req: NextRequest) {
   // Only Telegram (which knows the secret) may call this.
-  if (req.headers.get("x-telegram-bot-api-secret-token") !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+  // If the secret is missing on the server, refuse everything (never "undefined === undefined").
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (!secret || req.headers.get("x-telegram-bot-api-secret-token") !== secret) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
