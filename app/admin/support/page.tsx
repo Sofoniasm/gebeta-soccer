@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AppShell } from "@/components/AppShell";
 import { formatKickoff } from "@/lib/format";
 import { SubmitButton } from "../SubmitButton";
+import { sendMessage } from "@/lib/telegram";
+import { Banner } from "@/components/ui";
 
 export const metadata = { title: "Support · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -20,11 +22,44 @@ async function closeRequest(formData: FormData) {
   redirect("/admin/support");
 }
 
+const escHtml = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** Send the admin's answer to the player through @GebetaSoccerbot (works without a Telegram @username). */
+async function replyRequest(formData: FormData) {
+  "use server";
+  await requireAdminId("/admin/support");
+  const id = Number(formData.get("id"));
+  const text = String(formData.get("reply") ?? "").trim().slice(0, 3000);
+  const close = formData.get("close") === "on";
+  const back = (k: "msg" | "err", m: string): never => {
+    revalidatePath("/admin/support");
+    redirect(`/admin/support?${k}=${encodeURIComponent(m)}`);
+  };
+  if (!text) back("err", "Write a reply first.");
+  const admin = createAdminClient();
+  const { data: r } = await admin.from("support_requests").select("id, user_id, chat_id, contact, admin_note").eq("id", id).maybeSingle();
+  if (!r) return back("err", "Request not found.");
+  const { data: p } = r.user_id ? await admin.from("profiles").select("telegram_user_id").eq("id", r.user_id).maybeSingle() : { data: null };
+  const chat = Number(r.contact?.telegram_id ?? r.chat_id ?? p?.telegram_user_id ?? 0);
+  // Copy in the app too (no second Telegram message).
+  if (r.user_id) {
+    await admin.from("notifications").insert({ user_id: r.user_id, kind: "support", title: "💬 Reply from GebetaSoccer support", body: text.slice(0, 500), link: "/help", push: false });
+  }
+  if (!chat) back(r.user_id ? "msg" : "err", r.user_id ? `Player has no Telegram linked: reply #${id} saved in their app notifications only.` : "This player can't be reached (no Telegram).");
+  const res = await sendMessage(chat, `💬 <b>GebetaSoccer support</b> (request #${id})\n\n${escHtml(text)}`);
+  if (!res.ok) back("err", `Telegram didn't deliver it: ${res.description ?? "unknown error"} (the player may have blocked the bot).`);
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const note = `${r.admin_note ? `${r.admin_note}\n` : ""}[${stamp} UTC] Replied: ${text}`.slice(-4000);
+  await admin.from("support_requests").update(close ? { admin_note: note, status: "done", closed_at: new Date().toISOString() } : { admin_note: note }).eq("id", id);
+  back("msg", `Reply sent to the player on Telegram${close ? " and request closed" : ""}.`);
+}
+
 type Contact = { username?: string | null; phone?: string | null; telegram_id?: number | null; telegram_username?: string | null; telegram_name?: string | null };
 type Req = { id: number; user_id: string | null; chat_id: number | null; channel: string; question: string; summary: string | null; contact: Contact | null; status: string; admin_note: string | null; created_at: string; profiles: { username: string; phone_number: string | null } | null };
 type Msg = { id: number; channel: string; question: string; answer: string | null; escalated: boolean; created_at: string; profiles: { username: string } | null };
 
-export default async function SupportPage() {
+export default async function SupportPage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const sp = await searchParams;
   await requireAdminId("/admin/support");
   const admin = createAdminClient();
   const [{ data: open }, { data: done }, { data: recent }, { count: today }] = await Promise.all([
@@ -44,6 +79,8 @@ export default async function SupportPage() {
 
   return (
     <AppShell title="Support" next="/admin/support">
+      {sp.msg && <div className="mb-4"><Banner kind="success">{sp.msg}</Banner></div>}
+      {sp.err && <div className="mb-4"><Banner kind="error">{sp.err}</Banner></div>}
       <p className="mb-5 text-sm text-mist">
         The help assistant answers players on the website (Help page) and in the Telegram bot. Money problems, disputes and account issues come here.{" "}
         {process.env.ANTHROPIC_API_KEY ? <b className="text-emerald-200">Assistant is on.</b> : <b className="text-amber-100">Assistant is off: add ANTHROPIC_API_KEY in Vercel.</b>}{" "}
@@ -69,6 +106,15 @@ export default async function SupportPage() {
                     )}
                   </p>
                 )}
+                {r.admin_note && <p className="mt-2 whitespace-pre-line rounded-xl bg-white/5 p-2 text-xs text-mist">{r.admin_note}</p>}
+                <form action={replyRequest} className="mt-3 space-y-2">
+                  <input type="hidden" name="id" value={r.id} />
+                  <textarea name="reply" required rows={2} maxLength={3000} placeholder="Reply to the player (sent by @GebetaSoccerbot)" className="w-full rounded-xl border border-white/10 bg-ink/70 px-3 py-2 text-sm outline-none focus:border-lilac" />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <SubmitButton className="rounded-full bg-lilac px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink">Send on Telegram</SubmitButton>
+                    <label className="flex items-center gap-2 text-xs text-mist"><input type="checkbox" name="close" className="accent-[#b4a7f5]" /> Close the request too</label>
+                  </div>
+                </form>
                 <form action={closeRequest} className="mt-3 flex flex-wrap gap-2">
                   <input type="hidden" name="id" value={r.id} />
                   <input name="note" placeholder="What you did (optional)" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-ink/70 px-3 py-2 text-sm outline-none focus:border-lilac" />
