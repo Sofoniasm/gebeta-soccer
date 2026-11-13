@@ -67,18 +67,20 @@ export async function adjustUnits(formData: FormData) {
   if (!userId) return done("err", "No player selected.", back);
   if (!Number.isFinite(units) || units <= 0 || units > 50) return done("err", "Enter between 1 and 50 units.", back);
 
-  const reference = note ? `Manual Telegram Adjustment — ${note}` : "Manual Telegram Adjustment";
-  const { error } = await createAdminClient().rpc(op === "deduct" ? "admin_deduct_units" : "admin_add_units", {
+  // Corrections and bonuses only. Real money in goes through Admin -> Deposits.
+  const reference = note ? `Correction by admin — ${note}` : "Correction by admin";
+  const { error } = await createAdminClient().rpc(op === "deduct" ? "admin_deduct_units" : "admin_add_correction", {
     p_user_id: userId,
     p_units: units,
     p_reference: reference,
     p_admin_id: adminId,
   });
   if (error) {
+    if (error.message.includes("admin_add_correction")) return done("err", "Run the 0034 SQL first.", back);
     return done("err", error.message.includes("insufficient") ? "Player doesn't have that many units." : error.message, back);
   }
   await pushNotifications([userId]);
-  return done("msg", op === "deduct" ? `Deducted ${formatUnits(units)}.` : `Added ${formatUnits(units)}.`, back);
+  return done("msg", op === "deduct" ? `Deducted ${formatUnits(units)} (correction).` : `Added ${formatUnits(units)} as a correction / bonus (not a deposit).`, back);
 }
 
 // ------------------------------------------------------- login lock

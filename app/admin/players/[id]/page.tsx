@@ -153,12 +153,18 @@ export default async function PlayerDetailPage({
               <input name="note" placeholder="Note" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-ink/70 px-3 py-2 text-sm outline-none focus:border-lilac" />
             </div>
             <div className="flex flex-wrap gap-2">
-              <SubmitButton name="op" value="add" className={secondaryButtonClass}>Add units</SubmitButton>
+              <SubmitButton name="op" value="add" className={secondaryButtonClass} confirm="Add these units as a correction or bonus? (Real Telebirr money goes on the Deposits page.)">Add (correction)</SubmitButton>
               <SubmitButton name="op" value="deduct" className="rounded-full border border-rose-300/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-200 hover:bg-rose-400/10" confirm="Deduct these units?">
                 Deduct
               </SubmitButton>
             </div>
           </form>
+          <p className="mt-2 text-xs text-mist">
+            Corrections and bonuses only.{" "}
+            <Link href={`/admin/deposits?q=${encodeURIComponent(p.username)}`} className="font-bold text-emerald-200 hover:text-emerald-100">
+              💰 Record a Telebirr deposit →
+            </Link>
+          </p>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 pt-4">
             <form action={unlockLogin}>
               <input type="hidden" name="userId" value={p.id} />

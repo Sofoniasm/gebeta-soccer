@@ -128,7 +128,7 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
                   <input type="hidden" name="q" value={q} />
                   <input name="units" type="number" step="0.5" min="1" max="50" defaultValue="1" required className={`${small} w-20`} aria-label="Units (1–50)" />
                   <input name="note" placeholder="Note (optional)" className={`${small} min-w-0 flex-1`} />
-                  <SubmitButton name="op" value="add" className={secondaryButtonClass}>Add units</SubmitButton>
+                  <SubmitButton name="op" value="add" className={secondaryButtonClass} confirm="Add these units as a correction or bonus? (Real Telebirr money goes on the Deposits page.)">Add (correction)</SubmitButton>
                   <SubmitButton
                     name="op"
                     value="deduct"
@@ -137,6 +137,9 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
                   >
                     Deduct units
                   </SubmitButton>
+                  <Link href={`/admin/deposits?q=${encodeURIComponent(u.username)}`} className="text-xs font-bold uppercase tracking-wider text-emerald-200 hover:text-emerald-100">
+                    💰 Record Telebirr deposit →
+                  </Link>
                 </form>
                 <form action={unlockLogin} className="mt-2">
                   <input type="hidden" name="userId" value={u.id} />
