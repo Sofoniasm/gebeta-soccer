@@ -10,14 +10,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
 import { getSiteSettings } from "@/lib/site-settings";
-import { ASSISTANT_KB } from "@/lib/assistant-kb";
+import { cleanHistory, ESCALATE, systemPrompt, type Turn } from "@/lib/assistant-prompt";
 import { formatUnits } from "@/lib/money";
 
 export type Channel = "web" | "telegram";
-export interface Turn { role: "user" | "assistant"; content: string }
+export type { Turn };
 
 const MODEL = process.env.ASSISTANT_MODEL || "claude-haiku-5-5";
-const ESCALATE = "[[HANDOFF]]";
 const LIMIT_PLAYER_PER_HOUR = 20;
 const LIMIT_GUEST_PER_HOUR = 8;
 
@@ -49,25 +48,22 @@ async function playerFacts(userId: string | null): Promise<string> {
   ].join(" ");
 }
 
-function systemPrompt(facts: string, support: string, lang: "en" | "am" | null) {
-  return `You are the GebetaSoccer help assistant, inside the website and the Telegram bot.
-
-Answer only questions about using GebetaSoccer, from the HELP below and the PLAYER facts. Be short and friendly: a few sentences or a short numbered list of steps. Reply in the language the person writes in (Amharic or English)${lang === "am" ? "; this person prefers Amharic" : ""}. Use Ethiopian time.
-
-Rules:
-- Never invent features, prices, dates or rules that are not in the HELP. If you don't know, say so and offer a person.
-- Never give betting tips, predict scores, say who will win, or encourage betting more. If asked, explain you can't, and mention the free form blocks on the pick cards.
-- Never ask for or accept passwords, reset codes or PINs. If someone shares one, tell them to change it.
-- Never promise a payment, refund, deposit or bonus, and never say money "has been sent": only the admin does that.
-- Hand over to a person when: money is missing or wrong (deposit not added, withdrawal late, wrong payout), a dispute about results, a locked or hacked account, a request to change a phone number or birth date, a complaint, or anything you can't solve from the HELP. Then tell them a person from GebetaSoccer will contact them (usually on Telegram), that they can also message ${support}, and end your reply with ${ESCALATE} on its own line.
-- If they seem to be losing control (chasing losses, borrowing to play), kindly point them to Take a break and the deposit limit on the Profile page.
-- Plain text only (no markdown tables).
-
-PLAYER
-${facts}
-
-HELP
-${ASSISTANT_KB}`;
+/** The player's last few questions and answers (last 30 minutes, same channel) from our log. */
+async function serverHistory(userId: string, channel: Channel): Promise<Turn[]> {
+  const since = new Date(Date.now() - 30 * 60_000).toISOString();
+  const { data } = await createAdminClient()
+    .from("assistant_messages")
+    .select("question, answer")
+    .eq("user_id", userId)
+    .eq("channel", channel)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(3);
+  const turns: Turn[] = [];
+  for (const m of ((data ?? []) as { question: string; answer: string }[]).reverse()) {
+    turns.push({ role: "user", content: m.question }, { role: "assistant", content: m.answer });
+  }
+  return cleanHistory(turns);
 }
 
 async function underLimit(userId: string | null, chatId: number | null, ip: string | null): Promise<boolean> {
@@ -144,7 +140,9 @@ export async function askAssistant(opts: {
   }
 
   const facts = await playerFacts(opts.userId);
-  const history = (opts.history ?? []).slice(-8).map((t) => ({ role: t.role, content: t.content.slice(0, 1500) }));
+  // Logged-in players: rebuild the conversation from our own log, so a browser
+  // cannot plant fake earlier turns. Visitors: cleaned browser history only.
+  const history = opts.userId ? await serverHistory(opts.userId, opts.channel) : cleanHistory(opts.history);
   let text = "";
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -153,7 +151,7 @@ export async function askAssistant(opts: {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 700,
-        system: systemPrompt(facts, telegram_support, opts.lang ?? null),
+        system: systemPrompt(facts, telegram_support, opts.lang ?? null, Boolean(opts.userId)),
         messages: [...history, { role: "user", content: question }],
       }),
     });

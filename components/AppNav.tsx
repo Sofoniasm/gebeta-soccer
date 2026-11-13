@@ -51,6 +51,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/deposits", label: "Deposits", icon: WalletIcon },
   { href: "/admin/subscriptions", label: "Premium", icon: StarIcon },
   { href: "/admin/support", label: "Support", icon: SendIcon },
+  { href: "/admin/fraud", label: "Fraud Watch", icon: ShieldIcon },
   { href: "/admin/challenges", label: "Challenges", icon: VersusIcon },
   { href: "/admin/previews", label: "Previews", icon: StarIcon },
   { href: "/admin/news", label: "News", icon: NewsIcon },

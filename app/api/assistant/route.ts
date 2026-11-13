@@ -1,17 +1,17 @@
 /** POST /api/assistant { message, history? } → { reply, handedOff } (website help chat). */
 import { NextResponse, type NextRequest } from "next/server";
-import { askAssistant, type Turn } from "@/lib/assistant";
+import { askAssistant } from "@/lib/assistant";
+import { cleanHistory } from "@/lib/assistant-prompt";
 import { getAuthUser } from "@/lib/auth-user";
 import { clientIp } from "@/lib/login-lock";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => ({}))) as { message?: string; history?: Turn[]; lang?: string };
+  const body = (await req.json().catch(() => ({}))) as { message?: string; history?: unknown; lang?: string };
   const user = await getAuthUser();
-  const history = Array.isArray(body.history)
-    ? body.history.filter((t) => (t.role === "user" || t.role === "assistant") && typeof t.content === "string")
-    : [];
+  // Whose data the assistant sees comes ONLY from the session cookie, never the body.
+  const history = cleanHistory(body.history);
   const r = await askAssistant({
     question: String(body.message ?? ""),
     history,

@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { computeSlipSettlement } from "@/lib/slip-settle";
 import { settleLeague } from "@/lib/league-settle";
 import { formatUnits } from "@/lib/money";
+import { buildRoundRecaps, type Lang } from "@/lib/round-recap";
 
 export interface RoundSettleResult {
   ok: boolean;
@@ -24,6 +25,44 @@ export function roundIsComplete(list: { status: string; actual_home_score: numbe
   return null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Admin = any;
+type Settle = Awaited<ReturnType<typeof computeSlipSettlement>>;
+
+async function sendRoundRecaps(
+  admin: Admin,
+  roundName: string,
+  result: Settle["result"],
+  slips: Settle["slips"],
+  slipById: Settle["slipById"],
+  payouts: Settle["payouts"],
+  picks: Settle["picks"],
+  roundId: number,
+) {
+  if (result.standings.length === 0) return;
+  const userIds = [...new Set(slips.map((s) => s.user_id))];
+  const [{ data: matchData }, { data: profs }] = await Promise.all([
+    admin.from("matches").select("id, home_team, away_team, actual_home_score, actual_away_score").eq("round_id", roundId),
+    admin.from("profiles").select("id, telegram_user_id").in("id", userIds),
+  ]);
+  const chatOf = new Map(((profs ?? []) as { id: string; telegram_user_id: number | null }[]).filter((p) => p.telegram_user_id).map((p) => [p.id, Number(p.telegram_user_id)]));
+  const { data: prefs } = chatOf.size
+    ? await admin.from("telegram_prefs").select("chat_id, lang").in("chat_id", [...chatOf.values()])
+    : { data: [] };
+  const langByChat = new Map(((prefs ?? []) as { chat_id: number; lang: Lang }[]).map((p) => [Number(p.chat_id), p.lang]));
+  const notes = buildRoundRecaps({
+    roundName,
+    standings: result.standings.map((s) => ({ slipId: s.userId, rank: s.rank, totalPoints: s.totalPoints, exactScores: s.exactScores, correctResults: s.correctResults })),
+    slips: new Map([...slipById].map(([id, s]) => [id, { user_id: s.user_id, slip_no: s.slip_no }])),
+    picks,
+    pointsByPick: new Map(result.pointsByPrediction.map((p) => [p.predictionId, p.points])),
+    matches: new Map(((matchData ?? []) as { id: number; home_team: string; away_team: string; actual_home_score: number | null; actual_away_score: number | null }[]).map((m) => [m.id, m])),
+    payoutBySlip: new Map(payouts.map((p) => [String(p.slip.id), p.units])),
+    langOf: (uid) => langByChat.get(chatOf.get(uid) ?? -1) ?? "en",
+  });
+  if (notes.length) await admin.from("notifications").insert(notes);
+}
+
 export async function settleRoundNow(roundId: number, adminId: string | null): Promise<RoundSettleResult> {
   const admin = createAdminClient();
   const { data: round } = await admin.from("rounds").select("*").eq("id", roundId).single();
@@ -35,7 +74,7 @@ export async function settleRoundNow(roundId: number, adminId: string | null): P
   if (problem) return { ok: false, message: problem };
 
   // Every slip is an entrant (slips are always complete).
-  const { result, slipById, payouts } = await computeSlipSettlement(admin, round);
+  const { result, slips, slipById, payouts, picks } = await computeSlipSettlement(admin, round);
 
   const { error } = await admin.rpc("settle_round_slips", {
     p_round_id: roundId,
@@ -46,24 +85,13 @@ export async function settleRoundNow(roundId: number, adminId: string | null): P
   });
   if (error) return { ok: false, message: error.message };
 
-  // Every slip that didn't win gets its result; winners already got "You won!" from the wallet.
-  const winningSlips = new Set(payouts.map((p) => String(p.slip.id)));
-  const total = result.standings.length;
+  // Personal recap for every player (one message each, in their bot language).
   const roundName = (round.name as string) || `Round ${roundId}`;
-  const barNote = result.barMet ? "" : ` Nobody scored more than ${result.winningBar} match points, so there is no winner this round.`;
-  const notes = result.standings
-    .filter((s) => !winningSlips.has(s.userId))
-    .map((s) => {
-      const slip = slipById.get(s.userId)!;
-      return {
-        user_id: slip.user_id,
-        kind: "round_result",
-        title: `📊 ${roundName} results`,
-        body: `Slip #${slip.slip_no} finished #${s.rank} of ${total} with ${s.totalPoints} points (${s.matchPoints} match points, ${s.exactScores} exact, ${s.correctResults} correct).${barNote || " Better luck next round!"}`,
-        link: "/results",
-      };
-    });
-  if (notes.length) await admin.from("notifications").insert(notes);
+  try {
+    await sendRoundRecaps(admin, roundName, result, slips, slipById, payouts, picks, roundId);
+  } catch (e) {
+    console.error("round recaps:", (e as Error).message); // never undo a settled round over a message
+  }
 
   // Private leagues on this round are settled in the same step.
   const { data: openLeagues } = await admin.from("leagues").select("id").eq("round_id", roundId).eq("status", "open");

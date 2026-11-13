@@ -24,6 +24,7 @@ export interface SlipSettlement {
   slips: SlipInfo[];
   slipById: Map<string, SlipInfo>;
   payouts: { slip: SlipInfo; units: number; rank: number }[];
+  picks: { id: number; slip_id: number; match_id: number; home: number; away: number }[];
 }
 
 export async function computeSlipSettlement(admin: Admin, round: { id: number; entry_fee_units: number; house_cut: number }): Promise<SlipSettlement> {
@@ -75,5 +76,6 @@ export async function computeSlipSettlement(admin: Admin, round: { id: number; e
   const payouts = result.payouts
     .filter((p) => p.units > 0)
     .map((p) => ({ slip: slipById.get(p.userId)!, units: p.units, rank: rankOf.get(p.userId) ?? 1 }));
-  return { result, slips, slipById, payouts };
+  const picks = (pickData ?? []) as { id: number; slip_id: number; match_id: number; home: number; away: number }[];
+  return { result, slips, slipById, payouts, picks };
 }
