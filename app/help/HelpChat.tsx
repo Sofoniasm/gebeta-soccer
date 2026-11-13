@@ -11,7 +11,7 @@ const SUGGEST = {
 };
 
 /** Help chat with the GebetaSoccer assistant. */
-export function HelpChat({ lang = "en", loggedIn }: { lang?: "en" | "am"; loggedIn: boolean }) {
+export function HelpChat({ lang = "en", loggedIn, compact = false }: { lang?: "en" | "am"; loggedIn: boolean; compact?: boolean }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,7 +38,7 @@ export function HelpChat({ lang = "en", loggedIn }: { lang?: "en" | "am"; logged
   }
 
   return (
-    <div className="flex min-h-[28rem] flex-col rounded-[2rem] border border-white/5 bg-card/60">
+    <div className={compact ? "flex min-h-[22rem] flex-col" : "flex min-h-[28rem] flex-col rounded-[2rem] border border-white/5 bg-card/60"}>
       <div className="flex-1 space-y-3 overflow-y-auto p-5">
         {turns.length === 0 && (
           <div className="text-sm text-mist">

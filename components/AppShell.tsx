@@ -6,6 +6,7 @@ import { signOut } from "@/app/(auth)/actions";
 import { Logo } from "./Logo";
 import { Avatar } from "./Avatar";
 import { DobForm } from "@/app/profile/DobForm";
+import { ChatBubble } from "./ChatBubble";
 import { FlowLines } from "./FlowLines";
 import { BottomNav, SideNav } from "./AppNav";
 import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
@@ -102,6 +103,8 @@ export async function AppShell({ children, title, next }: { children: React.Reac
       </main>
 
       <BottomNav todoCount={todo.count} />
+      {/* Help assistant, one tap away on every screen (also inside the Telegram Mini App) */}
+      <ChatBubble />
     </div>
   );
 }

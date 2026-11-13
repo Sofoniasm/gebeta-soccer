@@ -9,6 +9,20 @@ export interface NewsPost {
   published_at: string;
   is_published?: boolean;
   updated_at?: string;
+  title_am?: string | null;
+  excerpt_am?: string | null;
+  body_am?: string | null;
+}
+
+/** Use the Amharic text on /am pages when the article has it; each field falls back to English. */
+export function localizeNews<T extends NewsPost>(post: T, lang: string): T {
+  if (lang !== "am") return post;
+  return {
+    ...post,
+    title: post.title_am?.trim() || post.title,
+    excerpt: post.excerpt_am?.trim() || post.excerpt,
+    body: post.body_am?.trim() || post.body,
+  };
 }
 
 export const NEWS_TAGS = ["News", "Announcement", "Preview", "Analysis", "Results", "Guide"] as const;

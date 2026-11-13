@@ -7,6 +7,7 @@ import { Crest, dayOf, timeOf } from "@/components/MatchLine";
 import { MATCH_COLS, predictionPath, type MatchPreview, type PredictionMatch } from "@/lib/predictions";
 import { SubmitButton } from "../SubmitButton";
 import { deletePreview, savePreview } from "./actions";
+import { PreviewAiTools } from "./PreviewAiTools";
 
 export const metadata = { title: "Match previews · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -75,6 +76,7 @@ export default async function AdminPreviewsPage({ searchParams }: { searchParams
                 <option value="high">High</option>
               </select>
             </div>
+            <PreviewAiTools matchId={selected.id} />
             <div>
               <label className={label} htmlFor="verdict">Short answer (shown first; Google and AI quote this)</label>
               <textarea
@@ -85,7 +87,7 @@ export default async function AdminPreviewsPage({ searchParams }: { searchParams
                 maxLength={400}
                 rows={3}
                 defaultValue={pv?.verdict}
-                placeholder={`${selected.home_team} are unbeaten in 6 at home and ${selected.away_team} are missing their top scorer, so we back a narrow home win.`}
+                placeholder={`${selected.home_team} have won 4 of their last 5 at home while ${selected.away_team} have conceded in every away game, so we back a home win.`}
                 className={`${inputClass} resize-y`}
               />
               <p className="mt-1 text-[11px] text-mist/70">1 or 2 sentences, under 50 words: the reason for your tip. The score itself is added automatically in front.</p>
@@ -102,7 +104,7 @@ export default async function AdminPreviewsPage({ searchParams }: { searchParams
               />
               <p className="mt-1 text-[11px] text-mist/70">Empty line = new paragraph · ## heading · - bullet · **bold** · &gt; highlight. Real facts (form, injuries, head-to-head) help ranking most.</p>
             </div>
-            <details className="rounded-2xl border border-white/10 bg-white/5 p-4" open={Boolean(pv?.verdict_am)}>
+            <details id="preview-am" className="rounded-2xl border border-white/10 bg-white/5 p-4" open={Boolean(pv?.verdict_am)}>
               <summary className="cursor-pointer text-sm font-bold">አማርኛ (optional): Amharic version for /am pages</summary>
               <div className="mt-4 space-y-4">
                 <div>

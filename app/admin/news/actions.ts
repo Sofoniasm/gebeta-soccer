@@ -47,6 +47,9 @@ export async function saveNews(formData: FormData) {
   const mode = String(formData.get("mode") ?? "publish"); // publish | schedule | draft
   const notify = formData.get("notify") === "on";
   const slugIn = String(formData.get("slug") ?? "").trim();
+  const titleAm = String(formData.get("title_am") ?? "").trim().slice(0, 200);
+  const excerptAm = String(formData.get("excerpt_am") ?? "").trim().slice(0, 400);
+  const bodyAm = String(formData.get("body_am") ?? "").trim();
 
   if (title.length < 3 || title.length > 140) back("err", "Title must be 3 to 140 characters.", id ?? undefined);
   if (body.length < 20) back("err", "Write at least a couple of sentences in the article.", id ?? undefined);
@@ -103,6 +106,8 @@ export async function saveNews(formData: FormData) {
     is_published: isPublished,
     published_at: publishedAt.toISOString(),
     updated_at: new Date().toISOString(),
+    // Amharic (migration 0036 must be run first). Empty = English is shown on /am pages.
+    ...(formData.has("title_am") ? { title_am: titleAm, excerpt_am: excerptAm, body_am: bodyAm } : {}),
   };
 
   let savedId = id;

@@ -6,7 +6,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { getPublicContext } from "@/lib/public";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { absoluteImage, formatNewsDate, newsStatus, type NewsPost } from "@/lib/news";
+import { absoluteImage, formatNewsDate, newsStatus, type NewsPost, localizeNews } from "@/lib/news";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
@@ -16,7 +16,8 @@ import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-const COLS = "id, slug, title, excerpt, body, cover_image, tag, is_published, published_at, updated_at";
+// "*" so the Amharic columns (title_am, excerpt_am, body_am) come along.
+const COLS = "*";
 
 /** Published article for everyone; drafts and scheduled ones only for admins (as a preview). */
 /** Cached per request: the page title and the page share one load. */
@@ -36,7 +37,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const found = await loadPost(slug);
   if (!found) return { title: `${PAGES[await getLang()].news.notFound} | GebetaSoccer`, robots: { index: false } };
-  const { post, preview } = found;
+  const { preview } = found;
+  const post = localizeNews(found.post, await getLang());
   const meta = pageMeta({
     title: post.title,
     description: post.excerpt,
@@ -54,7 +56,8 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
   const { slug } = await params;
   const found = await loadPost(slug);
   if (!found) notFound();
-  const { post, preview, loggedIn } = found;
+  const { preview, loggedIn } = found;
+  const post = localizeNews(found.post, lang);
   const status = newsStatus(post);
 
   return (

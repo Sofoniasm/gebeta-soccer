@@ -25,7 +25,7 @@ export default async function AdminNewsPage({ searchParams }: { searchParams: Pr
   const admin = createAdminClient();
   const { data } = await admin
     .from("news_posts")
-    .select("id, slug, title, excerpt, body, cover_image, tag, is_published, published_at, updated_at")
+    .select("*")
     .order("published_at", { ascending: false })
     .limit(200);
   const posts = (data ?? []) as NewsPost[];

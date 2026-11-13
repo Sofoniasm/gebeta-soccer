@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { NewsBody } from "@/components/NewsBody";
 import { inputClass } from "@/components/ui";
 import { NEWS_COVERS, NEWS_TAGS, type NewsPost } from "@/lib/news";
 import { SubmitButton } from "../SubmitButton";
 import { saveNews } from "./actions";
+import { translateToAmharic } from "../ai-actions";
 
 type Mode = "publish" | "schedule" | "draft";
 
@@ -33,6 +34,29 @@ export function NewsEditor({
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(post?.status === "draft" ? "draft" : post?.status === "scheduled" ? "schedule" : "publish");
   const area = useRef<HTMLTextAreaElement>(null);
+  const [titleAm, setTitleAm] = useState(post?.title_am ?? "");
+  const [excerptAm, setExcerptAm] = useState(post?.excerpt_am ?? "");
+  const [bodyAm, setBodyAm] = useState(post?.body_am ?? "");
+  const [amOpen, setAmOpen] = useState(Boolean(post?.title_am || post?.body_am));
+  const [translating, startTranslate] = useTransition();
+  const [amNote, setAmNote] = useState<{ ok: boolean; text: string } | null>(null);
+
+  function translate() {
+    const title = (document.getElementById("title") as HTMLInputElement | null)?.value ?? "";
+    const excerpt = (document.getElementById("excerpt") as HTMLTextAreaElement | null)?.value ?? "";
+    if (!title.trim() || !body.trim()) return setAmNote({ ok: false, text: "Write the English title and article first." });
+    if ((titleAm.trim() || bodyAm.trim()) && !window.confirm("Replace the Amharic text already there?")) return;
+    setAmNote(null);
+    setAmOpen(true);
+    startTranslate(async () => {
+      const r = await translateToAmharic({ title, excerpt, body });
+      if (!r.ok) return setAmNote({ ok: false, text: r.error });
+      setTitleAm(r.fields.title ?? "");
+      setExcerptAm(r.fields.excerpt ?? "");
+      setBodyAm(r.fields.body ?? "");
+      setAmNote({ ok: true, text: "Amharic filled in. Please read it before saving." });
+    });
+  }
 
   const cover = filePreview ?? (coverUrl.startsWith("https://") ? coverUrl : coverChoice);
 
@@ -120,6 +144,32 @@ export function NewsEditor({
           </div>
         )}
       </div>
+
+      {/* Amharic */}
+      <details open={amOpen} onToggle={(e) => setAmOpen((e.target as HTMLDetailsElement).open)} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <summary className="cursor-pointer text-sm font-bold">አማርኛ (optional): Amharic version for /am pages</summary>
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={translate} disabled={translating} className="inline-flex items-center gap-2 rounded-full border border-lilac/40 bg-lilac/10 px-4 py-2 text-xs font-bold text-white hover:bg-lilac/20 disabled:opacity-50">
+              {translating ? "Translating…" : "🇪🇹 Translate to Amharic"}
+            </button>
+            <span className="text-[11px] text-mist/80">Leave empty to show the English article on Amharic pages.</span>
+          </div>
+          {amNote && <p className={`text-xs ${amNote.ok ? "text-emerald-300" : "text-rose-300"}`}>{amNote.text}</p>}
+          <div>
+            <label className={label} htmlFor="title_am">Title (Amharic)</label>
+            <input id="title_am" name="title_am" maxLength={200} value={titleAm} onChange={(e) => setTitleAm(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={label} htmlFor="excerpt_am">Short summary (Amharic)</label>
+            <textarea id="excerpt_am" name="excerpt_am" rows={2} maxLength={400} value={excerptAm} onChange={(e) => setExcerptAm(e.target.value)} className={`${inputClass} resize-y`} />
+          </div>
+          <div>
+            <label className={label} htmlFor="body_am">Article (Amharic)</label>
+            <textarea id="body_am" name="body_am" rows={12} value={bodyAm} onChange={(e) => setBodyAm(e.target.value)} className={`${inputClass} resize-y font-mono text-sm leading-relaxed`} />
+          </div>
+        </div>
+      </details>
 
       {/* Cover */}
       <div>

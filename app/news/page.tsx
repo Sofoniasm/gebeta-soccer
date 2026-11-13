@@ -3,7 +3,7 @@ import { getLang } from "@/lib/i18n-server";
 import { localPath } from "@/lib/i18n";
 import Link from "next/link";
 import { getPublicContext } from "@/lib/public";
-import { formatNewsDate, type NewsPost } from "@/lib/news";
+import { formatNewsDate, type NewsPost, localizeNews } from "@/lib/news";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
@@ -21,10 +21,10 @@ export default async function NewsPage() {
   const { supabase, loggedIn } = await getPublicContext();
   const { data } = await supabase
     .from("news_posts")
-    .select("id, slug, title, excerpt, body, cover_image, tag, published_at")
+    .select("*")
     .order("published_at", { ascending: false })
     .limit(30);
-  const posts = (data ?? []) as NewsPost[];
+  const posts = ((data ?? []) as NewsPost[]).map((p) => localizeNews(p, lang));
   const [lead, ...rest] = posts;
 
   return (
