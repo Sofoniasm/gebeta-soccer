@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildPreviewFacts } from "../lib/preview-facts.ts";
-import { localizeNews, type NewsPost } from "../lib/news.ts";
+import { buildPreviewFacts } from "../lib/preview-facts";
+import { localizeNews, type NewsPost } from "../lib/news";
 
 const m = (h: string, a: string, hs: number, as: number, d: string) => ({ home_team: h, away_team: a, actual_home_score: hs, actual_away_score: as, kickoff_at: `${d}T15:00:00Z`, competition: "PL" });
 const match = { home_team: "Arsenal", away_team: "Chelsea", competition: "PL", kickoff_at: "2026-11-22T15:00:00Z" };
