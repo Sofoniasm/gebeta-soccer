@@ -11,7 +11,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 import { markPhoneVerified } from "@/lib/verification";
 import { sendMessage } from "@/lib/telegram";
-import { handleBotCommand } from "@/lib/bot-commands";
+import { getBotLang, handleBotCommand } from "@/lib/bot-commands";
+import { askAssistant } from "@/lib/assistant";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,24 @@ export async function POST(req: NextRequest) {
       }
       await admin.from("phone_verifications").update({ telegram_chat_id: chatId }).eq("id", row.id);
       await sendMessage(chatId, "To confirm your GebetaSoccer account, tap the button below to share your phone number. 👇", shareKeyboard);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ---- any other text: the help assistant answers
+    if (msg.text && !msg.text.startsWith("/") && !msg.contact) {
+      const lang = await getBotLang(chatId);
+      const { data: linked } = msg.from
+        ? await admin.from("profiles").select("id").eq("telegram_user_id", msg.from.id).maybeSingle()
+        : { data: null };
+      const { reply, handedOff } = await askAssistant({
+        question: msg.text,
+        userId: linked?.id ?? null,
+        chatId,
+        channel: "telegram",
+        lang,
+      });
+      const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      await sendMessage(chatId, esc(reply) + (handedOff ? (lang === "am" ? "\n\n🆘 ጥያቄዎ ለሰራተኞቻችን ተልኳል።" : "\n\n🆘 Your question was sent to our team.") : ""));
       return NextResponse.json({ ok: true });
     }
 

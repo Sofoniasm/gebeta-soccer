@@ -18,6 +18,7 @@ import {
   TrophyIcon,
   UsersIcon,
   WalletIcon,
+  SendIcon,
 } from "./icons";
 
 type Item = { href: string; label: string; icon: (p: { size?: number }) => React.ReactNode; badge?: "todo" };
@@ -39,6 +40,7 @@ const ME: Item[] = [
   { href: "/wallet", label: "Wallet", icon: WalletIcon },
   { href: "/premium", label: "Premium", icon: StarIcon },
   { href: "/profile", label: "Profile", icon: UsersIcon },
+  { href: "/help", label: "Help", icon: SendIcon },
 ];
 
 const ADMIN_ITEMS: Item[] = [
@@ -48,6 +50,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/admin/deposits", label: "Deposits", icon: WalletIcon },
   { href: "/admin/subscriptions", label: "Premium", icon: StarIcon },
+  { href: "/admin/support", label: "Support", icon: SendIcon },
   { href: "/admin/challenges", label: "Challenges", icon: VersusIcon },
   { href: "/admin/previews", label: "Previews", icon: StarIcon },
   { href: "/admin/news", label: "News", icon: NewsIcon },
