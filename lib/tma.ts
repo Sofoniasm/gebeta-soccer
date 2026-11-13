@@ -12,6 +12,8 @@ export interface TelegramWebApp {
   openTelegramLink?(url: string): void;
   BackButton?: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void };
   HapticFeedback?: { notificationOccurred(type: "success" | "error" | "warning"): void };
+  /** Asks the player to share their phone number with the bot (one tap). */
+  requestContact?(callback?: (shared: boolean) => void): void;
 }
 
 declare global {

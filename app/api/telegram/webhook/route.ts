@@ -109,7 +109,28 @@ export async function POST(req: NextRequest) {
         .limit(1)
         .maybeSingle();
       if (!pending || new Date(pending.expires_at).getTime() < Date.now()) {
-        await sendMessage(chatId, "⌛ No active verification. Go back to GebetaSoccer and tap <b>Verify with Telegram</b>.", removeKeyboard);
+        // Shared from the Mini App ("Continue with my Telegram number"): link this
+        // Telegram account to the website account with the same confirmed phone.
+        const shared = normalizeEthiopianPhone(msg.contact.phone_number);
+        const { data: owner } = shared
+          ? await admin.from("profiles").select("id, username, telegram_user_id, phone_verified_at").eq("phone_number", shared).maybeSingle()
+          : { data: null };
+        if (!owner) {
+          await sendMessage(chatId, "There's no GebetaSoccer account with this number yet. Tap below to create one; it takes a minute.", playButton);
+        } else if (!owner.phone_verified_at) {
+          await sendMessage(chatId, "This account hasn't confirmed its phone yet. Log in on the website once and confirm it with Telegram.", playButton);
+        } else if (owner.telegram_user_id && Number(owner.telegram_user_id) !== msg.from.id) {
+          await sendMessage(chatId, "❌ This number's account is already linked to a different Telegram account. Contact support if that's wrong.", removeKeyboard);
+        } else {
+          const { data: other } = await admin.from("profiles").select("id").eq("telegram_user_id", msg.from.id).neq("id", owner.id).maybeSingle();
+          if (other) {
+            await sendMessage(chatId, "❌ This Telegram account is already linked to another GebetaSoccer player.", removeKeyboard);
+          } else {
+            if (!owner.telegram_user_id) await admin.from("profiles").update({ telegram_user_id: msg.from.id }).eq("id", owner.id);
+            await sendMessage(chatId, `✅ Linked to <b>${owner.username}</b>. The app opens straight into your account from now on.`, { ...removeKeyboard });
+            await sendMessage(chatId, "Tap to play 👇", playButton);
+          }
+        }
         return NextResponse.json({ ok: true });
       }
 
