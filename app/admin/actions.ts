@@ -17,6 +17,8 @@ import { settleLeague } from "@/lib/league-settle";
 import { createDueAutoRounds } from "@/lib/auto-rounds";
 import { settleDueRounds, settleRoundNow } from "@/lib/round-settle";
 import { createResetCode, deliverResetCode } from "@/lib/password-reset";
+import { sendChannelMessage, telegramChannel } from "@/lib/telegram";
+import { SITE_URL } from "@/lib/site";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -353,4 +355,24 @@ export async function showPlayerResetLink(formData: FormData) {
   const { code, id } = await createResetCode(userId, "admin", null);
   await createAdminClient().from("password_resets").update({ delivered: "shown_to_admin" }).eq("id", id);
   return done("msg", `Reset code ${code} (valid 10 minutes, one use). Only tell it to the player after checking it's really them. They enter it at Log in → Forgot password?, with their phone number.`);
+}
+
+// ------------------------------------------------------------ telegram channel
+/** Admin → Site: send a short test message to the public channel, show Telegram's exact answer. */
+export async function testChannelPost() {
+  await requireAdmin();
+  const channel = telegramChannel();
+  if (!process.env.TELEGRAM_BOT_TOKEN) return done("err", "TELEGRAM_BOT_TOKEN is not set in Vercel.");
+  const res = await sendChannelMessage("✅ Test message from GebetaSoccer. The bot can post to this channel.", {
+    reply_markup: { inline_keyboard: [[{ text: "▶️ Play", url: SITE_URL }]] },
+    disable_web_page_preview: true,
+  });
+  if (res.ok) return done("msg", `Test message posted to ${channel}.`);
+  const why = res.description ?? "unknown error";
+  const hint = /chat not found/i.test(why)
+    ? " (wrong channel username, or the bot is not an admin of the channel)"
+    : /not enough rights|need administrator rights|forbidden/i.test(why)
+      ? " (make the bot an admin of the channel with \"Post Messages\")"
+      : "";
+  return done("err", `Telegram said: ${why}${hint}. Channel: ${channel}`);
 }

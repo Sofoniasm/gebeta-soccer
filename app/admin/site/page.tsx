@@ -9,6 +9,8 @@ import { ALL_COMPETITIONS, SITE_SETTINGS_TAG, getSiteSettings } from "@/lib/site
 import { syncMatches } from "@/lib/football/sync";
 import { createDueAutoRounds, SLOTS, slotHours } from "@/lib/auto-rounds";
 import { SubmitButton } from "../SubmitButton";
+import { testChannelPost } from "../actions";
+import { telegramChannel } from "@/lib/telegram";
 
 export const metadata = { title: "Site · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -187,6 +189,15 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
         <p className="text-sm text-mist">After changing leagues, sync so the new fixtures show up straight away.</p>
         <form action={syncNowFromSite}>
           <SubmitButton className="rounded-full border border-white/60 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10">Sync matches now</SubmitButton>
+        </form>
+      </section>
+      <section className={`${card} mt-5 flex flex-wrap items-center justify-between gap-3`}>
+        <p className="text-sm text-mist">
+          <b className="text-white">Telegram channel posts</b>: the bot posts every new automatic round to <b className="text-white">{telegramChannel()}</b>
+          {" "}(change it with the TELEGRAM_CHANNEL setting in Vercel). Press to send a test message.
+        </p>
+        <form action={testChannelPost}>
+          <SubmitButton className="rounded-full border border-white/60 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10">Test Channel Post</SubmitButton>
         </form>
       </section>
       <section className={`${card} mt-5 flex flex-wrap items-center justify-between gap-3`}>

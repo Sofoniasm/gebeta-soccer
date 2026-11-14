@@ -7,6 +7,9 @@
  */
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ALL_COMPETITIONS, getSiteSettings } from "@/lib/site-settings";
+import { SITE_URL } from "@/lib/site";
+import { TELEGRAM_BOT_USERNAME, sendChannelMessage } from "@/lib/telegram";
+import { buildRoundAnnouncement } from "@/lib/channel-post";
 
 export * from "./round-slots";
 import { SLOTS, pickSlotMatches, slotWindow, eatDate, autoRoundName, type Slot } from "./round-slots";
@@ -51,6 +54,84 @@ export async function createDueAutoRounds(now = new Date()): Promise<string[]> {
     }
   } catch (e) {
     out.push(`auto rounds error: ${(e as Error).message}`);
+  }
+  out.push(...(await announceOpenAutoRounds()));
+  return out;
+}
+
+/**
+ * Post every open automatic round that was not announced yet to the public
+ * Telegram channel, once. rounds.announced_at (0041) is claimed BEFORE posting,
+ * so two syncs at the same time can never post the same round twice. If the post
+ * fails, the claim is undone and the next sync tries again. Test rounds (made of
+ * provider "test" matches) and rounds already locked are skipped. Never throws.
+ */
+export async function announceOpenAutoRounds(): Promise<string[]> {
+  const out: string[] = [];
+  try {
+    if (!process.env.TELEGRAM_BOT_TOKEN) return out;
+    const admin = createAdminClient();
+    const { data: rounds, error } = await admin
+      .from("rounds")
+      .select("id, name, auto_slot, entry_fee_units")
+      .eq("status", "open")
+      .not("auto_slot", "is", null)
+      .is("announced_at", null)
+      .order("id")
+      .limit(10);
+    if (error) {
+      // Most likely the 0041 SQL was not run yet.
+      console.error("[channel] cannot read rounds.announced_at:", error.message);
+      return out;
+    }
+    const list = (rounds ?? []) as { id: number; name: string; auto_slot: string | null; entry_fee_units: number | null }[];
+    if (list.length === 0) return out;
+    const { data: ms } = await admin
+      .from("matches")
+      .select("round_id, kickoff_at, status, provider")
+      .in("round_id", list.map((r) => r.id));
+    const matches = (ms ?? []) as { round_id: number; kickoff_at: string; status: string; provider: string | null }[];
+
+    for (const r of list) {
+      const mine = matches.filter((m) => m.round_id === r.id);
+      if (mine.length === 0 || mine.some((m) => m.provider === "test")) continue; // test rounds are never public
+      const lockAt = mine
+        .filter((m) => !["postponed", "cancelled"].includes(m.status))
+        .map((m) => m.kickoff_at)
+        .sort()[0];
+      if (!lockAt || new Date(lockAt).getTime() <= Date.now()) continue; // too late to play
+
+      // Claim it first: only one sync wins this update.
+      const { data: claimed } = await admin
+        .from("rounds")
+        .update({ announced_at: new Date().toISOString() })
+        .eq("id", r.id)
+        .is("announced_at", null)
+        .select("id");
+      if ((claimed ?? []).length === 0) continue;
+
+      const post = buildRoundAnnouncement({
+        roundId: r.id,
+        name: r.name,
+        slot: r.auto_slot,
+        matchCount: mine.length,
+        lockAt,
+        feeUnits: r.entry_fee_units,
+        siteUrl: SITE_URL,
+        botUsername: TELEGRAM_BOT_USERNAME,
+      });
+      const res = await sendChannelMessage(post.text, { reply_markup: post.reply_markup, disable_web_page_preview: true });
+      if (res.ok) {
+        out.push(`${r.name}: posted to the Telegram channel`);
+      } else {
+        await admin.from("rounds").update({ announced_at: null }).eq("id", r.id);
+        console.error(`[channel] post failed for round ${r.id}:`, res.description);
+        out.push(`${r.name}: channel post failed (${res.description ?? "unknown error"})`);
+      }
+    }
+  } catch (e) {
+    console.error("[channel] announce error:", (e as Error).message);
+    out.push(`channel post error: ${(e as Error).message}`);
   }
   return out;
 }
