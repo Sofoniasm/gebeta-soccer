@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdminId } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
@@ -98,4 +99,25 @@ export async function recordDeposit(_prev: DepositState, formData: FormData): Pr
     newBalance: Number(after?.balance_units ?? 0),
     message: `Added ${formatUnits(units)} to ${after?.username ?? "the player"}.`,
   };
+}
+
+/**
+ * Admin → Deposits → Crypto: add the Units for a crypto invoice by hand, after checking in
+ * AuraPay that it really was paid (e.g. the webhook was missed, or it was paid a little short).
+ */
+export async function creditCryptoDeposit(formData: FormData) {
+  const adminId = await requireAdminId("/admin/deposits");
+  const ref = String(formData.get("reference") ?? "");
+  const { data, error } = await createAdminClient().rpc("crypto_credit_deposit", {
+    p_reference: ref,
+    p_paid: null,
+    p_tx_hash: "",
+    p_event_id: "",
+    p_admin_id: adminId,
+  });
+  const r = error ? `error: ${error.message}` : String(data);
+  if (r === "credited") await pushNotifications();
+  revalidatePath("/admin/deposits");
+  revalidatePath("/wallet");
+  redirect(`/admin/deposits?cmsg=${encodeURIComponent(`${ref}: ${r}`)}`);
 }

@@ -5,7 +5,8 @@ import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS, etbLabel, formatUni
 import { formatKickoff } from "@/lib/format";
 import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { AppShell } from "@/components/AppShell";
-import { WithdrawForm } from "./WalletForms";
+import { CryptoDepositForm, WithdrawForm } from "./WalletForms";
+import { cryptoEnabled } from "@/lib/aurapay";
 import { SendIcon, WalletIcon } from "@/components/icons";
 
 export const metadata = { title: "Wallet · GebetaSoccer" };
@@ -28,6 +29,14 @@ const STATUS_STYLE: Record<string, string> = {
 };
 const STATUS_LABEL: Record<string, string> = { pending: "Pending", paid: "Paid", rejected: "Rejected · refunded" };
 
+const CRYPTO_STATUS: Record<string, string> = {
+  pending: "Waiting for payment",
+  credited: "✅ Added",
+  paid_not_credited: "Paid · admin will check",
+  expired: "Expired",
+  failed: "Failed",
+};
+
 export default async function WalletPage() {
   const site = await getSiteSettings();
   const me = await getMe("/wallet");
@@ -44,6 +53,14 @@ export default async function WalletPage() {
   ]);
 
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
+
+  // Recent crypto invoices (empty until the 0042 SQL is run)
+  const { data: cryptoData } = cryptoEnabled()
+    ? await supabase.from("crypto_deposits").select("id, units, usd, status, checkout_url, created_at").order("created_at", { ascending: false }).limit(5)
+    : { data: null };
+  const cryptoRows = ((cryptoData ?? []) as { id: number; units: number; usd: number; status: string; checkout_url: string | null; created_at: string }[]).filter(
+    (c) => c.status !== "failed",
+  );
 
   // Rank per round, so winnings read "Won Week 1 (Rank 1)"
   const rankOf = new Map((await getCareer(me.id)).rounds.map((r) => [r.round_id, r.rank]));
@@ -81,6 +98,7 @@ export default async function WalletPage() {
     const league = t.leagues?.name;
     switch (t.kind) {
       case "deposit":
+        if ((t.reference ?? "").startsWith("Crypto deposit")) return { title: "Crypto deposit", note: (t.reference ?? "").replace(/^Crypto deposit ?·? ?/, "") };
         return { title: "Telegram deposit", note: (t.reference ?? "").replace(/^Telegram deposit ?·? ?/, "") };
       case "entry_fee": {
         const slip = (t.reference ?? "").match(/^Slip #(\d+)/);
@@ -141,6 +159,35 @@ export default async function WalletPage() {
             <SendIcon size={16} /> Message {telegramHandle(site.telegram_support)}
           </a>
         </section>
+
+        {/* Deposit — crypto (AuraPay, automatic) */}
+        {cryptoEnabled() && (
+          <section className={card}>
+            <h2 className="text-lg font-extrabold">Pay with crypto (USDT)</h2>
+            <p className="mt-3 text-sm leading-relaxed text-mist">
+              Outside Ethiopia? Pay with USDT on TRON or TON. No need to message anyone: your balance updates by itself.
+            </p>
+            <div className="mt-4">
+              <CryptoDepositForm usdPerUnit={site.crypto_usd_per_unit} min={MIN_DEPOSIT_UNITS} max={MAX_DEPOSIT_UNITS} />
+            </div>
+            {cryptoRows.length > 0 && (
+              <ul className="mt-4 space-y-1.5 text-xs">
+                {cryptoRows.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-ink/50 px-3 py-2">
+                    <span className="text-mist">
+                      {formatKickoff(c.created_at)} · {c.units} Units · {c.usd} USDT
+                    </span>
+                    {c.status === "pending" && c.checkout_url ? (
+                      <a href={c.checkout_url} className="font-bold text-lilac">Pay now →</a>
+                    ) : (
+                      <span className="font-bold text-white">{CRYPTO_STATUS[c.status] ?? c.status}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {/* Withdraw */}
         <section className={card}>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { requestWithdrawal, type FormState } from "./actions";
+import { useActionState, useEffect, useState } from "react";
+import { requestWithdrawal, startCryptoDeposit, type CryptoState, type FormState } from "./actions";
 import { Banner, inputClass, primaryButtonClass } from "@/components/ui";
 import { SpinnerIcon } from "@/components/icons";
 
@@ -53,6 +53,55 @@ export function WithdrawForm({ defaultPhone, maxUnits }: { defaultPhone: string;
           ? `You can withdraw up to ${maxUnits.toLocaleString("en-US")} Units (${(maxUnits * 200).toLocaleString("en-US")} ETB). 1 Unit (200 ETB) always stays in your account to keep it open.`
           : "You need more than 1 Unit to withdraw — 1 Unit (200 ETB) always stays in your account."}
       </p>
+    </form>
+  );
+}
+
+/** Pay with USDT (AuraPay): pick Units + network, then go to AuraPay's checkout page. */
+export function CryptoDepositForm({ usdPerUnit, min, max }: { usdPerUnit: number; min: number; max: number }) {
+  const [state, action, pending] = useActionState<CryptoState, FormData>(startCryptoDeposit, undefined);
+  const [units, setUnits] = useState(String(min));
+  const [chain, setChain] = useState<"TRON" | "TON">("TRON");
+  useEffect(() => {
+    if (state?.ok && state.url) window.location.href = state.url;
+  }, [state]);
+  const n = Number(units);
+  const usd = n > 0 ? Math.ceil(Math.round(n * usdPerUnit * 10000) / 100) / 100 : 0;
+  return (
+    <form action={action} className="space-y-3">
+      {state?.message && <Banner kind={state.ok ? "success" : "error"}>{state.message}</Banner>}
+      <label className="block space-y-1.5">
+        <span className="text-xs font-semibold text-mist">Units to add ({min}–{max})</span>
+        <input
+          name="units"
+          type="number"
+          min={min}
+          max={max}
+          step="0.5"
+          value={units}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUnits(e.target.value)}
+          required
+          className={inputClass}
+        />
+        <span className="block text-xs text-mist">
+          You pay <b className="text-white">{usd.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDT</b> · 1 Unit = {usdPerUnit} USDT
+        </span>
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        {(["TRON", "TON"] as const).map((c) => (
+          <label
+            key={c}
+            className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-sm font-bold ${chain === c ? "border-lilac bg-lilac/15 text-white" : "border-white/10 text-mist hover:border-white/30"}`}
+          >
+            <input type="radio" name="chain" value={c} checked={chain === c} onChange={() => setChain(c)} className="sr-only" />
+            USDT · {c === "TRON" ? "TRON (TRC-20)" : "TON"}
+          </label>
+        ))}
+      </div>
+      <button disabled={pending || (state?.ok && !!state.url)} className={`${primaryButtonClass} sm:w-auto`}>
+        {(pending || (state?.ok && state.url)) && <SpinnerIcon size={16} />} Pay with crypto
+      </button>
+      <p className="text-xs text-mist">Your Units are added automatically a few minutes after the payment is confirmed on the blockchain.</p>
     </form>
   );
 }

@@ -20,6 +20,8 @@ export interface SiteSettings {
   auto_rounds: boolean;
   /** Entry fee of automatic rounds, in Units. */
   auto_round_fee: number;
+  /** Price of 1 Unit in USDT for crypto deposits. */
+  crypto_usd_per_unit: number;
 }
 
 /** Leagues our football data plan can sync (free tier). */
@@ -52,6 +54,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   show_public_stats: false,
   auto_rounds: true,
   auto_round_fee: 1,
+  crypto_usd_per_unit: 1.5,
 };
 
 function merge(rows: { key: string; value: unknown }[]): SiteSettings {
@@ -82,6 +85,9 @@ function merge(rows: { key: string; value: unknown }[]): SiteSettings {
         break;
       case "auto_round_fee":
         if (typeof v === "number" && v >= 0.5 && v <= 50) s.auto_round_fee = v;
+        break;
+      case "crypto_usd_per_unit":
+        if (typeof v === "number" && v >= 0.1 && v <= 20) s.crypto_usd_per_unit = v;
         break;
     }
   }

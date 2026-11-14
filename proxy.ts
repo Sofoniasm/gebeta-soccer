@@ -6,8 +6,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Skip static files and the cron endpoint.
+  // Skip static files, the cron endpoint and the webhooks.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/sync-matches|api/telegram/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/sync-matches|api/telegram/webhook|api/aurapay/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ETB_PER_UNIT, etbLabel, unitsLabel } from "@/lib/money";
 import { AppShell } from "@/components/AppShell";
 import { DepositForm } from "./DepositForm";
+import { creditCryptoDeposit } from "./actions";
+import { SubmitButton } from "../SubmitButton";
 
 export const metadata = { title: "Deposits · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -24,9 +26,9 @@ interface Row {
   profiles: { username: string; phone_number: string | null } | null;
 }
 
-export default async function DepositsPage({ searchParams }: { searchParams: Promise<{ q?: string; type?: string }> }) {
+export default async function DepositsPage({ searchParams }: { searchParams: Promise<{ q?: string; type?: string; cmsg?: string }> }) {
   await requireAdminId("/admin/deposits");
-  const { q = "", type = "all" } = await searchParams;
+  const { q = "", type = "all", cmsg } = await searchParams;
   const admin = createAdminClient();
 
   // Everything recorded by hand: deposits (+) and manual deductions (−)
@@ -107,6 +109,28 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
   const max = Math.max(...days.map((d) => d.units), 1);
 
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-6";
+
+  // ---- crypto (AuraPay) invoices; empty until the 0042 SQL is run
+  const { data: cryptoData } = await admin
+    .from("crypto_deposits")
+    .select("id, units, usd, chain, reference, status, paid_amount, tx_hash, note, created_at, profiles!crypto_deposits_user_id_fkey(username)")
+    .neq("status", "failed")
+    .order("created_at", { ascending: false })
+    .limit(30);
+  type Crypto = {
+    id: number; units: number; usd: number; chain: string; reference: string | null; status: string;
+    paid_amount: number | null; tx_hash: string | null; note: string | null; created_at: string;
+    profiles: { username: string } | null;
+  };
+  const cryptoRows = (cryptoData ?? []) as unknown as Crypto[];
+  const needsCheck = cryptoRows.filter((c) => c.status === "paid_not_credited").length;
+  const CRYPTO_STYLE: Record<string, string> = {
+    pending: "text-mist",
+    credited: "text-emerald-200",
+    paid_not_credited: "text-amber-200",
+    expired: "text-mist/60",
+  };
+
   const tab = (t: string, label: string) => (
     <Link
       href={`/admin/deposits?type=${t}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
@@ -137,6 +161,50 @@ export default async function DepositsPage({ searchParams }: { searchParams: Pro
           </div>
         ))}
       </div>
+
+      {/* Crypto deposits (AuraPay) — added automatically */}
+      {(cryptoRows.length > 0 || cmsg) && (
+        <section className={`${card} mb-5`}>
+          <h2 className="mb-1 text-lg font-extrabold">
+            Crypto deposits (USDT){needsCheck > 0 && <span className="ml-2 rounded-full bg-amber-300/20 px-2 py-0.5 text-xs text-amber-100">{needsCheck} to check</span>}
+          </h2>
+          <p className="mb-3 text-xs text-mist">
+            Added automatically when AuraPay confirms the payment. &quot;Paid · not added&quot; means the player paid but the Units were not added (reason shown).
+            Check the payment in AuraPay, then press Add Units, or refund the player in USDT.
+          </p>
+          {cmsg && <p className="mb-3 rounded-xl bg-ink/60 px-3 py-2 text-sm text-white">{cmsg}</p>}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-mist">
+                <tr><th className="py-1.5 pr-3">When</th><th className="pr-3">Player</th><th className="pr-3">Units</th><th className="pr-3">USDT</th><th className="pr-3">Invoice</th><th className="pr-3">Status</th><th /></tr>
+              </thead>
+              <tbody>
+                {cryptoRows.map((c) => (
+                  <tr key={c.id} className="border-t border-white/5 align-top">
+                    <td className="py-2 pr-3 text-mist">{dateTime(c.created_at)}</td>
+                    <td className="pr-3 font-bold">{c.profiles?.username ?? "?"}</td>
+                    <td className="pr-3">{c.units}</td>
+                    <td className="pr-3">{c.usd} · {c.chain}{c.paid_amount != null && Number(c.paid_amount) !== Number(c.usd) ? ` (paid ${Number(c.paid_amount)})` : ""}</td>
+                    <td className="pr-3 font-mono">{c.reference ?? "-"}</td>
+                    <td className={`pr-3 font-bold ${CRYPTO_STYLE[c.status] ?? ""}`}>
+                      {c.status === "paid_not_credited" ? "Paid · not added" : c.status}
+                      {c.note && <span className="block font-normal text-mist">{c.note}</span>}
+                    </td>
+                    <td className="py-1.5">
+                      {c.reference && (c.status === "paid_not_credited" || c.status === "pending" || c.status === "expired") && (
+                        <form action={creditCryptoDeposit}>
+                          <input type="hidden" name="reference" value={c.reference} />
+                          <SubmitButton className="whitespace-nowrap rounded-full border border-white/40 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-white/10">Add Units</SubmitButton>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,26rem)_1fr]">
         {/* 1. Submit */}

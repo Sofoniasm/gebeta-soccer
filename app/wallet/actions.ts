@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
-import { ETB_PER_UNIT } from "@/lib/money";
+import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS } from "@/lib/money";
+import { getSiteSettings } from "@/lib/site-settings";
+import { cryptoEnabled, createUsdtInvoice } from "@/lib/aurapay";
+import { externalIdFor, isCryptoChain, usdForUnits } from "@/lib/crypto-pay";
 
 export type FormState = { ok?: boolean; message?: string } | undefined;
 
@@ -59,4 +62,63 @@ export async function requestWithdrawal(_prev: FormState, formData: FormData): P
   revalidatePath("/wallet");
   revalidatePath("/dashboard");
   return { ok: true, message: "Withdrawal requested. The units are on hold and we'll send the money to your Telebirr soon." };
+}
+
+// ------------------------------------------------------------ crypto deposits (AuraPay, USDT)
+export type CryptoState = { ok?: boolean; message?: string; url?: string } | undefined;
+
+/** Make an AuraPay USDT invoice for the signed-in player and return its checkout link. */
+export async function startCryptoDeposit(_prev: CryptoState, formData: FormData): Promise<CryptoState> {
+  const units = Math.round(Number(formData.get("units")) * 2) / 2;
+  const chain = String(formData.get("chain") ?? "");
+  if (!cryptoEnabled()) return { ok: false, message: "Crypto payments are not available right now. Please message our Telegram admin." };
+  if (!isCryptoChain(chain)) return { ok: false, message: "Pick a network: TRON or TON." };
+  if (!Number.isFinite(units) || units < MIN_DEPOSIT_UNITS || units > MAX_DEPOSIT_UNITS) {
+    return { ok: false, message: `Choose between ${MIN_DEPOSIT_UNITS} and ${MAX_DEPOSIT_UNITS} Units.` };
+  }
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return { ok: false, message: "Please log in again." };
+  const admin = createAdminClient();
+
+  // Check BEFORE the player pays, so a payment never gets stuck.
+  const { data: me } = await admin.from("profiles").select("date_of_birth").eq("id", userId).single();
+  if (!me?.date_of_birth) return { ok: false, message: "Add your date of birth on your Profile first (18+ only)." };
+  if (ageOn(me.date_of_birth as string) < 18) return { ok: false, message: "You must be 18 or older to play." };
+  const [{ data: limit }, { data: used }] = await Promise.all([
+    admin.rpc("effective_deposit_limit", { p_user_id: userId }),
+    admin.rpc("deposits_last_7_days", { p_user_id: userId }),
+  ]);
+  if (limit !== null && limit !== undefined && Number(used ?? 0) + units > Number(limit)) {
+    const left = Math.max(0, Number(limit) - Number(used ?? 0));
+    return { ok: false, message: `This is over your weekly deposit limit. You can add ${left} more Units this week.` };
+  }
+  const since = new Date(Date.now() - 3_600_000).toISOString();
+  const { count } = await admin.from("crypto_deposits").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "pending").gte("created_at", since);
+  if ((count ?? 0) >= 3) return { ok: false, message: "You already have 3 unpaid crypto invoices. Pay one, or wait an hour." };
+
+  const site = await getSiteSettings();
+  const usd = usdForUnits(units, site.crypto_usd_per_unit);
+  const { data: row, error } = await admin.from("crypto_deposits").insert({ user_id: userId, units, usd, chain }).select("id").single();
+  if (error || !row) return { ok: false, message: "Could not start the payment. Did the admin run the 0042 SQL?" };
+  try {
+    const inv = await createUsdtInvoice({ amountUsd: usd, chain, externalId: externalIdFor(row.id), note: `GebetaSoccer · ${units} Units` });
+    await admin.from("crypto_deposits").update({ reference: inv.reference, checkout_url: inv.checkoutUrl }).eq("id", row.id);
+    revalidatePath("/wallet");
+    return { ok: true, url: inv.checkoutUrl, message: `Pay ${usd} USDT to get ${units} Units.` };
+  } catch (e) {
+    await admin.from("crypto_deposits").update({ status: "failed", note: (e as Error).message.slice(0, 300) }).eq("id", row.id);
+    console.error("[aurapay] invoice failed:", (e as Error).message);
+    return { ok: false, message: "The crypto payment service did not answer. Please try again in a minute." };
+  }
+}
+
+function ageOn(dob: string, now = new Date()): number {
+  const d = new Date(`${dob.slice(0, 10)}T00:00:00Z`);
+  let age = now.getUTCFullYear() - d.getUTCFullYear();
+  const m = now.getUTCMonth() - d.getUTCMonth();
+  if (m < 0 || (m === 0 && now.getUTCDate() < d.getUTCDate())) age--;
+  return age;
 }

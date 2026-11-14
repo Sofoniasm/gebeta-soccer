@@ -11,6 +11,7 @@ import { createDueAutoRounds, SLOTS, slotHours } from "@/lib/auto-rounds";
 import { SubmitButton } from "../SubmitButton";
 import { testChannelPost } from "../actions";
 import { telegramChannel } from "@/lib/telegram";
+import { cryptoEnabled } from "@/lib/aurapay";
 
 export const metadata = { title: "Site · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ async function saveSettings(formData: FormData) {
   const stats = formData.get("show_public_stats") === "on";
   const autoRounds = formData.get("auto_rounds") === "on";
   const autoFee = Number(formData.get("auto_round_fee"));
+  const usdPerUnit = Number(formData.get("crypto_usd_per_unit"));
 
   const tgOk = (v: string) => /^https:\/\/t\.me\/[A-Za-z0-9_+/]{3,}$/.test(v);
   if (!tgOk(tg)) back("err", "Support Telegram link must look like https://t.me/YourName");
@@ -41,6 +43,7 @@ async function saveSettings(formData: FormData) {
   if (email && !/^\S+@\S+\.\S+$/.test(email)) back("err", "That email doesn't look right.");
   if (comps.length === 0) back("err", "Pick at least one league.");
   if (!Number.isFinite(autoFee) || autoFee < 0.5 || autoFee > 50) back("err", "Automatic round entry fee must be between 0.5 and 50 Units.");
+  if (!Number.isFinite(usdPerUnit) || usdPerUnit < 0.1 || usdPerUnit > 20) back("err", "Crypto price must be between 0.1 and 20 USDT per Unit.");
   if (comps.length > MAX_LEAGUES) back("err", `Pick at most ${MAX_LEAGUES} leagues (the free football data plan allows 10 requests a minute).`);
 
   const now = new Date().toISOString();
@@ -53,6 +56,7 @@ async function saveSettings(formData: FormData) {
     { key: "show_public_stats", value: stats },
     { key: "auto_rounds", value: autoRounds },
     { key: "auto_round_fee", value: Math.round(autoFee * 2) / 2 },
+    { key: "crypto_usd_per_unit", value: Math.round(usdPerUnit * 100) / 100 },
   ].map((r) => ({ ...r, updated_at: now }));
   const { error } = await createAdminClient().from("site_settings").upsert(rows, { onConflict: "key" });
   if (error) back("err", `Could not save: ${error.message}. Did you run the 0026 SQL?`);
@@ -169,6 +173,19 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
             <span className="text-sm font-medium text-mist">Entry fee per slip (Units)</span>
             <input name="auto_round_fee" type="number" step="0.5" min="0.5" max="50" defaultValue={s.auto_round_fee} className={inputClass} />
             <span className="block text-xs text-mist">1 Unit = 200 ETB. Applies to new automatic rounds.</span>
+          </label>
+        </section>
+
+        <section className={card}>
+          <h2 className="mb-1 text-lg font-extrabold">Crypto deposits (USDT)</h2>
+          <p className="mb-4 text-sm text-mist">
+            Players can pay with USDT (TRON or TON) through AuraPay, and the Units are added automatically.
+            {cryptoEnabled() ? " Status: ON." : " Status: OFF. Set AURAPAY_API_KEY and AURAPAY_WEBHOOK_SECRET in Vercel to turn it on."}
+          </p>
+          <label className="block max-w-xs space-y-1.5">
+            <span className="text-sm font-medium text-mist">Price of 1 Unit (USDT)</span>
+            <input name="crypto_usd_per_unit" type="number" step="0.01" min="0.1" max="20" defaultValue={s.crypto_usd_per_unit} className={inputClass} />
+            <span className="block text-xs text-mist">1 Unit = 200 ETB. Change it when the dollar rate moves.</span>
           </label>
         </section>
 
