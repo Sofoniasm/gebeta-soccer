@@ -1,5 +1,6 @@
 /** Private challenges: shared types and money helpers (client + server). */
 import { ETB_PER_UNIT } from "@/lib/money";
+import type { HtResult, PropKey } from "@/lib/challenge-props";
 
 /** GebetaSoccer keeps 10% of every challenge pot; the winner(s) share 90%. */
 export const CHALLENGE_FEE = 0.1;
@@ -33,6 +34,8 @@ export interface ChallengeMatch {
   status: string;
   home_score: number | null;
   away_score: number | null;
+  ht_home_score?: number | null;
+  ht_away_score?: number | null;
 }
 
 export interface ChallengePick {
@@ -40,6 +43,10 @@ export interface ChallengePick {
   home: number;
   away: number;
   points: number | null;
+  btts?: boolean | null;
+  over25?: boolean | null;
+  ht?: HtResult | null;
+  prop_points?: number | null;
 }
 
 export interface ChallengeEntry {
@@ -59,6 +66,8 @@ export interface Challenge {
   stake_units: number;
   max_players: number | null;
   fee_pct: number;
+  /** Extra picks switched on for this challenge (+1 point each per match). */
+  props: PropKey[];
   status: "open" | "settled" | "refunded" | "cancelled";
   lock_at: string;
   prize_units: number | null;
@@ -96,6 +105,7 @@ export function challengeError(m: string): string {
   if (m.includes("closed")) return "This challenge is closed: its first match has kicked off.";
   if (m.includes("already joined")) return "You are already in this challenge.";
   if (m.includes("full")) return "This challenge is full.";
+  if (m.includes("extra pick")) return "Answer every extra pick (both teams to score, over/under, half-time) for every match.";
   if (m.includes("every match")) return "Enter a score for every match.";
   if (m.includes("upcoming")) return "One of the matches has started or is no longer available. Pick again.";
   if (m.includes("stake")) return "The stake must be 200 to 1,000,000 ETB, in steps of 50 ETB.";

@@ -15,7 +15,7 @@ interface FdMatch {
   competition: { code: string; name: string };
   homeTeam: FdTeam;
   awayTeam: FdTeam;
-  score: { fullTime: { home: number | null; away: number | null } };
+  score: { fullTime: { home: number | null; away: number | null }; halfTime?: { home: number | null; away: number | null } };
 }
 
 function mapStatus(s: string): MatchStatus {
@@ -61,6 +61,8 @@ export function footballDataProvider(apiKey: string): FootballProvider {
             status,
             homeScore: status === "finished" ? m.score.fullTime.home : null,
             awayScore: status === "finished" ? m.score.fullTime.away : null,
+            htHomeScore: status === "finished" ? (m.score.halfTime?.home ?? null) : null,
+            htAwayScore: status === "finished" ? (m.score.halfTime?.away ?? null) : null,
           });
         }
       }

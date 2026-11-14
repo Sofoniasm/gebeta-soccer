@@ -12,6 +12,7 @@ import { SITE_URL } from "@/lib/site";
 import { TELEGRAM_BOT_USERNAME } from "@/lib/telegram";
 import { challengePrizeUnits, type Challenge } from "@/lib/challenges";
 import { myPrize, myPrizeText, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
+import { normalizeProps, PROP_INFO, propSummary } from "@/lib/challenge-props";
 import { CancelChallengeButton, ChallengePicksForm, ShareChallenge } from "./ChallengePlay";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,8 @@ export default async function ChallengePage({ params, searchParams }: { params: 
     stake_units: Number(raw0.stake_units),
     prize_units: num(raw0.prize_units),
     players: Number(raw0.players),
-    entries: raw0.entries.map((e) => ({ ...e, points: num(e.points), payout_units: num(e.payout_units), picks: e.picks?.map((p) => ({ ...p, points: num(p.points) })) ?? null })),
+    props: normalizeProps(raw0.props),
+    entries: raw0.entries.map((e) => ({ ...e, points: num(e.points), payout_units: num(e.payout_units), picks: e.picks?.map((p) => ({ ...p, points: num(p.points), prop_points: num(p.prop_points) })) ?? null })),
   };
 
   const open = c.status === "open" && !c.locked;
@@ -104,6 +106,11 @@ export default async function ChallengePage({ params, searchParams }: { params: 
               ? "Matches under way. Scores update as results come in; the prize is paid automatically when the last match ends."
               : `Started ${formatKickoff(c.lock_at)}.`}
         </p>
+        {c.props.length > 0 && (
+          <p className="mt-2 text-xs text-mist">
+            ⭐ Extra picks: <b className="text-white">{c.props.map((k) => PROP_INFO[k].label).join(" · ")}</b> (+1 point each per match)
+          </p>
+        )}
       </section>
 
       {/* Outcome banners */}
@@ -153,7 +160,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
                 Enter your score for every match. {etbLabel(c.stake_units)} is taken from your wallet when you join. Your balance: <b className="text-white">{etbLabel(me.balance_units)}</b>
               </p>
               {me.phone_verified_at ? (
-                <ChallengePicksForm code={c.code} matches={c.matches} myPicks={null} mode="join" stakeUnits={c.stake_units} balanceUnits={me.balance_units} />
+                <ChallengePicksForm code={c.code} matches={c.matches} myPicks={null} mode="join" stakeUnits={c.stake_units} balanceUnits={me.balance_units} props={c.props} />
               ) : (
                 <Banner kind="error">Confirm your phone number first. <Link href="/profile" className="underline">Go to Profile</Link></Banner>
               )}
@@ -164,8 +171,8 @@ export default async function ChallengePage({ params, searchParams }: { params: 
       {open && c.is_member && (
         <section className={`${card} mb-5`}>
           <h2 className="text-lg font-extrabold">Your scores</h2>
-          <p className="mb-4 mt-1 text-sm text-mist">You can change them for free until the first kickoff. Other players&apos; scores stay hidden until then.</p>
-          <ChallengePicksForm code={c.code} matches={c.matches} myPicks={me_entry?.picks ?? null} mode="edit" stakeUnits={c.stake_units} balanceUnits={me.balance_units} />
+          <p className="mb-4 mt-1 text-sm text-mist">You can change them for free until the first kickoff. Other players&apos; picks stay hidden until then.</p>
+          <ChallengePicksForm code={c.code} matches={c.matches} myPicks={me_entry?.picks ?? null} mode="edit" stakeUnits={c.stake_units} balanceUnits={me.balance_units} props={c.props} />
         </section>
       )}
 
@@ -209,6 +216,11 @@ export default async function ChallengePage({ params, searchParams }: { params: 
                     <span className="truncate text-sm font-semibold">{m.away_team}</span>
                   </span>
                 </div>
+                {done && c.props.includes("ht") && (
+                  <p className="mt-1 text-center text-[11px] text-mist">
+                    {m.ht_home_score != null && m.ht_away_score != null ? `Half-time ${m.ht_home_score} - ${m.ht_away_score}` : "No half-time score: the half-time pick counts 0 for everyone"}
+                  </p>
+                )}
                 {c.locked && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {c.entries.map((e) => {
@@ -218,7 +230,9 @@ export default async function ChallengePage({ params, searchParams }: { params: 
                       const tone = pts === null ? "border-white/10 text-mist" : pts >= 3 ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100" : pts > 0 ? "border-lilac/40 bg-lilac/10 text-white" : "border-white/10 text-mist";
                       return (
                         <span key={e.username} className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${tone}`}>
-                          {e.is_me ? "You" : e.username} {p.home}-{p.away}{pts !== null ? ` · ${pts}` : ""}
+                          {e.is_me ? "You" : e.username} {p.home}-{p.away}
+                          {c.props.length > 0 && ` (${propSummary(c.props, p, m.home_team, m.away_team)})`}
+                          {pts !== null ? ` · ${pts}` : ""}
                         </span>
                       );
                     })}

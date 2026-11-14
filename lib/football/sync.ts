@@ -53,6 +53,9 @@ export async function syncMatches(opts: SyncOptions = {}): Promise<SyncResult> {
     status: m.status,
     actual_home_score: m.homeScore,
     actual_away_score: m.awayScore,
+    // Half-time score (needed by challenge extra picks; column added in 0040).
+    ht_home_score: m.htHomeScore ?? null,
+    ht_away_score: m.htAwayScore ?? null,
     updated_at: new Date().toISOString(),
   }));
 

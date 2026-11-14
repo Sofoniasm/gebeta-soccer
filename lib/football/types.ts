@@ -22,6 +22,9 @@ export interface NormalizedMatch {
   /** Full-time score; null until the match is finished. */
   homeScore: number | null;
   awayScore: number | null;
+  /** Half-time score; null until the match is finished (or if the provider has none). */
+  htHomeScore?: number | null;
+  htAwayScore?: number | null;
 }
 
 export interface FetchMatchesOptions {

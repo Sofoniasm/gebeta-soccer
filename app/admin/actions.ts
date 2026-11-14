@@ -232,7 +232,7 @@ export async function setScore(formData: FormData) {
     .update(
       status === "finished"
         ? { status, actual_home_score: home, actual_away_score: away, updated_at: new Date().toISOString() }
-        : { status, actual_home_score: null, actual_away_score: null, updated_at: new Date().toISOString() }
+        : { status, actual_home_score: null, actual_away_score: null, ht_home_score: null, ht_away_score: null, updated_at: new Date().toISOString() }
     )
     .eq("id", matchId);
   if (error) return done("err", error.message);

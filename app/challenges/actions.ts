@@ -4,16 +4,29 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { pushNotifications } from "@/lib/notify";
 import { CHALLENGE_MAX_MATCHES, challengeError, etbToUnits, stakeError } from "@/lib/challenges";
+import { normalizeProps, type HtResult, type PropKey } from "@/lib/challenge-props";
 
 export interface PickInput {
   matchId: number;
   home: number;
   away: number;
+  /** Extra picks (only sent when the challenge has them switched on). */
+  btts?: boolean | null;
+  over25?: boolean | null;
+  ht?: HtResult | null;
 }
 export type ChallengeResult = { ok: boolean; message: string; code?: string };
 
 const okScore = (n: number) => Number.isInteger(n) && n >= 0 && n <= 20;
-const toJson = (picks: PickInput[]) => picks.map((p) => ({ match_id: p.matchId, home: p.home, away: p.away }));
+const toJson = (picks: PickInput[]) =>
+  picks.map((p) => ({
+    match_id: p.matchId,
+    home: p.home,
+    away: p.away,
+    ...(typeof p.btts === "boolean" ? { btts: p.btts } : {}),
+    ...(typeof p.over25 === "boolean" ? { over25: p.over25 } : {}),
+    ...(p.ht ? { ht: p.ht } : {}),
+  }));
 const validPicks = (picks: PickInput[]) =>
   picks.length >= 1 &&
   picks.length <= CHALLENGE_MAX_MATCHES &&
@@ -26,7 +39,7 @@ function refresh(code?: string) {
   revalidatePath("/wallet");
 }
 
-export async function createChallenge(input: { title: string; stakeEtb: number; maxPlayers: number | null; picks: PickInput[] }): Promise<ChallengeResult> {
+export async function createChallenge(input: { title: string; stakeEtb: number; maxPlayers: number | null; picks: PickInput[]; props?: PropKey[] }): Promise<ChallengeResult> {
   const title = input.title.trim();
   if (title.length < 3 || title.length > 60) return { ok: false, message: "Give the challenge a name (3 to 60 characters)." };
   const se = stakeError(input.stakeEtb);
@@ -40,6 +53,7 @@ export async function createChallenge(input: { title: string; stakeEtb: number; 
     p_stake: etbToUnits(input.stakeEtb),
     p_max_players: max,
     p_picks: toJson(input.picks),
+    p_props: normalizeProps(input.props),
   });
   if (error) return { ok: false, message: challengeError(error.message) };
   refresh(String(data));

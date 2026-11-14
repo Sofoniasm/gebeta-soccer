@@ -9,6 +9,8 @@ import { SpinnerIcon } from "@/components/icons";
 import { ETB_PER_UNIT, etbLabel, unitsLabel } from "@/lib/money";
 import { CHALLENGE_FEE, CHALLENGE_MAX_MATCHES, challengePrizeUnits, etbToUnits, stakeError } from "@/lib/challenges";
 import { createChallenge } from "../actions";
+import { PropPicker, effectivePropPick } from "@/components/PropPicker";
+import { PROP_INFO, PROP_KEYS, propsComplete, type PropKey, type PropPick } from "@/lib/challenge-props";
 
 export interface UpcomingMatch {
   id: number;
@@ -75,6 +77,10 @@ export function ChallengeBuilder({
   const [maxPlayers, setMaxPlayers] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Extra picks (+1 point each per match), chosen by the creator for everyone.
+  const [props, setProps] = useState<PropKey[]>([]);
+  const [extra, setExtra] = useState<Record<number, PropPick>>({});
+  const effOf = (id: number) => effectivePropPick(extra[id] ?? {}, picked[id]?.home ?? "", picked[id]?.away ?? "");
 
   const comps = useMemo(() => ["All", ...Array.from(new Set(matches.map((m) => m.competition ?? "Other")))], [matches]);
   const shown = comp === "All" ? matches : matches.filter((m) => (m.competition ?? "Other") === comp);
@@ -89,7 +95,7 @@ export function ChallengeBuilder({
 
   const ids = Object.keys(picked).map(Number);
   const count = ids.length;
-  const scored = ids.filter((id) => picked[id].home !== "" && picked[id].away !== "").length;
+  const scored = ids.filter((id) => picked[id].home !== "" && picked[id].away !== "" && propsComplete(props, effOf(id))).length;
   const allScored = count > 0 && scored === count;
 
   const stakeEtb = Number(stake);
@@ -120,7 +126,8 @@ export function ChallengeBuilder({
         title,
         stakeEtb,
         maxPlayers,
-        picks: ids.map((id) => ({ matchId: id, home: Number(picked[id].home), away: Number(picked[id].away) })),
+        props,
+        picks: ids.map((id) => ({ matchId: id, home: Number(picked[id].home), away: Number(picked[id].away), ...(props.length ? effOf(id) : {}) })),
       });
       if (!r.ok) {
         setError(r.message);
@@ -155,6 +162,28 @@ export function ChallengeBuilder({
       {step === 1 && (
         <>
           <p className="mb-3 text-sm text-mist">Tap 1 to {CHALLENGE_MAX_MATCHES} matches and type your score for each. Your friends predict the same matches.</p>
+          <div className="mb-4 rounded-2xl border border-white/10 bg-card/60 p-4">
+            <p className="text-sm font-extrabold text-white">Extra picks <span className="font-semibold text-mist">· +1 point each, per match</span></p>
+            <p className="mt-0.5 text-xs text-mist">Optional. Everyone who joins answers the same extra picks.</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {PROP_KEYS.map((k) => {
+                const on = props.includes(k);
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    title={PROP_INFO[k].help}
+                    aria-pressed={on}
+                    onClick={() => setProps((p) => PROP_KEYS.filter((x) => (x === k ? !on : p.includes(x))))}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold ${on ? "border-lilac bg-lilac/20 text-white" : "border-white/10 text-mist"}`}
+                  >
+                    {on ? "✓ " : "+ "}
+                    {PROP_INFO[k].label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {matches.length === 0 ? (
             <p className="rounded-2xl bg-card/60 p-5 text-sm text-mist">No upcoming matches yet. Check back after the next fixtures update.</p>
           ) : (
@@ -211,6 +240,17 @@ export function ChallengeBuilder({
                                 <span className="truncate text-sm font-semibold">{m.away_team}</span>
                               </span>
                             </div>
+                            {sel && (
+                              <PropPicker
+                                props={props}
+                                value={extra[m.id] ?? {}}
+                                home={sel.home}
+                                away={sel.away}
+                                homeTeam={m.home_team}
+                                awayTeam={m.away_team}
+                                onChange={(v) => setExtra((x) => ({ ...x, [m.id]: v }))}
+                              />
+                            )}
                           </div>
                         );
                       })}
@@ -277,7 +317,10 @@ export function ChallengeBuilder({
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-xs text-mist/80">Ties share the prize. If nobody joins before the first kickoff, your stake comes back.</p>
+              <p className="mt-2 text-xs text-mist/80">
+                Ties share the prize. If nobody joins before the first kickoff, your stake comes back.
+                {props.length > 0 && ` Extra picks: ${props.map((k) => PROP_INFO[k].label).join(", ")} (+1 point each per match).`}
+              </p>
             </div>
           )}
 
@@ -297,7 +340,7 @@ export function ChallengeBuilder({
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <div className="min-w-0 flex-1 text-xs">
             <p className="font-extrabold text-white">{count} of {CHALLENGE_MAX_MATCHES} matches</p>
-            <p className="text-mist">{count === 0 ? "Tap a match to pick it" : allScored ? "All scores in" : `${count - scored} score${count - scored === 1 ? "" : "s"} missing`}</p>
+            <p className="text-mist">{count === 0 ? "Tap a match to pick it" : allScored ? "All picks in" : `${count - scored} match${count - scored === 1 ? "" : "es"} not finished`}</p>
           </div>
           {step === 1 ? (
             <button

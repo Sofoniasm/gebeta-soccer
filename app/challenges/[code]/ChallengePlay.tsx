@@ -9,6 +9,8 @@ import { SendIcon, SpinnerIcon } from "@/components/icons";
 import { etbLabel } from "@/lib/money";
 import type { ChallengeMatch, ChallengePick } from "@/lib/challenges";
 import { cancelChallenge, joinChallenge, saveChallengePicks } from "../actions";
+import { PropPicker, effectivePropPick } from "@/components/PropPicker";
+import { propsComplete, type PropKey, type PropPick } from "@/lib/challenge-props";
 
 type Score = { home: string; away: string };
 
@@ -37,8 +39,10 @@ export function ChallengePicksForm({
   mode,
   stakeUnits,
   balanceUnits,
+  props = [],
 }: {
   code: string;
+  props?: PropKey[];
   matches: ChallengeMatch[];
   myPicks: ChallengePick[] | null;
   mode: "join" | "edit";
@@ -54,14 +58,23 @@ export function ChallengePicksForm({
     }
     return s;
   });
+  const [extra, setExtra] = useState<Record<number, PropPick>>(() => {
+    const x: Record<number, PropPick> = {};
+    for (const m of matches) {
+      const p = myPicks?.find((y) => y.match_id === m.id);
+      x[m.id] = { btts: p?.btts ?? undefined, over25: p?.over25 ?? undefined, ht: p?.ht ?? undefined };
+    }
+    return x;
+  });
+  const effOf = (id: number) => effectivePropPick(extra[id] ?? {}, scores[id].home, scores[id].away);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
-  const missing = matches.filter((m) => scores[m.id].home === "" || scores[m.id].away === "").length;
+  const missing = matches.filter((m) => scores[m.id].home === "" || scores[m.id].away === "" || !propsComplete(props, effOf(m.id))).length;
   const enough = mode === "edit" || balanceUnits >= stakeUnits;
 
   function submit() {
     setMsg(null);
-    const picks = matches.map((m) => ({ matchId: m.id, home: Number(scores[m.id].home), away: Number(scores[m.id].away) }));
+    const picks = matches.map((m) => ({ matchId: m.id, home: Number(scores[m.id].home), away: Number(scores[m.id].away), ...(props.length ? effOf(m.id) : {}) }));
     start(async () => {
       const r = mode === "join" ? await joinChallenge(code, picks) : await saveChallengePicks(code, picks);
       setMsg({ ok: r.ok, text: r.message });
@@ -91,6 +104,15 @@ export function ChallengePicksForm({
               <span className="truncate text-sm font-semibold">{m.away_team}</span>
             </span>
           </div>
+          <PropPicker
+            props={props}
+            value={extra[m.id] ?? {}}
+            home={scores[m.id].home}
+            away={scores[m.id].away}
+            homeTeam={m.home_team}
+            awayTeam={m.away_team}
+            onChange={(v) => setExtra((x) => ({ ...x, [m.id]: v }))}
+          />
         </div>
       ))}
 
@@ -107,7 +129,7 @@ export function ChallengePicksForm({
         className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-lilac px-6 py-3.5 text-sm font-bold uppercase tracking-wider text-ink disabled:opacity-40"
       >
         {pending && <SpinnerIcon size={16} className="animate-spin" />}
-        {missing > 0 ? `${missing} score${missing === 1 ? "" : "s"} missing` : mode === "join" ? `Join & pay ${etbLabel(stakeUnits)}` : "Save my scores"}
+        {missing > 0 ? `${missing} match${missing === 1 ? "" : "es"} not finished` : mode === "join" ? `Join & pay ${etbLabel(stakeUnits)}` : "Save my picks"}
       </button>
     </div>
   );
