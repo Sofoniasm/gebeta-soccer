@@ -57,16 +57,16 @@ export function WithdrawForm({ defaultPhone, maxUnits }: { defaultPhone: string;
   );
 }
 
-/** Pay with USDT (AuraPay): pick Units + network, then go to AuraPay's checkout page. */
+/** Pay with crypto (NOWPayments): pick Units, then go to NOWPayments' page, where the player picks the coin. */
 export function CryptoDepositForm({ usdPerUnit, min, max }: { usdPerUnit: number; min: number; max: number }) {
   const [state, action, pending] = useActionState<CryptoState, FormData>(startCryptoDeposit, undefined);
   const [units, setUnits] = useState(String(min));
-  const [chain, setChain] = useState<"TRON" | "TON">("TRON");
   useEffect(() => {
     if (state?.ok && state.url) window.location.href = state.url;
   }, [state]);
   const n = Number(units);
   const usd = n > 0 ? Math.ceil(Math.round(n * usdPerUnit * 10000) / 100) / 100 : 0;
+  const going = pending || Boolean(state?.ok && state.url);
   return (
     <form action={action} className="space-y-3">
       {state?.message && <Banner kind={state.ok ? "success" : "error"}>{state.message}</Banner>}
@@ -84,24 +84,16 @@ export function CryptoDepositForm({ usdPerUnit, min, max }: { usdPerUnit: number
           className={inputClass}
         />
         <span className="block text-xs text-mist">
-          You pay <b className="text-white">{usd.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDT</b> · 1 Unit = {usdPerUnit} USDT
+          Price: <b className="text-white">${usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}</b> · 1 Unit = ${usdPerUnit} · network fees are added on the payment page
         </span>
       </label>
-      <div className="grid grid-cols-2 gap-2">
-        {(["TRON", "TON"] as const).map((c) => (
-          <label
-            key={c}
-            className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-sm font-bold ${chain === c ? "border-lilac bg-lilac/15 text-white" : "border-white/10 text-mist hover:border-white/30"}`}
-          >
-            <input type="radio" name="chain" value={c} checked={chain === c} onChange={() => setChain(c)} className="sr-only" />
-            USDT · {c === "TRON" ? "TRON (TRC-20)" : "TON"}
-          </label>
-        ))}
-      </div>
-      <button disabled={pending || (state?.ok && !!state.url)} className={`${primaryButtonClass} sm:w-auto`}>
-        {(pending || (state?.ok && state.url)) && <SpinnerIcon size={16} />} Pay with crypto
+      <button disabled={going} className={`${primaryButtonClass} sm:w-auto`}>
+        {going && <SpinnerIcon size={16} />} Pay with crypto
       </button>
-      <p className="text-xs text-mist">Your Units are added automatically a few minutes after the payment is confirmed on the blockchain.</p>
+      <p className="text-xs text-mist">
+        You choose the coin (USDT TRC-20, TON, BTC, ETH…) on the next page. Pay within the time shown there. Your Units are added automatically once the
+        payment is confirmed on the blockchain.
+      </p>
     </form>
   );
 }

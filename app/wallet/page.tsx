@@ -6,7 +6,7 @@ import { formatKickoff } from "@/lib/format";
 import { getSiteSettings, telegramHandle } from "@/lib/site-settings";
 import { AppShell } from "@/components/AppShell";
 import { CryptoDepositForm, WithdrawForm } from "./WalletForms";
-import { cryptoEnabled } from "@/lib/aurapay";
+import { nowPaymentsEnabled as cryptoEnabled } from "@/lib/nowpayments";
 import { SendIcon, WalletIcon } from "@/components/icons";
 
 export const metadata = { title: "Wallet · GebetaSoccer" };
@@ -37,7 +37,8 @@ const CRYPTO_STATUS: Record<string, string> = {
   failed: "Failed",
 };
 
-export default async function WalletPage() {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ crypto?: string }> }) {
+  const { crypto } = await searchParams;
   const site = await getSiteSettings();
   const me = await getMe("/wallet");
   const supabase = await createClient();
@@ -128,6 +129,11 @@ export default async function WalletPage() {
 
   return (
     <AppShell title="Wallet" next="/wallet">
+      {crypto === "paid" && (
+        <p className="mb-4 rounded-2xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+          ✅ Thank you! Your crypto payment was sent. Your Units are added automatically once the blockchain confirms it (usually a few minutes).
+        </p>
+      )}
       {/* Balance */}
       <section className="relative mb-5 overflow-hidden rounded-[2rem] border border-lilac/20 bg-gradient-to-br from-[#4a3f86] via-card to-ink p-7">
         <div className="animate-glow pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-lilac/30 blur-3xl" />
@@ -160,12 +166,12 @@ export default async function WalletPage() {
           </a>
         </section>
 
-        {/* Deposit — crypto (AuraPay, automatic) */}
+        {/* Deposit — crypto (NOWPayments, automatic) */}
         {cryptoEnabled() && (
           <section className={card}>
-            <h2 className="text-lg font-extrabold">Pay with crypto (USDT)</h2>
+            <h2 className="text-lg font-extrabold">Pay with crypto</h2>
             <p className="mt-3 text-sm leading-relaxed text-mist">
-              Outside Ethiopia? Pay with USDT on TRON or TON. No need to message anyone: your balance updates by itself.
+              Outside Ethiopia? Pay with USDT, TON, BTC or another coin. No need to message anyone: your balance updates by itself.
             </p>
             <div className="mt-4">
               <CryptoDepositForm usdPerUnit={site.crypto_usd_per_unit} min={MIN_DEPOSIT_UNITS} max={MAX_DEPOSIT_UNITS} />
@@ -175,7 +181,7 @@ export default async function WalletPage() {
                 {cryptoRows.map((c) => (
                   <li key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-ink/50 px-3 py-2">
                     <span className="text-mist">
-                      {formatKickoff(c.created_at)} · {c.units} Units · {c.usd} USDT
+                      {formatKickoff(c.created_at)} · {c.units} Units · ${c.usd}
                     </span>
                     {c.status === "pending" && c.checkout_url ? (
                       <a href={c.checkout_url} className="font-bold text-lilac">Pay now →</a>

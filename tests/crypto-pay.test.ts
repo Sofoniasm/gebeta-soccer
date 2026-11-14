@@ -45,3 +45,32 @@ test("crypto: networks and ids", () => {
   assert.equal(isCryptoChain("EVM"), false);
   assert.equal(externalIdFor(42), "gs-dep-42");
 });
+
+// ------------------------------------------------------------ NOWPayments
+import { nowPaymentsAction, sortKeysDeep, verifyNowPaymentsSignature } from "../lib/crypto-pay";
+
+test("nowpayments: IPN signature = HMAC-SHA512 of JSON with sorted keys (nested too)", () => {
+  const body = { payment_status: "finished", payment_id: 5, fee: { serviceFee: 0, currency: "btc" }, order_id: "gs-dep-1", price_amount: 7.5 };
+  const sorted = '{"fee":{"currency":"btc","serviceFee":0},"order_id":"gs-dep-1","payment_id":5,"payment_status":"finished","price_amount":7.5}';
+  assert.equal(JSON.stringify(sortKeysDeep(body)), sorted);
+  const sig = createHmac("sha512", "ipnsecret").update(sorted).digest("hex");
+  assert.equal(verifyNowPaymentsSignature(body, sig, "ipnsecret"), true);
+  assert.equal(verifyNowPaymentsSignature(body, sig.toUpperCase(), "ipnsecret"), true);
+  assert.equal(verifyNowPaymentsSignature({ ...body, price_amount: 750 }, sig, "ipnsecret"), false); // changed amount
+  assert.equal(verifyNowPaymentsSignature(body, sig, "wrong"), false);
+  assert.equal(verifyNowPaymentsSignature(body, null, "ipnsecret"), false);
+  assert.equal(verifyNowPaymentsSignature(body, sig, undefined), false);
+});
+
+test("nowpayments: only a finished, full, first payment adds Units", () => {
+  const base = { payment_status: "finished", price_amount: 7.5, price_currency: "usd", pay_currency: "usdttrc20", parent_payment_id: null };
+  assert.deepEqual(nowPaymentsAction(base, 7.5), { action: "credit" });
+  assert.equal(nowPaymentsAction({ ...base, price_currency: "USD" }, 7.5).action, "credit");
+  for (const s of ["waiting", "confirming", "confirmed", "sending"]) assert.equal(nowPaymentsAction({ ...base, payment_status: s }, 7.5).action, "wait");
+  assert.equal(nowPaymentsAction({ ...base, payment_status: "expired" }, 7.5).action, "expire");
+  assert.equal(nowPaymentsAction({ ...base, payment_status: "failed" }, 7.5).action, "expire");
+  assert.equal(nowPaymentsAction({ ...base, payment_status: "partially_paid", actually_paid: 5 }, 7.5).action, "review");
+  assert.equal(nowPaymentsAction({ ...base, parent_payment_id: 123 }, 7.5).action, "review"); // repeated deposit
+  assert.equal(nowPaymentsAction({ ...base, price_amount: 1 }, 7.5).action, "review"); // someone else's cheaper invoice
+  assert.equal(nowPaymentsAction({ ...base, price_currency: "eur" }, 7.5).action, "review");
+});

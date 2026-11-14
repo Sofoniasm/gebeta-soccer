@@ -11,7 +11,7 @@ import { createDueAutoRounds, SLOTS, slotHours } from "@/lib/auto-rounds";
 import { SubmitButton } from "../SubmitButton";
 import { testChannelPost } from "../actions";
 import { telegramChannel } from "@/lib/telegram";
-import { cryptoEnabled } from "@/lib/aurapay";
+import { nowPaymentsEnabled as cryptoEnabled } from "@/lib/nowpayments";
 
 export const metadata = { title: "Site · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -43,7 +43,7 @@ async function saveSettings(formData: FormData) {
   if (email && !/^\S+@\S+\.\S+$/.test(email)) back("err", "That email doesn't look right.");
   if (comps.length === 0) back("err", "Pick at least one league.");
   if (!Number.isFinite(autoFee) || autoFee < 0.5 || autoFee > 50) back("err", "Automatic round entry fee must be between 0.5 and 50 Units.");
-  if (!Number.isFinite(usdPerUnit) || usdPerUnit < 0.1 || usdPerUnit > 20) back("err", "Crypto price must be between 0.1 and 20 USDT per Unit.");
+  if (!Number.isFinite(usdPerUnit) || usdPerUnit < 0.1 || usdPerUnit > 20) back("err", "Crypto price must be between 0.1 and 20 USD per Unit.");
   if (comps.length > MAX_LEAGUES) back("err", `Pick at most ${MAX_LEAGUES} leagues (the free football data plan allows 10 requests a minute).`);
 
   const now = new Date().toISOString();
@@ -177,13 +177,13 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
         </section>
 
         <section className={card}>
-          <h2 className="mb-1 text-lg font-extrabold">Crypto deposits (USDT)</h2>
+          <h2 className="mb-1 text-lg font-extrabold">Crypto deposits (NOWPayments)</h2>
           <p className="mb-4 text-sm text-mist">
-            Players can pay with USDT (TRON or TON) through AuraPay, and the Units are added automatically.
-            {cryptoEnabled() ? " Status: ON." : " Status: OFF. Set AURAPAY_API_KEY and AURAPAY_WEBHOOK_SECRET in Vercel to turn it on."}
+            Players outside Ethiopia can pay with crypto (USDT, TON, BTC and more) through NOWPayments; the player pays the fees and the Units are added automatically.
+            {cryptoEnabled() ? " Status: ON." : " Status: OFF. Set NOWPAYMENTS_API_KEY and NOWPAYMENTS_IPN_SECRET in Vercel to turn it on."}
           </p>
           <label className="block max-w-xs space-y-1.5">
-            <span className="text-sm font-medium text-mist">Price of 1 Unit (USDT)</span>
+            <span className="text-sm font-medium text-mist">Price of 1 Unit (USD)</span>
             <input name="crypto_usd_per_unit" type="number" step="0.01" min="0.1" max="20" defaultValue={s.crypto_usd_per_unit} className={inputClass} />
             <span className="block text-xs text-mist">1 Unit = 200 ETB. Change it when the dollar rate moves.</span>
           </label>

@@ -7,8 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
 import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS } from "@/lib/money";
 import { getSiteSettings } from "@/lib/site-settings";
-import { cryptoEnabled, createUsdtInvoice } from "@/lib/aurapay";
-import { externalIdFor, isCryptoChain, usdForUnits } from "@/lib/crypto-pay";
+import { createNowPaymentsInvoice, nowPaymentsEnabled } from "@/lib/nowpayments";
+import { externalIdFor, usdForUnits } from "@/lib/crypto-pay";
 
 export type FormState = { ok?: boolean; message?: string } | undefined;
 
@@ -64,15 +64,13 @@ export async function requestWithdrawal(_prev: FormState, formData: FormData): P
   return { ok: true, message: "Withdrawal requested. The units are on hold and we'll send the money to your Telebirr soon." };
 }
 
-// ------------------------------------------------------------ crypto deposits (AuraPay, USDT)
+// ------------------------------------------------------------ crypto deposits (NOWPayments)
 export type CryptoState = { ok?: boolean; message?: string; url?: string } | undefined;
 
-/** Make an AuraPay USDT invoice for the signed-in player and return its checkout link. */
+/** Make a NOWPayments invoice (price in USD, player picks the coin) and return its payment link. */
 export async function startCryptoDeposit(_prev: CryptoState, formData: FormData): Promise<CryptoState> {
   const units = Math.round(Number(formData.get("units")) * 2) / 2;
-  const chain = String(formData.get("chain") ?? "");
-  if (!cryptoEnabled()) return { ok: false, message: "Crypto payments are not available right now. Please message our Telegram admin." };
-  if (!isCryptoChain(chain)) return { ok: false, message: "Pick a network: TRON or TON." };
+  if (!nowPaymentsEnabled()) return { ok: false, message: "Crypto payments are not available right now. Please message our Telegram admin." };
   if (!Number.isFinite(units) || units < MIN_DEPOSIT_UNITS || units > MAX_DEPOSIT_UNITS) {
     return { ok: false, message: `Choose between ${MIN_DEPOSIT_UNITS} and ${MAX_DEPOSIT_UNITS} Units.` };
   }
@@ -101,16 +99,20 @@ export async function startCryptoDeposit(_prev: CryptoState, formData: FormData)
 
   const site = await getSiteSettings();
   const usd = usdForUnits(units, site.crypto_usd_per_unit);
-  const { data: row, error } = await admin.from("crypto_deposits").insert({ user_id: userId, units, usd, chain }).select("id").single();
-  if (error || !row) return { ok: false, message: "Could not start the payment. Did the admin run the 0042 SQL?" };
+  const { data: row, error } = await admin
+    .from("crypto_deposits")
+    .insert({ user_id: userId, units, usd, chain: "ANY", provider: "nowpayments" })
+    .select("id")
+    .single();
+  if (error || !row) return { ok: false, message: "Could not start the payment. Did the admin run the 0042 and 0043 SQL?" };
   try {
-    const inv = await createUsdtInvoice({ amountUsd: usd, chain, externalId: externalIdFor(row.id), note: `GebetaSoccer · ${units} Units` });
-    await admin.from("crypto_deposits").update({ reference: inv.reference, checkout_url: inv.checkoutUrl }).eq("id", row.id);
+    const inv = await createNowPaymentsInvoice({ amountUsd: usd, orderId: externalIdFor(row.id), description: `GebetaSoccer · ${units} Units` });
+    await admin.from("crypto_deposits").update({ reference: inv.id, checkout_url: inv.url }).eq("id", row.id);
     revalidatePath("/wallet");
-    return { ok: true, url: inv.checkoutUrl, message: `Pay ${usd} USDT to get ${units} Units.` };
+    return { ok: true, url: inv.url, message: `Pay ${usd} USD in crypto to get ${units} Units.` };
   } catch (e) {
     await admin.from("crypto_deposits").update({ status: "failed", note: (e as Error).message.slice(0, 300) }).eq("id", row.id);
-    console.error("[aurapay] invoice failed:", (e as Error).message);
+    console.error("[nowpayments] invoice failed:", (e as Error).message);
     return { ok: false, message: "The crypto payment service did not answer. Please try again in a minute." };
   }
 }
