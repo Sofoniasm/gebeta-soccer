@@ -45,7 +45,7 @@ const envCompetitions = (process.env.FOOTBALL_COMPETITIONS ?? "PL")
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   telegram_support: TELEGRAM_URL,
-  telegram_channel: "",
+  telegram_channel: "https://t.me/GebetaSoccerOfficial",
   contact_email: "",
   contact_phone: "",
   competitions: envCompetitions,
@@ -63,7 +63,7 @@ function merge(rows: { key: string; value: unknown }[]): SiteSettings {
         if (typeof v === "string" && /^https:\/\/t\.me\/\S+$/.test(v)) s.telegram_support = v;
         break;
       case "telegram_channel":
-        if (typeof v === "string" && (v === "" || /^https:\/\/t\.me\/\S+$/.test(v))) s.telegram_channel = v;
+        if (typeof v === "string" && /^https:\/\/t\.me\/\S+$/.test(v)) s.telegram_channel = v; // empty = our official channel
         break;
       case "contact_email":
         if (typeof v === "string") s.contact_email = v;

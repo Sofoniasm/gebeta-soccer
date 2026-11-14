@@ -13,7 +13,7 @@ export async function SiteFooter() {
   const cols: { title: string; links: [string, string][] }[] = [
     { title: t.cols.play, links: [[L.createAccount, "/register"], [L.logIn, "/login"], [L.myPredictions, "/dashboard"], [L.tournaments, "/tournaments"]] },
     { title: t.cols.learn, links: [[L.predictions, "/predictions"], [L.howToPlay, "/how-to-play"], [L.news, "/news"], [L.getApp, "/apps"], [L.terms, "/terms"]] },
-    { title: t.cols.company, links: [[L.about, "/about"], [L.business, "/business"], [L.telegram, site.telegram_support]] },
+    { title: t.cols.company, links: [[L.about, "/about"], [L.business, "/business"], [L.telegram, site.telegram_support], ...(site.telegram_channel ? [[L.channel, site.telegram_channel] as [string, string]] : [])] },
   ];
   return (
     <footer className="relative border-t border-white/5 bg-ink">
@@ -22,6 +22,16 @@ export async function SiteFooter() {
           <Wordmark className="text-2xl" />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-mist">{t.footerTagline}</p>
           <span className="mt-5 inline-flex rounded-full border border-white/15 px-3 py-1 text-xs font-bold text-mist">{t.playResponsibly}</span>
+          {site.telegram_channel && (
+            <a
+              href={site.telegram_channel}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 flex w-fit items-center gap-2 rounded-full bg-sky-500/90 px-4 py-2 text-xs font-bold text-white hover:bg-sky-500"
+            >
+              📣 {t.channel.button} · {telegramHandle(site.telegram_channel)}
+            </a>
+          )}
         </div>
         {cols.map((c) => (
           <div key={c.title}>

@@ -112,7 +112,7 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
               <input id="telegram_support" name="telegram_support" required defaultValue={s.telegram_support} placeholder="https://t.me/GebetaSoccerSupport" className={inputClass} />
             </div>
             <div>
-              <label className={label} htmlFor="telegram_channel">Announcements channel (optional)</label>
+              <label className={label} htmlFor="telegram_channel">Community channel (empty = t.me/GebetaSoccerOfficial)</label>
               <input id="telegram_channel" name="telegram_channel" defaultValue={s.telegram_channel} placeholder="https://t.me/GebetaSoccerOfficial" className={inputClass} />
             </div>
             <div>

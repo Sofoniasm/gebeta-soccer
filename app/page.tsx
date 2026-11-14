@@ -20,6 +20,7 @@ import { localPath } from "@/lib/i18n";
 import { HOME } from "@/lib/i18n/home";
 import { getSiteSettings } from "@/lib/site-settings";
 import { JsonLd } from "@/components/JsonLd";
+import { ChannelBanner } from "@/components/ChannelBanner";
 
 export async function generateMetadata() {
   const lang = await getLang();
@@ -184,6 +185,8 @@ export default async function Home() {
             ))}
           </div>
         </section>
+
+        <ChannelBanner lang={lang} className="mt-6" />
 
         {/* ------------------------------------------------ Introduction */}
         <section id="how" className="grid scroll-mt-24 items-center gap-8 py-12 sm:gap-12 sm:py-20 lg:grid-cols-2">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChannelBanner } from "@/components/ChannelBanner";
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
 import { getActiveRounds, getCurrentRound, getRoundMatches, getRoundPool } from "@/lib/rounds";
@@ -170,6 +171,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </span>
         <span className="text-xs font-bold uppercase tracking-wider text-lilac">Start →</span>
       </Link>
+      <ChannelBanner className="mb-4" />
       {/* Superbru-style "picks needed" countdown chips */}
       <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
         {[24, 48, 72].map((h) => {
