@@ -151,7 +151,7 @@ export default async function AdminSitePage({ searchParams }: { searchParams: Pr
         <section className={card}>
           <h2 className="mb-1 text-lg font-extrabold">Automatic daily rounds</h2>
           <p className="mb-4 text-sm text-mist">
-            Every match sync opens a round by itself for each time slot (Ethiopian time) that has 10 matches from your leagues, for today and the next 2 days.
+            Every match sync opens a round by itself for each time slot (Ethiopian time) that has 5 to 10 matches from your leagues (10 or more opens right away; 5 to 9 opens when the first match is less than 24 hours away), for today and the next 2 days.
             Matches never mix slots. The round locks at its first kickoff and pays out by itself when its last match ends.
           </p>
           <ul className="mb-4 grid gap-2 sm:grid-cols-3">

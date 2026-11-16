@@ -161,7 +161,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
           ) : (
             <>
               {/* STEP 2 — pick matches */}
-              <Step n={2} title={`Pick 10 matches for ${round.name}`} done={roundMatches.length === 10}>
+              <Step n={2} title={`Pick 5 to 10 matches for ${round.name}`} done={roundMatches.length >= 5}>
                 {lockAt && (
                   <p className="mb-3 rounded-2xl bg-ink/50 px-4 py-2.5 text-sm">
                     🔒 Locks at the first kickoff: <b className="text-white">{formatKickoff(lockAt)}</b>
@@ -170,26 +170,26 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                 )}
                 <div className="mb-3 flex flex-wrap items-center gap-3">
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
-                    <div className={`h-full rounded-full ${roundMatches.length === 10 ? "bg-emerald-300" : "bg-lilac"}`} style={{ width: `${roundMatches.length * 10}%` }} />
+                    <div className={`h-full rounded-full ${roundMatches.length >= 5 ? "bg-emerald-300" : "bg-lilac"}`} style={{ width: `${roundMatches.length * 10}%` }} />
                   </div>
-                  <span className={`text-sm font-extrabold ${roundMatches.length === 10 ? "text-emerald-200" : "text-white"}`}>{roundMatches.length}/10 matches</span>
+                  <span className={`text-sm font-extrabold ${roundMatches.length >= 5 ? "text-emerald-200" : "text-white"}`}>{roundMatches.length}/10 matches (5 to 10)</span>
                 </div>
                 {round.status === "draft" && (
-                  <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${roundMatches.length === 10 ? "border-emerald-300/30 bg-emerald-300/10" : "border-white/10 bg-ink/40"}`}>
+                  <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${roundMatches.length >= 5 ? "border-emerald-300/30 bg-emerald-300/10" : "border-white/10 bg-ink/40"}`}>
                     <p className="text-sm text-mist">
-                      {roundMatches.length === 10
-                        ? "All 10 matches picked. Open the round so players can join and predict."
-                        : `Draft — players can't see this round yet. Add ${10 - roundMatches.length} more match${10 - roundMatches.length === 1 ? "" : "es"}.`}
+                      {roundMatches.length >= 5
+                        ? `${roundMatches.length} matches picked. Open the round so players can join and predict (you can still add up to ${10 - roundMatches.length} more before opening).`
+                        : `Draft — players can't see this round yet. Add at least ${5 - roundMatches.length} more match${5 - roundMatches.length === 1 ? "" : "es"} (5 to 10).`}
                     </p>
                     <form action={setRoundStatus}>
                       <input type="hidden" name="roundId" value={round.id} />
                       <input type="hidden" name="status" value="open" />
-                      {roundMatches.length === 10 ? (
-                        <SubmitButton className={`${primaryButtonClass} sm:w-auto`} confirm={`Open ${round.name} for players with these 10 matches?`}>
+                      {roundMatches.length >= 5 ? (
+                        <SubmitButton className={`${primaryButtonClass} sm:w-auto`} confirm={`Open ${round.name} for players with these ${roundMatches.length} matches?`}>
                           Open round for players
                         </SubmitButton>
                       ) : (
-                        <button type="button" disabled className={`${primaryButtonClass} cursor-not-allowed opacity-40 sm:w-auto`}>Open round (needs 10)</button>
+                        <button type="button" disabled className={`${primaryButtonClass} cursor-not-allowed opacity-40 sm:w-auto`}>Open round (needs 5 to 10)</button>
                       )}
                     </form>
                   </div>
@@ -371,7 +371,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                 <input type="hidden" name="roundId" value={round.id} />
                 <input type="hidden" name="status" value={round.status === "open" ? "locked" : "open"} />
                 <SubmitButton className={`${secondaryButtonClass} w-full`}>
-                  {round.status === "open" ? "Lock round (stop new entries)" : round.status === "draft" ? "Open round (needs 10 matches)" : "Reopen round"}
+                  {round.status === "open" ? "Lock round (stop new entries)" : round.status === "draft" ? "Open round (needs 5 to 10 matches)" : "Reopen round"}
                 </SubmitButton>
               </form>
             </section>

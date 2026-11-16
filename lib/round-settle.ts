@@ -11,6 +11,10 @@ import { settleLeague } from "@/lib/league-settle";
 import { formatUnits } from "@/lib/money";
 import { soloRefunds } from "@/lib/solo";
 import { buildRoundRecaps, type Lang } from "@/lib/round-recap";
+import { buildWinnersPost } from "@/lib/channel-post";
+import { sendChannelMessage } from "@/lib/telegram";
+import { testRoundIds } from "@/lib/rounds";
+import { SITE_URL } from "@/lib/site";
 
 export interface RoundSettleResult {
   ok: boolean;
@@ -67,6 +71,26 @@ async function sendRoundRecaps(
   if (notes.length) await admin.from("notifications").insert(notes);
 }
 
+/** After a round settles: tell the public channel who won and how much. Skipped for test rounds, solo refunds and rounds with no winner. Never throws. */
+async function postWinnersToChannel(admin: Admin, roundId: number, roundName: string, result: Settle["result"], slips: Settle["slips"], payouts: Settle["payouts"]) {
+  try {
+    if (!process.env.TELEGRAM_BOT_TOKEN) return;
+    if ((await testRoundIds(admin, [roundId])).has(roundId)) return; // test rounds are never public
+    const post = buildWinnersPost({
+      roundName,
+      winners: payouts.map((p) => ({ username: p.slip.username, units: p.units, rank: p.rank })),
+      poolUnits: result.poolUnits,
+      players: new Set(slips.map((s) => s.user_id)).size,
+      siteUrl: SITE_URL,
+    });
+    if (!post) return;
+    const res = await sendChannelMessage(post.text, { reply_markup: post.reply_markup, disable_web_page_preview: true });
+    if (!res.ok) console.error(`[channel] winners post failed for round ${roundId}:`, res.description);
+  } catch (e) {
+    console.error("[channel] winners post:", (e as Error).message); // never undo a settled round over a post
+  }
+}
+
 export async function settleRoundNow(roundId: number, adminId: string | null): Promise<RoundSettleResult> {
   const admin = createAdminClient();
   const { data: round } = await admin.from("rounds").select("*").eq("id", roundId).single();
@@ -96,6 +120,9 @@ export async function settleRoundNow(roundId: number, adminId: string | null): P
   } catch (e) {
     console.error("round recaps:", (e as Error).message); // never undo a settled round over a message
   }
+
+  // Public winners post (usernames and amounts only), once, right after settlement.
+  if (!solo) await postWinnersToChannel(admin, roundId, roundName, result, slips, payouts);
 
   // Private leagues on this round are settled in the same step.
   const { data: openLeagues } = await admin.from("leagues").select("id").eq("round_id", roundId).eq("status", "open");

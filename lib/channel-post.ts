@@ -57,3 +57,40 @@ export function buildRoundAnnouncement(r: RoundAnnouncementInput): {
   if (r.botUsername) row.push({ text: "🤖 Play in Telegram", url: `https://t.me/${r.botUsername.replace(/^@/, "")}?start=play` });
   return { text: lines.join("\n"), reply_markup: { inline_keyboard: [row] } };
 }
+
+// ---- winners ----------------------------------------------------------------
+
+export interface WinnersPostInput {
+  roundName: string;
+  /** One row per winning slip. The same player with several winning slips is added up. */
+  winners: { username: string; units: number; rank: number }[];
+  poolUnits: number;
+  players: number;
+  siteUrl: string;
+}
+
+const MEDAL = ["🥇", "🥈", "🥉"];
+const unitsText = (u: number) => `${Math.round(u * 100) / 100} Unit${Math.round(u * 100) / 100 === 1 ? "" : "s"}`;
+const etbText = (u: number) => `${(Math.round(u * 200 * 100) / 100).toLocaleString("en-US")} ETB`;
+
+/** The public "who won" post for one settled round: usernames and amounts only. null when nobody won. */
+export function buildWinnersPost(r: WinnersPostInput): {
+  text: string;
+  reply_markup: { inline_keyboard: { text: string; url: string }[][] };
+} | null {
+  const byUser = new Map<string, { units: number; rank: number }>();
+  for (const w of r.winners) {
+    if (!(w.units > 0)) continue;
+    const cur = byUser.get(w.username);
+    byUser.set(w.username, { units: (cur?.units ?? 0) + w.units, rank: Math.min(cur?.rank ?? w.rank, w.rank) });
+  }
+  if (byUser.size === 0) return null;
+  const list = [...byUser].map(([username, v]) => ({ username, ...v })).sort((a, b) => a.rank - b.rank || b.units - a.units);
+  const top = list.slice(0, 3);
+  const lines = [`🏆 <b>${esc(r.roundName)}: results</b>`, ""];
+  for (const w of top) lines.push(`${MEDAL[Math.min(w.rank, 3) - 1] ?? "🏅"} <b>${esc(w.username)}</b> won ${unitsText(w.units)} (${etbText(w.units)})`);
+  if (list.length > top.length) lines.push(`…and ${list.length - top.length} more winner${list.length - top.length === 1 ? "" : "s"}`);
+  lines.push("", `💰 Pool: ${unitsText(r.poolUnits)} (${etbText(r.poolUnits)}) · ${r.players} players`, "", "Congratulations! 🎉 Next round is waiting for you.");
+  const site = r.siteUrl.replace(/\/+$/, "");
+  return { text: lines.join("\n"), reply_markup: { inline_keyboard: [[{ text: "▶️ Play next round", url: `${site}/dashboard` }]] } };
+}

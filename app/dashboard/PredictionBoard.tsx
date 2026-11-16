@@ -9,6 +9,7 @@ import type { MatchRow } from "@/lib/rounds";
 import { Banner, primaryButtonClass } from "@/components/ui";
 import { CheckIcon, ClockIcon, LockIcon, SpinnerIcon } from "@/components/icons";
 import { FormBar } from "@/components/FormBar";
+import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES } from "@/lib/round-slots";
 import type { Chances, FormMap } from "@/lib/form";
 
 export interface SlipData {
@@ -117,7 +118,7 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
   const open = bettable && Date.now() < firstKickoff;
 
   const picked = matches.filter((m) => draft[m.id]?.home !== "" && draft[m.id]?.away !== "").length;
-  const complete = picked === matches.length && matches.length === 10;
+  const complete = picked === matches.length && matches.length >= MIN_ROUND_MATCHES && matches.length <= MAX_ROUND_MATCHES;
   const changed = slip
     ? matches.some((m) => {
         const p = slip.picks[m.id];
@@ -208,7 +209,7 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
 
       {result && <Banner kind={result.ok ? "success" : "error"}>{result.message}</Banner>}
 
-      {matches.length !== 10 && <p className="rounded-2xl border border-white/10 p-6 text-center text-mist">The 10 matches for this round will appear soon.</p>}
+      {(matches.length < MIN_ROUND_MATCHES || matches.length > MAX_ROUND_MATCHES) && <p className="rounded-2xl border border-white/10 p-6 text-center text-mist">The matches for this round will appear soon.</p>}
 
       {!open && slips.length === 0 && (
         <p className="rounded-2xl border border-white/10 p-6 text-center text-mist">

@@ -1,7 +1,7 @@
 /**
  * Automatic daily rounds in Ethiopian time (EAT, UTC+3, no daylight saving).
  * Every match sync calls createDueAutoRounds(): for today and the next 2 days it
- * makes one round per time slot that has 10 matches, opens it and marks it
+ * makes one round per time slot that has 5 to 10 matches, opens it and marks it
  * "settle automatically". Matches never mix slots, so nobody waits 12 hours.
  * The database allows one round per slot per day (0030).
  */
@@ -138,7 +138,7 @@ export async function announceOpenAutoRounds(): Promise<string[]> {
 
 async function createOne(date: string, slot: Slot, ids: number[], fee: number): Promise<string> {
   const admin = createAdminClient();
-  const name = autoRoundName(date, slot);
+  const name = autoRoundName(date, slot, ids.length);
   const { data: round, error } = await admin
     .from("rounds")
     .insert({ name, entry_fee_units: fee, status: "draft", auto_settle: true, auto_slot: slot, auto_date: date })
@@ -152,7 +152,7 @@ async function createOne(date: string, slot: Slot, ids: number[], fee: number): 
     .is("round_id", null)
     .eq("status", "scheduled")
     .select("id");
-  if ((got ?? []).length !== 10) {
+  if ((got ?? []).length !== ids.length) {
     // Someone took a match meanwhile: undo and try again at the next sync.
     await admin.from("matches").update({ round_id: null }).eq("round_id", round.id);
     await admin.from("rounds").delete().eq("id", round.id);

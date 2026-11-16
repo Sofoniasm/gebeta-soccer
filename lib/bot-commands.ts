@@ -27,7 +27,7 @@ const T = {
     balance: (u: string, units: string, etb: string, premium: string) => `👛 <b>${u}</b>\nWallet: <b>${units}</b> (${etb})\n${premium}`,
     premiumOn: (d: string) => `⭐ Premium until ${d}`,
     premiumOff: "Premium: not active",
-    noRounds: "No round is open right now. Rounds open by themselves (Morning, Evening, Night, Ethiopian time) when a slot has 10 matches.",
+    noRounds: "No round is open right now. Rounds open by themselves (Morning, Evening, Night, Ethiopian time) when a slot has 5 to 10 matches.",
     roundsTitle: "<b>Open rounds</b>",
     open: (lock: string) => `🟢 open · locks ${lock} EAT`,
     inPlay: "🔴 in play",

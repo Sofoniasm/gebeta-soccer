@@ -149,7 +149,7 @@ export async function createRound(formData: FormData) {
     .select("id")
     .single();
   if (error) return done("err", error.message.includes("auto_settle") ? "Run the 0024 SQL first (daily rounds)." : error.message);
-  return done("msg", `Round “${name}” created as a draft. Add exactly 10 matches, then open it for players.`, `&round=${data.id}`);
+  return done("msg", `Round “${name}” created as a draft. Add 5 to 10 matches, then open it for players.`, `&round=${data.id}`);
 }
 
 export async function setRoundStatus(formData: FormData) {
@@ -165,8 +165,8 @@ export async function setRoundStatus(formData: FormData) {
     .eq("id", roundId)
     .in("status", ["draft", "open", "locked"]);
   if (error) {
-    const m = error.message.match(/needs exactly 10 matches to open \(it has (\d+)\)/);
-    return done("err", m ? `A round needs exactly 10 matches to open — this one has ${m[1]}.` : error.message);
+    const m = error.message.match(/needs 5 to 10 matches to open \(it has (\d+)\)/) ?? error.message.match(/needs exactly 10 matches to open \(it has (\d+)\)/);
+    return done("err", m ? `A round needs 5 to 10 matches to open — this one has ${m[1]}. (If it has 5 to 9, run the 0048 SQL in Supabase.)` : error.message);
   }
   return done("msg", status === "open" ? "Round is open — players can now join and predict." : `Round is now ${status}.`);
 }
@@ -180,7 +180,7 @@ export async function assignMatches(formData: FormData) {
   const { count } = await createAdminClient().from("matches").select("id", { count: "exact", head: true }).eq("round_id", roundId);
   const room = 10 - (count ?? 0);
   if (ids.length > room) {
-    return done("err", room <= 0 ? "This round already has 10 matches." : `A round has exactly 10 matches — you can add ${room} more (you ticked ${ids.length}).`);
+    return done("err", room <= 0 ? "This round already has 10 matches." : `A round has at most 10 matches — you can add ${room} more (you ticked ${ids.length}).`);
   }
 
   const { error } = await createAdminClient()

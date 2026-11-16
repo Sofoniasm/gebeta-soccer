@@ -4,6 +4,8 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = any;
 
+import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES } from "@/lib/round-slots";
+
 export interface RoundRow {
   id: number;
   name: string;
@@ -94,7 +96,7 @@ export async function getActiveRounds(supabase: SupabaseClient, opts: { includeT
   // Rounds made of test matches are for admins only, never shown to the public.
   const list = rounds.filter((r) => opts.includeTest || !testRounds.has(r.id)).map((r) => {
     const lock_at = lock.get(r.id) ?? null;
-    const bettable = r.status === "open" && count.get(r.id) === 10 && !!lock_at && new Date(lock_at).getTime() > now;
+    const bettable = r.status === "open" && (count.get(r.id) ?? 0) >= MIN_ROUND_MATCHES && (count.get(r.id) ?? 0) <= MAX_ROUND_MATCHES && !!lock_at && new Date(lock_at).getTime() > now;
     return { ...r, lock_at, bettable };
   });
   const t = (x: ActiveRound) => (x.lock_at ? new Date(x.lock_at).getTime() : Number.MAX_SAFE_INTEGER);

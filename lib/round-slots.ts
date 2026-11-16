@@ -13,6 +13,14 @@ export const SLOTS: { key: Slot; label: string; from: number; to: number; emoji:
 const EAT_OFFSET_H = 3;
 /** A round is only made if its first match is at least this far away, so players have time. */
 export const MIN_LEAD_MINUTES = 60;
+/** A round has 5 to 10 matches (0048). */
+export const MIN_ROUND_MATCHES = 5;
+export const MAX_ROUND_MATCHES = 10;
+/**
+ * A slot with 5 to 9 matches gets a (smaller) round only when its first match is
+ * this close, so the fixture list is complete. With 10 or more it opens right away.
+ */
+export const SMALL_ROUND_WAIT_HOURS = 24;
 
 export const slotInfo = (s: string | null | undefined) => SLOTS.find((x) => x.key === s) ?? null;
 
@@ -44,13 +52,19 @@ export function slotOf(iso: string): Slot | null {
   return SLOTS.find((s) => h >= s.from && h < s.to)?.key ?? null;
 }
 
-/** "Evening 10 · Thu 12 Nov" */
-export function autoRoundName(date: string, slot: Slot): string {
+/** "Evening 10 · Thu 12 Nov" (the number is how many matches the round has) */
+export function autoRoundName(date: string, slot: Slot, matchCount = MAX_ROUND_MATCHES): string {
   const day = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }).format(new Date(`${date}T00:00:00Z`));
-  return `${slotInfo(slot)!.label} · ${day}`;
+  const base = slotInfo(slot)!.label.replace(/\s*\d+$/, "");
+  return `${base} ${matchCount} · ${day}`;
 }
 
-/** Pick the 10 earliest eligible matches in a slot, or null when there are fewer than 10. */
+/**
+ * Pick the earliest eligible matches of a slot (up to 10).
+ *  - 10 or more: the 10 earliest, right away.
+ *  - 5 to 9: all of them, but only once the first one is within 24 hours.
+ *  - fewer than 5: no round (null).
+ */
 export function pickSlotMatches<T extends { kickoff_at: string }>(list: T[], date: string, slot: Slot, now = new Date()): T[] | null {
   const { start, end } = slotWindow(date, slot);
   const earliest = Math.max(start.getTime(), now.getTime() + MIN_LEAD_MINUTES * 60_000);
@@ -60,6 +74,9 @@ export function pickSlotMatches<T extends { kickoff_at: string }>(list: T[], dat
       return t >= earliest && t < end.getTime();
     })
     .sort((a, b) => a.kickoff_at.localeCompare(b.kickoff_at));
-  return inSlot.length >= 10 ? inSlot.slice(0, 10) : null;
+  if (inSlot.length >= MAX_ROUND_MATCHES) return inSlot.slice(0, MAX_ROUND_MATCHES);
+  if (inSlot.length < MIN_ROUND_MATCHES) return null;
+  const firstIn = new Date(inSlot[0].kickoff_at).getTime() - now.getTime();
+  return firstIn <= SMALL_ROUND_WAIT_HOURS * 3_600_000 ? inSlot : null;
 }
 

@@ -19,7 +19,7 @@ import { RecentWinners } from "@/components/RecentWinners";
 import { CrowdPicks } from "@/components/CrowdPicks";
 import { getMyPremium } from "@/lib/premium";
 import { formChances, getForm, type Chances } from "@/lib/form";
-import { slotHours, slotInfo, type Slot } from "@/lib/round-slots";
+import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES, slotHours, slotInfo, type Slot } from "@/lib/round-slots";
 
 export const metadata = { title: "Predict · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -77,7 +77,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // The whole round locks at its first kickoff.
   const kickoffs = matches.filter((m) => !["postponed", "cancelled"].includes(m.status)).map((m) => new Date(m.kickoff_at).getTime());
   const lockAt = kickoffs.length ? new Date(Math.min(...kickoffs)).toISOString() : null;
-  const bettable = !!round && round.status === "open" && matches.length === 10 && !!lockAt && new Date(lockAt).getTime() > Date.now();
+  const bettable = !!round && round.status === "open" && matches.length >= MIN_ROUND_MATCHES && matches.length <= MAX_ROUND_MATCHES && !!lockAt && new Date(lockAt).getTime() > Date.now();
 
   // ---- Live & Results: matches that kicked off in the last 14 days
   let recent: MatchRow[] = [];
@@ -343,7 +343,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <div className="rounded-[2rem] border border-white/5 bg-card/60 p-6 text-center sm:p-10">
           <p className="text-lg font-bold">Waiting for the next round</p>
           <p className="mt-1 text-sm text-mist">
-            Rounds open by themselves: 🌅 Morning (06–12), 🌇 Evening (12–19) and 🌙 Night (19–24), Ethiopian time, whenever a slot has 10 matches.
+            Rounds open by themselves: 🌅 Morning (06–12), 🌇 Evening (12–19) and 🌙 Night (19–24), Ethiopian time, whenever a slot has 5 to 10 matches.
           </p>
           {upcoming.length === 0 && (
             <p className="mx-auto mt-4 max-w-xl rounded-2xl border border-amber-200/20 bg-amber-200/5 px-4 py-3 text-sm text-amber-50">

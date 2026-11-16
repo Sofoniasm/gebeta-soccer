@@ -8,8 +8,8 @@ ABOUT
 GebetaSoccer (www.gebetasoccer.com, Telegram bot @GebetaSoccerbot) is Ethiopia's daily football score-prediction game. 18+ only. Money is in Units: 1 Unit = 200 ETB. All times are Ethiopian time (EAT).
 
 ROUNDS
-- Rounds open by themselves when a time slot has 10 matches: Morning (kickoffs 06:00-11:59), Evening (12:00-18:59), Night (19:00-23:59). Between weekends or during international breaks there may be no round; they come back with the fixtures.
-- Each round has 10 matches. On the Dashboard pick the round, set a score for every match with the up/down arrows (0-15), press Place bet. The entry fee (usually 1 Unit = 200 ETB) comes out of the wallet.
+- Rounds open by themselves when a time slot has 5 to 10 matches (the 10 earliest if there are more): Morning (kickoffs 06:00-11:59), Evening (12:00-18:59), Night (19:00-23:59). Between weekends or during international breaks there may be no round; they come back with the fixtures.
+- Each round has 5 to 10 matches. On the Dashboard pick the round, set a score for every match with the up/down arrows (0-15), press Place bet. The entry fee (usually 1 Unit = 200 ETB) comes out of the wallet.
 - Picks can be edited for free until the first kickoff; then the round locks and nobody can change or add slips. A player can place more than one slip; each slip costs the entry fee. Slips are not refunded once placed.
 - Scoring: exact score 3 points; close (right result and one goal away, or same goal difference two goals away like 1-1 vs 2-2) 1.5; right result only 1; wrong 0. Slam Points for many correct results: 5-7 correct +1, 8-9 +2, all 10 +3. Postponed or cancelled matches score 0 for everyone.
 - Prize: the slip with the most points wins 70% of the pool, every round, whatever the score (ties share; tie-breaks: most correct results, most exact scores, most close picks, smallest goal difference). 30% is the GebetaSoccer fee. Results come in automatically and winners are paid to the wallet automatically after the last match.

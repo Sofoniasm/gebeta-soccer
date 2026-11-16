@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildRoundAnnouncement, channelChatId, DEFAULT_TELEGRAM_CHANNEL } from "../lib/channel-post";
+import { buildRoundAnnouncement, buildWinnersPost, channelChatId, DEFAULT_TELEGRAM_CHANNEL } from "../lib/channel-post";
 
 test("channel: username forms all become @Name", () => {
   assert.equal(DEFAULT_TELEGRAM_CHANNEL, "@GebetaSoccerOfficial");
@@ -52,4 +52,26 @@ test("channel: night emoji, no bot button, HTML escaped, unknown slot", () => {
   assert.ok(!p.text.includes("Entry:"));
   assert.equal(p.reply_markup.inline_keyboard[0].length, 1);
   assert.ok(buildRoundAnnouncement({ roundId: 1, name: "x", slot: null, matchCount: 3, lockAt: "2026-11-12T16:00:00Z", siteUrl: "https://x.test" }).text.startsWith("⚽ "));
+});
+
+test("channel: winners post shows usernames and amounts, adds up a player's slips, hides nothing else", () => {
+  const post = buildWinnersPost({
+    roundName: "Evening 7 · Fri 13 Nov",
+    winners: [
+      { username: "abel", units: 2.1, rank: 1 },
+      { username: "bini", units: 1, rank: 2 },
+      { username: "abel", units: 0.9, rank: 3 }, // second winning slip of abel: added up
+    ],
+    poolUnits: 10,
+    players: 7,
+    siteUrl: "https://www.gebetasoccer.com/",
+  })!;
+  assert.match(post.text, /Evening 7 · Fri 13 Nov: results/);
+  assert.match(post.text, /🥇 <b>abel<\/b> won 3 Units \(600 ETB\)/);
+  assert.match(post.text, /🥈 <b>bini<\/b> won 1 Unit \(200 ETB\)/);
+  assert.match(post.text, /Pool: 10 Units \(2,000 ETB\) · 7 players/);
+  assert.equal(post.reply_markup.inline_keyboard[0][0].url, "https://www.gebetasoccer.com/dashboard");
+  // names are escaped, and nobody won -> no post
+  assert.match(buildWinnersPost({ roundName: "R", winners: [{ username: "a<b>", units: 1, rank: 1 }], poolUnits: 1, players: 2, siteUrl: "https://x" })!.text, /a&lt;b&gt;/);
+  assert.equal(buildWinnersPost({ roundName: "R", winners: [], poolUnits: 5, players: 3, siteUrl: "https://x" }), null);
 });
