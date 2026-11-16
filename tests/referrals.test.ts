@@ -9,6 +9,7 @@ import {
   playerMoney,
   referralLookalikes,
   roundCommissions,
+  salesScore,
 } from "../lib/referrals";
 
 // ---- codes and links ---------------------------------------------------------
@@ -46,6 +47,7 @@ test("commission is never more than the house's cut", () => {
 });
 
 // ---- main rounds -------------------------------------------------------------
+const ALL = ["abel", "bini", "chala", "sara"];
 const referrers = { abel: "sara", bini: "sara", chala: null, sara: null };
 
 test("main round: 5% of the house cut on each referred player's stakes (several slips added up)", () => {
@@ -60,6 +62,7 @@ test("main round: 5% of the house cut on each referred player's stakes (several 
       { userId: "chala", kind: "entry_fee", units: -50 },
     ],
     referrers,
+    winners: ALL,
   });
   assert.deepEqual(out, [
     { salespersonId: "sara", playerId: "abel", stakeUnits: 2, units: 0.03 },
@@ -72,6 +75,7 @@ test("main round: solo refund pays no commission", () => {
     houseCut: 0.3, players: 1, finishedMatches: 10,
     ledger: [{ userId: "abel", kind: "entry_fee", units: -5 }, { userId: "abel", kind: "entry_fee", units: -5 }],
     referrers,
+    winners: ALL,
   });
   assert.deepEqual(out, []);
 });
@@ -81,6 +85,7 @@ test("main round: every match called off pays no commission", () => {
     houseCut: 0.3, players: 3, finishedMatches: 0,
     ledger: [{ userId: "abel", kind: "entry_fee", units: -5 }, { userId: "bini", kind: "entry_fee", units: -5 }],
     referrers,
+    winners: ALL,
   });
   assert.deepEqual(out, []);
 });
@@ -95,30 +100,36 @@ test("main round: a refunded slip counts 0", () => {
       { userId: "bini", kind: "refund", units: 5 },
     ],
     referrers,
+    winners: ALL,
   });
   assert.deepEqual(out, [{ salespersonId: "sara", playerId: "bini", stakeUnits: 5, units: 0.07 }]); // 5*0.3*0.05 = 0.075 -> 0.07
 });
 
-test("main round: no winner still pays only 5% of the normal house cut", () => {
-  // Same input with or without winners: the commission does not depend on payouts.
-  const out = roundCommissions({ houseCut: 0.3, players: 2, finishedMatches: 10, ledger: [{ userId: "abel", kind: "entry_fee", units: -10 }, { userId: "chala", kind: "entry_fee", units: -10 }], referrers });
-  assert.deepEqual(out, [{ salespersonId: "sara", playerId: "abel", stakeUnits: 10, units: 0.15 }]);
+test("main round: only a friend who WON pays commission (still from the house cut)", () => {
+  const base = { houseCut: 0.3, players: 3, finishedMatches: 10, ledger: [{ userId: "abel", kind: "entry_fee" as const, units: -10 }, { userId: "bini", kind: "entry_fee" as const, units: -10 }, { userId: "chala", kind: "entry_fee" as const, units: -10 }], referrers };
+  assert.deepEqual(roundCommissions({ ...base, winners: ["abel"] }), [{ salespersonId: "sara", playerId: "abel", stakeUnits: 10, units: 0.15 }]);
+  assert.deepEqual(roundCommissions({ ...base, winners: [] }), []); // nobody won: nothing
+  assert.deepEqual(roundCommissions({ ...base, winners: ["chala"] }), []); // chala has no salesperson
 });
 
 test("no self-referral", () => {
-  const out = roundCommissions({ houseCut: 0.3, players: 2, finishedMatches: 1, ledger: [{ userId: "sara", kind: "entry_fee", units: -10 }, { userId: "chala", kind: "entry_fee", units: -10 }], referrers: { sara: "sara" } });
+  const out = roundCommissions({ houseCut: 0.3, players: 2, finishedMatches: 1, ledger: [{ userId: "sara", kind: "entry_fee", units: -10 }, { userId: "chala", kind: "entry_fee", units: -10 }], referrers: { sara: "sara" }, winners: ALL });
   assert.deepEqual(out, []);
 });
 
 // ---- challenges --------------------------------------------------------------
 test("challenge: 2% of the 10% fee on the referred player's stake", () => {
-  const out = challengeCommissions({ outcome: "settled", feePct: 0.1, stakeUnits: 50, entrants: ["abel", "chala"], referrers });
+  const out = challengeCommissions({ outcome: "settled", feePct: 0.1, stakeUnits: 50, entrants: ["abel", "chala"], referrers, winners: ALL });
   assert.deepEqual(out, [{ salespersonId: "sara", playerId: "abel", stakeUnits: 50, units: 0.1 }]);
 });
 
+test("challenge: a friend who lost pays no commission", () => {
+  assert.deepEqual(challengeCommissions({ outcome: "settled", feePct: 0.1, stakeUnits: 50, entrants: ["abel", "chala"], referrers, winners: ["chala"] }), []);
+});
+
 test("challenge: refunded (nobody joined / called off) pays no commission", () => {
-  assert.deepEqual(challengeCommissions({ outcome: "refunded", feePct: 0.1, stakeUnits: 50, entrants: ["abel", "bini"], referrers }), []);
-  assert.deepEqual(challengeCommissions({ outcome: "settled", feePct: 0.1, stakeUnits: 50, entrants: ["abel"], referrers }), []);
+  assert.deepEqual(challengeCommissions({ outcome: "refunded", feePct: 0.1, stakeUnits: 50, entrants: ["abel", "bini"], referrers, winners: ALL }), []);
+  assert.deepEqual(challengeCommissions({ outcome: "settled", feePct: 0.1, stakeUnits: 50, entrants: ["abel"], referrers, winners: ALL }), []);
 });
 
 // ---- fraud -------------------------------------------------------------------
@@ -164,4 +175,13 @@ test("player money: deposits, stakes, refunds, wins, withdrawals and the house c
     challenges,
   ).get("abel")!;
   assert.deepEqual(m, { deposited: 20, staked: 16, refunded: 5, won: 4.2, withdrawn: 2, houseCut: 1.9 }); // 3*0.3 + 10*0.1
+});
+
+// ---- Sales score -------------------------------------------------------------
+test("sales score and level", () => {
+  assert.deepEqual(salesScore(0, 0, 0), { points: 0, level: "Starter", next: "Bronze", toNext: 10 });
+  assert.equal(salesScore(5, 2, 1).points, 5 + 4 + 5); // 14
+  assert.equal(salesScore(5, 2, 1).level, "Bronze");
+  assert.equal(salesScore(30, 15, 10).level, "Silver"); // 30 + 30 + 50 = 110
+  assert.equal(salesScore(60, 40, 20).level, "Gold"); // 60 + 80 + 100 = 240
 });

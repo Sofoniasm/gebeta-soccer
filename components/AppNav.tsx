@@ -39,6 +39,7 @@ const ME: Item[] = [
   { href: "/career", label: "Career", icon: ChartIcon },
   { href: "/certificates", label: "Certificates", icon: AwardIcon },
   { href: "/wallet", label: "Wallet", icon: WalletIcon },
+  { href: "/sales", label: "Invite friends", icon: UsersIcon },
   { href: "/premium", label: "Premium", icon: StarIcon },
   { href: "/profile", label: "Profile", icon: UsersIcon },
   { href: "/help", label: "Help", icon: SendIcon },
@@ -104,17 +105,15 @@ function Group({ title, items, path, todo }: { title: string; items: Item[]; pat
   );
 }
 
-const SALES_ITEM: Item = { href: "/sales", label: "Sales", icon: UsersIcon };
 const ADMIN_SALES_ITEM: Item = { href: "/admin/sales", label: "Sales & Referrals", icon: UsersIcon };
 
-export function SideNav({ isAdmin, isSales = false, todoCount = 0 }: { isAdmin: boolean; isSales?: boolean; todoCount?: number }) {
+export function SideNav({ isAdmin, todoCount = 0 }: { isAdmin: boolean; todoCount?: number }) {
   const path = usePathname();
-  const me = isSales ? [...ME.slice(0, 3), SALES_ITEM, ...ME.slice(3)] : ME;
   const admin = [...ADMIN_ITEMS.slice(0, 3), ADMIN_SALES_ITEM, ...ADMIN_ITEMS.slice(3)];
   return (
     <nav className="space-y-1">
       <Group title="Play" items={PLAY} path={path} todo={todoCount} />
-      <Group title="My game" items={me} path={path} todo={todoCount} />
+      <Group title="My game" items={ME} path={path} todo={todoCount} />
       {isAdmin && <Group title="Manage" items={admin} path={path} todo={todoCount} />}
     </nav>
   );
@@ -122,7 +121,7 @@ export function SideNav({ isAdmin, isSales = false, todoCount = 0 }: { isAdmin: 
 
 export function BottomNav({ todoCount = 0 }: { todoCount?: number }) {
   const path = usePathname();
-  const meActive = ["/challenges", "/career", "/certificates", "/profile", "/results", "/fixtures", "/notifications", "/leagues", "/join"].some((p) => path.startsWith(p));
+  const meActive = ["/challenges", "/career", "/certificates", "/profile", "/results", "/fixtures", "/notifications", "/leagues", "/join", "/sales"].some((p) => path.startsWith(p));
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0912]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
       <div className="mx-auto grid max-w-lg grid-cols-5">

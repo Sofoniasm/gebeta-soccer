@@ -131,11 +131,8 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
                       )}
                     </p>
                     <p className="text-xs text-mist">{u.phone_number ?? "no phone"} · {u.email ?? "no email"} · joined {formatKickoff(u.created_at)}</p>
-                    {(refOf.get(u.id)?.referral_code || refOf.get(u.id)?.referred_by) && (
+                    {refOf.get(u.id)?.referred_by && (
                       <p className="mt-0.5 text-xs">
-                        {refOf.get(u.id)?.referral_code && (
-                          <Link href={`/admin/sales/${u.id}`} className="mr-2 rounded-full bg-emerald-300/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-100">Sales {refOf.get(u.id)!.referral_code}</Link>
-                        )}
                         {refOf.get(u.id)?.referred_by && (
                           <span className="text-mist">invited by <Link href={`/admin/sales/${refOf.get(u.id)!.referred_by}`} className="font-semibold text-lilac">{inviter.get(refOf.get(u.id)!.referred_by!)?.username ?? "?"}</Link></span>
                         )}

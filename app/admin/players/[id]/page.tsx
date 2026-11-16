@@ -135,7 +135,7 @@ export default async function PlayerDetailPage({
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-extrabold">Sales & Referrals</h2>
               <p className="text-xs text-mist">
-                {ref.referral_code ? <>Salesperson with code <b className="text-white">{ref.referral_code}</b> · <Link href="/admin/sales" className="text-lilac">see all salespeople</Link></> : "Not a salesperson."}
+                {ref.referral_code ? <>Referral code <b className="text-white">{ref.referral_code}</b> · <Link href={`/admin/sales/${p.id}`} className="text-lilac">friends and ledger</Link> · <Link href="/admin/sales" className="text-lilac">all</Link></> : "No referral code (removed or SQL not run)."}
                 {referrer && <> · Invited by <Link href={`/admin/players/${referrer.id}`} className="font-semibold text-lilac">{referrer.username}</Link>{ref.referred_at ? ` on ${formatKickoff(ref.referred_at)}` : ""}</>}
               </p>
             </div>

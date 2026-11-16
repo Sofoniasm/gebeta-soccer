@@ -26,12 +26,19 @@ export default async function SalesAdminPage({ searchParams }: { searchParams: P
   const { msg, err } = await searchParams;
   const admin = createAdminClient();
 
-  const { data: sellerData, error: sellerError } = await admin
-    .from("profiles")
-    .select("id, username, phone_number, balance_units, referral_code, referral_ip")
-    .not("referral_code", "is", null)
-    .order("username");
-  const sellers = (sellerData ?? []) as Seller[];
+  // Everyone has a code now: list only the players who invited at least one friend.
+  const { data: invitedRows, error: sellerError } = await admin.from("profiles").select("referred_by").not("referred_by", "is", null).limit(50000);
+  const referrerIds = [...new Set(((invitedRows ?? []) as { referred_by: string }[]).map((r) => r.referred_by))];
+  const sellerData: Seller[] = [];
+  for (let i = 0; i < referrerIds.length; i += 150) {
+    const { data } = await admin
+      .from("profiles")
+      .select("id, username, phone_number, balance_units, referral_code, referral_ip")
+      .in("id", referrerIds.slice(i, i + 150));
+    sellerData.push(...((data ?? []) as Seller[]));
+  }
+  sellerData.sort((a, b) => a.username.localeCompare(b.username));
+  const sellers = sellerData;
   const ids = sellers.map((s) => s.id);
 
   const [{ data: refData }, { data: earnData }] = await Promise.all([
@@ -87,29 +94,29 @@ export default async function SalesAdminPage({ searchParams }: { searchParams: P
       <div className="mb-5 space-y-3">
         {msg && <Banner kind="success">{msg}</Banner>}
         {err && <Banner kind="error">{err}</Banner>}
-        {sellerError && <Banner kind="error">Run the 0044_referrals.sql migration in Supabase first ({sellerError.message}).</Banner>}
+        {sellerError && <Banner kind="error">Run the 0044 and 0046 referral SQL in Supabase first ({sellerError.message}).</Banner>}
       </div>
 
       <section className={`${card} mb-5`}>
         <h2 className="text-lg font-extrabold">How it works</h2>
         <ul className="mt-2 space-y-1 text-sm text-mist">
-          <li>• Give a player a code. Their invite link is <b className="text-white">{inviteLink(SITE_URL, "CODE")}</b>.</li>
-          <li>• They earn <b className="text-white">5% of the house cut</b> on their players&apos; round stakes and <b className="text-white">2% of the fee</b> on challenge stakes, paid to their wallet when the game is settled. Refunded stakes and leagues pay nothing. If nobody wins a round, it is still only 5% of the normal 30% cut.</li>
+          <li>• <b className="text-white">Every player has a code automatically</b>. Invite link: <b className="text-white">{inviteLink(SITE_URL, "CODE")}</b>. This page lists the players who invited at least one friend. One level only.</li>
+          <li>• A player earns when an invited friend <b className="text-white">wins</b> a round or challenge: <b className="text-white">5% of the house cut</b> on rounds and <b className="text-white">2% of the fee</b> on challenges, paid from the house share (never from the prize) into their wallet when the game is settled. Losses, refunds and leagues pay nothing.</li>
           <li>
             • Payouts: the salesperson asks for a normal <b className="text-white">withdrawal</b> in their Wallet. Approve it on{" "}
             <Link href="/admin/players" className="font-semibold text-lilac">Players → Pending withdrawals</Link> after sending Telebirr/CBE.
           </li>
-          <li>• Removing a code stops the link and new commission. Commission already paid stays.</li>
+          <li>• You can still set a nice code by hand (like LAKI10) or remove a code. Removing it stops new commission; commission already paid stays.</li>
         </ul>
         <form action={setReferralCode} className="mt-4 flex flex-wrap gap-2">
           <input name="who" placeholder="Username or phone" required className={`${small} min-w-0 flex-1`} />
           <input name="code" placeholder="Code, e.g. LAKI10" required className={`${small} w-40 uppercase`} pattern="[A-Za-z0-9]{3,20}" />
-          <SubmitButton className={secondaryButtonClass}>Give code</SubmitButton>
+          <SubmitButton className={secondaryButtonClass}>Set code</SubmitButton>
         </form>
       </section>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <Stat label="Salespeople" value={String(sellers.length)} />
+        <Stat label="Players who invited" value={String(sellers.length)} />
         <Stat label="Players invited" value={String(referred.length)} />
         <Stat label="Commission paid" value={formatUnits(totalCommission)} />
       </div>
@@ -121,9 +128,9 @@ export default async function SalesAdminPage({ searchParams }: { searchParams: P
       )}
 
       <section className={card}>
-        <h2 className="mb-3 text-lg font-extrabold">Salespeople</h2>
+        <h2 className="mb-3 text-lg font-extrabold">Players who invited friends</h2>
         {rows.length === 0 ? (
-          <p className="text-sm text-mist">No salespeople yet. Give a player a code above.</p>
+          <p className="text-sm text-mist">Nobody has invited a friend yet.</p>
         ) : (
           <div className="space-y-3">
             {rows.map(({ s, players, total, pending, flags }) => (

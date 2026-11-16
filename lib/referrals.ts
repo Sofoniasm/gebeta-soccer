@@ -7,7 +7,9 @@
  *   - challenges  : 2% of the challenge fee on the referred player's stake
  *   - refunded stakes (solo refund, all matches called off, refunded
  *     challenge) pay nothing
- *   - nobody won (house keeps the pool): still only 5% of the NORMAL house cut
+ *   - only when the invited player WON something in that round / challenge;
+ *     the commission is still paid from the house's cut, never from the prize
+ *   - one level only: a player earns from the players they invited themselves
  *   - private leagues: no commission
  * Money is integer cents, rounded DOWN to 0.01 Unit per player per round /
  * challenge. Less than 0.01 Unit is skipped (not carried over).
@@ -61,8 +63,10 @@ export type Referrers = Record<string, string | null | undefined>;
  * Commissions for one main round, at settlement.
  * `ledger` = the round's entry_fee (negative) and refund (positive) rows, so
  * a refunded slip counts 0. `players` = distinct players in the round.
+ * `winners` = players who got a payout in this round: only they pay commission.
  */
 export function roundCommissions(input: {
+  winners: string[];
   houseCut: number;
   players: number;
   finishedMatches: number;
@@ -71,12 +75,13 @@ export function roundCommissions(input: {
 }): Commission[] {
   // Solo refund (0039) or every match called off: no house cut earned -> nothing.
   if (input.players <= 1 || input.finishedMatches <= 0) return [];
+  const won = new Set(input.winners);
   const stake = new Map<string, number>();
   for (const l of input.ledger) stake.set(l.userId, Math.round(((stake.get(l.userId) ?? 0) - l.units) * 100) / 100);
   const out: Commission[] = [];
   for (const [playerId, stakeUnits] of stake) {
     const salespersonId = input.referrers[playerId];
-    if (!salespersonId || salespersonId === playerId || stakeUnits <= 0) continue;
+    if (!salespersonId || salespersonId === playerId || stakeUnits <= 0 || !won.has(playerId)) continue;
     const units = commissionUnits(stakeUnits, input.houseCut, ROUND_COMMISSION_SHARE);
     if (units > 0) out.push({ salespersonId, playerId, stakeUnits, units });
   }
@@ -85,6 +90,8 @@ export function roundCommissions(input: {
 
 /** Commissions for one private challenge. Only a SETTLED challenge pays; a refunded one pays nothing. */
 export function challengeCommissions(input: {
+  /** Players who won (got a payout) in this challenge: only they pay commission. */
+  winners: string[];
   outcome: "settled" | "refunded";
   feePct: number;
   stakeUnits: number;
@@ -93,9 +100,10 @@ export function challengeCommissions(input: {
 }): Commission[] {
   if (input.outcome !== "settled" || new Set(input.entrants).size < 2) return [];
   const out: Commission[] = [];
+  const won = new Set(input.winners);
   for (const playerId of new Set(input.entrants)) {
     const salespersonId = input.referrers[playerId];
-    if (!salespersonId || salespersonId === playerId) continue;
+    if (!salespersonId || salespersonId === playerId || !won.has(playerId)) continue;
     const units = commissionUnits(input.stakeUnits, input.feePct, CHALLENGE_COMMISSION_SHARE);
     if (units > 0) out.push({ salespersonId, playerId, stakeUnits: input.stakeUnits, units });
   }
@@ -216,4 +224,18 @@ export function playerMoney(
     m.houseCut = c2(m.houseCut + stake * g.pct);
   }
   return out;
+}
+
+// ---- Sales score and level (for show on the Sales page, gives no money) ------
+
+export interface SalesScore { points: number; level: string; next: string | null; toNext: number }
+const LEVELS: [string, number][] = [["Starter", 0], ["Bronze", 10], ["Silver", 50], ["Gold", 150], ["Platinum", 400]];
+
+/** 1 point per friend invited, 2 per friend who played, 5 per friend win that paid you. */
+export function salesScore(referred: number, active: number, wins: number): SalesScore {
+  const points = Math.max(0, referred) + 2 * Math.max(0, active) + 5 * Math.max(0, wins);
+  let i = 0;
+  while (i + 1 < LEVELS.length && points >= LEVELS[i + 1][1]) i++;
+  const next = LEVELS[i + 1] ?? null;
+  return { points, level: LEVELS[i][0], next: next ? next[0] : null, toNext: next ? next[1] - points : 0 };
 }

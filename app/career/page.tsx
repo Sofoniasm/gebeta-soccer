@@ -142,7 +142,7 @@ export default async function CareerPage() {
             { href: "/results", label: "Round results", sub: "Past rounds and winners", icon: ClockIcon },
             { href: "/fixtures", label: "Fixtures", sub: "All upcoming matches", icon: CalendarIcon },
             { href: "/profile", label: "Profile & settings", sub: "Name, password, phone", icon: UsersIcon },
-            ...(me.referral_code ? [{ href: "/sales", label: "Sales", sub: `Your code ${me.referral_code} · invite link and commission`, icon: UsersIcon }] : []),
+            { href: "/sales", label: "Invite friends", sub: me.referral_code ? `Your code ${me.referral_code} · your friends and commission` : "Your code, friends and commission", icon: UsersIcon },
           ].map(({ href, label, sub, icon: Icon }) => (
             <Link key={href} href={href} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-card/60 p-4 hover:border-lilac/40">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lilac/15 text-lilac">
