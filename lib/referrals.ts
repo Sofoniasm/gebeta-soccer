@@ -149,3 +149,71 @@ export function referralLookalikes(input: {
   }
   return out;
 }
+
+// ---- admin check before paying: what each invited player did -----------------
+
+export interface MoneyRow {
+  user_id: string;
+  kind: string;
+  amount_units: number;
+  round_id: number | null;
+  challenge_id: number | null;
+  league_id: number | null;
+}
+export interface GameInfo { pct: number; settled: boolean }
+export interface PlayerMoney {
+  deposited: number;
+  /** Stakes still in play or settled, minus refunds (rounds, challenges, leagues). */
+  staked: number;
+  refunded: number;
+  won: number;
+  withdrawn: number;
+  /** House cut earned from this player's stakes in SETTLED rounds and challenges. */
+  houseCut: number;
+}
+
+const c2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Per-player money from the wallet ledger, for the admin Sales page.
+ * House cut = net stake (entry fees minus refunds) × the game's house cut / fee,
+ * only for settled rounds (house_cut) and settled challenges (fee_pct).
+ * Leagues count in "staked" but not in the house cut (no commission there).
+ */
+export function playerMoney(
+  rows: MoneyRow[],
+  rounds: Map<number, GameInfo>,
+  challenges: Map<number, GameInfo>,
+): Map<string, PlayerMoney> {
+  const out = new Map<string, PlayerMoney>();
+  const net = new Map<string, number>(); // user|r:id or user|c:id -> net stake
+  const get = (id: string) => out.get(id) ?? (out.set(id, { deposited: 0, staked: 0, refunded: 0, won: 0, withdrawn: 0, houseCut: 0 }), out.get(id)!);
+  for (const r of rows) {
+    const m = get(r.user_id);
+    const a = Number(r.amount_units);
+    const game = r.challenge_id ? `c:${r.challenge_id}` : r.league_id ? null : r.round_id ? `r:${r.round_id}` : null;
+    if (r.kind === "deposit") m.deposited = c2(m.deposited + a);
+    else if (r.kind === "payout") m.won = c2(m.won + a);
+    else if (r.kind === "withdrawal") m.withdrawn = c2(m.withdrawn - a);
+    else if (r.kind === "entry_fee") m.staked = c2(m.staked - a);
+    else if (r.kind === "refund" && (r.round_id || r.challenge_id || r.league_id)) {
+      m.staked = c2(m.staked - a);
+      m.refunded = c2(m.refunded + a);
+    } else if (r.kind === "refund") {
+      m.withdrawn = c2(m.withdrawn - a); // a rejected withdrawal sent back to the wallet
+    }
+    if (game && (r.kind === "entry_fee" || r.kind === "refund")) {
+      const k = `${r.user_id}|${game}`;
+      net.set(k, c2((net.get(k) ?? 0) - a));
+    }
+  }
+  for (const [k, stake] of net) {
+    const [user, game] = k.split("|");
+    const [type, id] = game.split(":");
+    const g = (type === "r" ? rounds : challenges).get(Number(id));
+    if (!g?.settled || stake <= 0) continue;
+    const m = get(user);
+    m.houseCut = c2(m.houseCut + stake * g.pct);
+  }
+  return out;
+}

@@ -43,6 +43,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
         </div>
         <Link href="/wallet" className="mt-6 block rounded-3xl border border-lilac/20 bg-gradient-to-br from-lilac/20 to-transparent p-4 hover:border-lilac/40">
           <p className="flex items-center gap-2 truncate text-sm font-bold"><Avatar name={me.username} src={me.avatar_url} size={28} /> <span className="truncate">{me.username}</span></p>
+          {me.referral_code && <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-emerald-200">Sales code {me.referral_code}</p>}
           <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-lilac"><WalletIcon size={12} /> Wallet</p>
           <p className="text-xl font-extrabold">{units}</p>
           <p className="text-xs text-mist">{etb}</p>

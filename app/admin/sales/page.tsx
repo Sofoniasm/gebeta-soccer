@@ -131,7 +131,7 @@ export default async function SalesAdminPage({ searchParams }: { searchParams: P
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="font-bold">
-                      <Link href={`/admin/players/${s.id}`} className="hover:text-lilac">{s.username}</Link>{" "}
+                      <Link href={`/admin/sales/${s.id}`} className="hover:text-lilac">{s.username}</Link>{" "}
                       <span className="ml-1 rounded-full bg-lilac/15 px-2 py-0.5 text-xs font-extrabold tracking-wider text-lilac-soft">{s.referral_code}</span>
                     </p>
                     <p className="text-xs text-mist">{s.phone_number ?? "no phone"} · {players.length} player{players.length === 1 ? "" : "s"} invited</p>
@@ -139,6 +139,7 @@ export default async function SalesAdminPage({ searchParams }: { searchParams: P
                   <div className="text-right text-sm">
                     <p>Commission <b>{formatUnits(total)}</b></p>
                     <p className="text-xs text-mist">Balance {formatUnits(Number(s.balance_units))}</p>
+                    <Link href={`/admin/sales/${s.id}`} className="text-xs font-bold uppercase tracking-wider text-lilac">Full ledger →</Link>
                   </div>
                 </div>
 

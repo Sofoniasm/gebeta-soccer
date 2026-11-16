@@ -33,6 +33,17 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
   const { data: playerData } = await query.order("created_at", { ascending: false }).limit(30);
   const players = (playerData ?? []) as Player[];
 
+  // Sales codes: who is a salesperson, and who invited whom (separate read, works before the 0044 SQL).
+  const { data: refRows } = players.length
+    ? await admin.from("profiles").select("id, referral_code, referred_by").in("id", players.map((p) => p.id))
+    : { data: [] };
+  const refOf = new Map(((refRows ?? []) as { id: string; referral_code: string | null; referred_by: string | null }[]).map((r) => [r.id, r]));
+  const inviterIds = [...new Set([...refOf.values()].map((r) => r.referred_by).filter(Boolean))] as string[];
+  const { data: inviterRows } = inviterIds.length
+    ? await admin.from("profiles").select("id, username, referral_code").in("id", inviterIds)
+    : { data: [] };
+  const inviter = new Map(((inviterRows ?? []) as { id: string; username: string; referral_code: string | null }[]).map((r) => [r.id, r]));
+
   const { count: totalPlayers } = await admin.from("profiles").select("id", { count: "exact", head: true });
 
   const { data: pending } = await admin
@@ -120,6 +131,16 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
                       )}
                     </p>
                     <p className="text-xs text-mist">{u.phone_number ?? "no phone"} · {u.email ?? "no email"} · joined {formatKickoff(u.created_at)}</p>
+                    {(refOf.get(u.id)?.referral_code || refOf.get(u.id)?.referred_by) && (
+                      <p className="mt-0.5 text-xs">
+                        {refOf.get(u.id)?.referral_code && (
+                          <Link href={`/admin/sales/${u.id}`} className="mr-2 rounded-full bg-emerald-300/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-100">Sales {refOf.get(u.id)!.referral_code}</Link>
+                        )}
+                        {refOf.get(u.id)?.referred_by && (
+                          <span className="text-mist">invited by <Link href={`/admin/sales/${refOf.get(u.id)!.referred_by}`} className="font-semibold text-lilac">{inviter.get(refOf.get(u.id)!.referred_by!)?.username ?? "?"}</Link></span>
+                        )}
+                      </p>
+                    )}
                   </div>
                   <p className="text-right font-extrabold">{formatUnits(Number(u.balance_units))}</p>
                 </div>

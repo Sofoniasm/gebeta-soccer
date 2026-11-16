@@ -6,6 +6,7 @@ import {
   commissionUnits,
   inviteLink,
   normalizeReferralCode,
+  playerMoney,
   referralLookalikes,
   roundCommissions,
 } from "../lib/referrals";
@@ -139,4 +140,28 @@ test("referred players that look like the salesperson are flagged", () => {
   assert.deepEqual(flags.map((f) => f.username), ["abel", "bini"]);
   assert.match(flags[0].reasons[0], /salesperson's phone/);
   assert.match(flags[1].reasons[0], /Same IP/);
+});
+
+// ---- admin money summary -----------------------------------------------------
+test("player money: deposits, stakes, refunds, wins, withdrawals and the house cut", () => {
+  const row = (kind: string, amount_units: number, g: { r?: number; c?: number; l?: number } = {}) =>
+    ({ user_id: "abel", kind, amount_units, round_id: g.r ?? null, challenge_id: g.c ?? null, league_id: g.l ?? null });
+  const rounds = new Map([[1, { pct: 0.3, settled: true }], [2, { pct: 0.3, settled: true }], [3, { pct: 0.3, settled: false }]]);
+  const challenges = new Map([[9, { pct: 0.1, settled: true }]]);
+  const m = playerMoney(
+    [
+      row("deposit", 20),
+      row("entry_fee", -2, { r: 1 }), row("entry_fee", -1, { r: 1 }), // settled round: 3 Units
+      row("payout", 4.2, { r: 1 }),
+      row("entry_fee", -5, { r: 2 }), row("refund", 5, { r: 2 }),       // solo refund: no house cut
+      row("entry_fee", -1, { r: 3 }),                                    // still open: no house cut yet
+      row("entry_fee", -10, { c: 9 }),                                   // settled challenge
+      row("entry_fee", -2, { l: 4 }),                                    // league: staked, no house cut here
+      row("withdrawal", -3), row("refund", 3),                           // withdrawal rejected and sent back
+      row("withdrawal", -2),
+    ],
+    rounds,
+    challenges,
+  ).get("abel")!;
+  assert.deepEqual(m, { deposited: 20, staked: 16, refunded: 5, won: 4.2, withdrawn: 2, houseCut: 1.9 }); // 3*0.3 + 10*0.1
 });
