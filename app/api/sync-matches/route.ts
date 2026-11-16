@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
 import { settleDueRounds } from "@/lib/round-settle";
 import { createDueAutoRounds } from "@/lib/auto-rounds";
+import { sendWithdrawalDigest } from "@/lib/withdrawal-digest";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,14 @@ export async function GET(req: NextRequest) {
     } catch {
       /* 0031 not run yet */
     }
-    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0), roundsSettled, autoRounds, premiumRenewed }, { status: result.ok ? 200 : 207 });
+    // Daily message to the admins: withdrawals waiting to be paid.
+    let withdrawalDigest = "";
+    try {
+      withdrawalDigest = await sendWithdrawalDigest();
+    } catch (e) {
+      withdrawalDigest = `digest error: ${(e as Error).message}`;
+    }
+    return NextResponse.json({ ...result, challengesSettled: Number(settled ?? 0), roundsSettled, autoRounds, premiumRenewed, withdrawalDigest }, { status: result.ok ? 200 : 207 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

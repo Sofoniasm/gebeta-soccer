@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  capCommission,
   challengeCommissions,
   commissionCents,
   commissionUnits,
@@ -11,6 +12,7 @@ import {
   roundCommissions,
   salesScore,
 } from "../lib/referrals";
+import { withdrawalDigestText } from "../lib/withdrawal-digest";
 
 // ---- codes and links ---------------------------------------------------------
 test("referral codes: letters and digits, case-insensitive", () => {
@@ -184,4 +186,23 @@ test("sales score and level", () => {
   assert.equal(salesScore(5, 2, 1).level, "Bronze");
   assert.equal(salesScore(30, 15, 10).level, "Silver"); // 30 + 30 + 50 = 110
   assert.equal(salesScore(60, 40, 20).level, "Gold"); // 60 + 80 + 100 = 240
+});
+
+// ---- daily limit -------------------------------------------------------------
+test("daily limit: 2.5 Units (500 ETB) per salesperson per day", () => {
+  assert.equal(capCommission(0.15, 0), 0.15); // plenty of room
+  assert.equal(capCommission(0.5, 2.2), 0.3); // only the part that fits
+  assert.equal(capCommission(0.5, 2.5), 0); // limit reached
+  assert.equal(capCommission(0.5, 2.499), 0); // under 0.01 left: nothing
+  assert.equal(capCommission(0.5, 9), 0); // already over: nothing
+});
+
+// ---- daily withdrawal message to the admin ------------------------------------
+test("withdrawal digest: silent when nothing waits, simple text otherwise", () => {
+  const now = Date.parse("2026-11-17T09:00:00Z");
+  assert.equal(withdrawalDigestText([], now), null);
+  const d = withdrawalDigestText([{ units: 5, created_at: "2026-11-17T03:00:00Z" }, { units: 2.5, created_at: "2026-11-16T09:00:00Z" }], now)!;
+  assert.equal(d.title, "⏳ 2 withdrawals waiting");
+  assert.match(d.body, /7\.5 Units \(1,500 ETB\)/);
+  assert.match(d.body, /1 day/);
 });

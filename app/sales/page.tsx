@@ -88,6 +88,7 @@ export default async function SalesPage() {
           <p>• You earn only from friends you invited yourself, one level.</p>
           <p>• When a friend <b className="text-white">wins</b> a round or a challenge, you get <b className="text-white">5%</b> (rounds) or <b className="text-white">2%</b> (challenges) of the house&apos;s share of their bet. It is paid into your wallet, never taken from your friend&apos;s prize.</p>
           <p>• If your friend loses, or the bet is refunded, you earn nothing for that game.</p>
+          <p>• Daily limit: you can earn up to 2.5 Units (500 ETB) of commission per day. Anything above that day&apos;s limit is not paid.</p>
           <p>
             • You can also play yourself. To cash out, use the normal <Link href="/wallet" className="font-semibold text-lilac">Wallet withdrawal</Link>.
           </p>

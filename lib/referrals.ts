@@ -239,3 +239,18 @@ export function salesScore(referred: number, active: number, wins: number): Sale
   const next = LEVELS[i + 1] ?? null;
   return { points, level: LEVELS[i][0], next: next ? next[0] : null, toNext: next ? next[1] - points : 0 };
 }
+
+// ---- daily limit (fraud protection) -------------------------------------------
+
+/** Most commission one salesperson can earn per day (Ethiopian time): 2.5 Units = 500 ETB. Same as referral_daily_cap() in 0047. */
+export const DAILY_COMMISSION_CAP_UNITS = 2.5;
+
+/**
+ * Part of `amount` that still fits under the daily limit, given what the
+ * salesperson already earned today. The rest is not paid and not carried over.
+ */
+export function capCommission(amount: number, earnedToday: number, cap = DAILY_COMMISSION_CAP_UNITS): number {
+  const roomCents = Math.floor(Math.round((cap - earnedToday) * 100) + 1e-9);
+  if (roomCents < 1) return 0;
+  return Math.min(Math.round(amount * 100), roomCents) / 100;
+}

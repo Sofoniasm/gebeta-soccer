@@ -101,7 +101,7 @@ export default async function SalesAdminPage({ searchParams }: { searchParams: P
         <h2 className="text-lg font-extrabold">How it works</h2>
         <ul className="mt-2 space-y-1 text-sm text-mist">
           <li>• <b className="text-white">Every player has a code automatically</b>. Invite link: <b className="text-white">{inviteLink(SITE_URL, "CODE")}</b>. This page lists the players who invited at least one friend. One level only.</li>
-          <li>• A player earns when an invited friend <b className="text-white">wins</b> a round or challenge: <b className="text-white">5% of the house cut</b> on rounds and <b className="text-white">2% of the fee</b> on challenges, paid from the house share (never from the prize) into their wallet when the game is settled. Losses, refunds and leagues pay nothing.</li>
+          <li>• A player earns when an invited friend <b className="text-white">wins</b> a round or challenge: <b className="text-white">5% of the house cut</b> on rounds and <b className="text-white">2% of the fee</b> on challenges, paid from the house share (never from the prize) into their wallet when the game is settled. Losses, refunds and leagues pay nothing. <b className="text-white">Daily limit: 2.5 Units (500 ETB) per salesperson per day</b>; the rest is not paid.</li>
           <li>
             • Payouts: the salesperson asks for a normal <b className="text-white">withdrawal</b> in their Wallet. Approve it on{" "}
             <Link href="/admin/players" className="font-semibold text-lilac">Players → Pending withdrawals</Link> after sending Telebirr/CBE.
