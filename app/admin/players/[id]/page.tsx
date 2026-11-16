@@ -7,7 +7,7 @@ import { formatKickoff } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Banner, secondaryButtonClass } from "@/components/ui";
 import { SubmitButton } from "../../SubmitButton";
-import { adjustUnits, removePlayerPhoto, sendPlayerResetLink, showPlayerResetLink, unlockLogin } from "../../actions";
+import { adjustUnits, removePlayerPhoto, removeReferralCode, sendPlayerResetLink, setReferralCode, showPlayerResetLink, unlockLogin } from "../../actions";
 import { Avatar } from "@/components/Avatar";
 
 export const metadata = { title: "Player · Admin · GebetaSoccer" };
@@ -20,6 +20,7 @@ const KIND: Record<string, string> = {
   withdrawal: "Withdrawal",
   refund: "Refund",
   adjustment: "Adjustment",
+  commission: "Sales commission",
 };
 
 export default async function PlayerDetailPage({
@@ -58,6 +59,13 @@ export default async function PlayerDetailPage({
       admin.from("predictions").select("points_earned, is_default").eq("user_id", id).limit(5000),
       admin.from("password_resets").select("id, channel, requested_ip, outcome, delivered, delivery_error, attempts, used_at, expires_at, created_at").eq("user_id", id).order("created_at", { ascending: false }).limit(15),
     ]);
+
+  // Sales & Referrals (separate read: works even before the 0044 SQL is run).
+  const { data: refInfo } = await admin.from("profiles").select("referral_code, referred_by, referred_at").eq("id", id).maybeSingle();
+  const ref = refInfo as { referral_code: string | null; referred_by: string | null; referred_at: string | null } | null;
+  const { data: referrer } = ref?.referred_by
+    ? await admin.from("profiles").select("id, username, referral_code").eq("id", ref.referred_by).maybeSingle()
+    : { data: null };
 
   type L = { id: number; amount_units: number; kind: string; reference: string | null; created_at: string; rounds: { name: string } | null; leagues: { name: string } | null };
   const tx = ((ledger ?? []) as unknown as L[]).map((t) => ({ ...t, amount_units: Number(t.amount_units) }));
@@ -120,6 +128,31 @@ export default async function PlayerDetailPage({
           </div>
         </div>
       </section>
+
+      {ref && (
+        <section className={`${card} mb-5`}>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-extrabold">Sales & Referrals</h2>
+              <p className="text-xs text-mist">
+                {ref.referral_code ? <>Salesperson with code <b className="text-white">{ref.referral_code}</b> · <Link href="/admin/sales" className="text-lilac">see all salespeople</Link></> : "Not a salesperson."}
+                {referrer && <> · Invited by <Link href={`/admin/players/${referrer.id}`} className="font-semibold text-lilac">{referrer.username}</Link>{ref.referred_at ? ` on ${formatKickoff(ref.referred_at)}` : ""}</>}
+              </p>
+            </div>
+            <form action={setReferralCode} className="flex gap-2">
+              <input type="hidden" name="userId" value={p.id} />
+              <input name="code" defaultValue={ref.referral_code ?? ""} placeholder="e.g. LAKI10" required pattern="[A-Za-z0-9]{3,20}" className="w-32 rounded-xl border border-white/10 bg-ink/70 px-3 py-2 text-sm uppercase text-white outline-none focus:border-lilac" aria-label="Referral code" />
+              <SubmitButton className={secondaryButtonClass}>{ref.referral_code ? "Change code" : "Give code"}</SubmitButton>
+            </form>
+            {ref.referral_code && (
+              <form action={removeReferralCode}>
+                <input type="hidden" name="userId" value={p.id} />
+                <SubmitButton className="px-2 py-2 text-xs font-bold text-rose-300 hover:text-rose-200" confirm="Remove this code? The link stops working and no new commission is paid.">Remove code</SubmitButton>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="mb-5 grid gap-5 lg:grid-cols-3">
         <section className={card}>

@@ -48,7 +48,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
           <p className="text-xs text-mist">{etb}</p>
         </Link>
         <div className="mt-6 flex-1 overflow-y-auto">
-          <SideNav isAdmin={me.is_admin} todoCount={todo.count} />
+          <SideNav isAdmin={me.is_admin} isSales={Boolean(me.referral_code)} todoCount={todo.count} />
         </div>
         <form action={signOut}>
           <button className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-mist hover:bg-white/5 hover:text-white">

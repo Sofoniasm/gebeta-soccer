@@ -104,13 +104,18 @@ function Group({ title, items, path, todo }: { title: string; items: Item[]; pat
   );
 }
 
-export function SideNav({ isAdmin, todoCount = 0 }: { isAdmin: boolean; todoCount?: number }) {
+const SALES_ITEM: Item = { href: "/sales", label: "Sales", icon: UsersIcon };
+const ADMIN_SALES_ITEM: Item = { href: "/admin/sales", label: "Sales & Referrals", icon: UsersIcon };
+
+export function SideNav({ isAdmin, isSales = false, todoCount = 0 }: { isAdmin: boolean; isSales?: boolean; todoCount?: number }) {
   const path = usePathname();
+  const me = isSales ? [...ME.slice(0, 3), SALES_ITEM, ...ME.slice(3)] : ME;
+  const admin = [...ADMIN_ITEMS.slice(0, 3), ADMIN_SALES_ITEM, ...ADMIN_ITEMS.slice(3)];
   return (
     <nav className="space-y-1">
       <Group title="Play" items={PLAY} path={path} todo={todoCount} />
-      <Group title="My game" items={ME} path={path} todo={todoCount} />
-      {isAdmin && <Group title="Manage" items={ADMIN_ITEMS} path={path} todo={todoCount} />}
+      <Group title="My game" items={me} path={path} todo={todoCount} />
+      {isAdmin && <Group title="Manage" items={admin} path={path} todo={todoCount} />}
     </nav>
   );
 }

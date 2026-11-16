@@ -12,6 +12,7 @@ import { pushNotifications } from "@/lib/notify";
 import { cookies } from "next/headers";
 import { PENDING_COOKIE, readPending } from "@/lib/telegram-login";
 import { startTelegramVerificationDm } from "@/lib/verification";
+import { REF_COOKIE, normalizeReferralCode } from "@/lib/referrals";
 
 export type AuthState = { error?: string; success?: string } | undefined;
 
@@ -127,7 +128,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   // how Supabase's "Allow sign-ups" / "Confirm email" switches are set, and the
   // account is active immediately.
   const loginEmail = emailInput || placeholderEmail(phone);
-  const { error: createError } = await createAdminClient().auth.admin.createUser({
+  const { data: createdUser, error: createError } = await createAdminClient().auth.admin.createUser({
     email: loginEmail,
     password,
     email_confirm: true,
@@ -143,6 +144,17 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     if (m.includes("database error")) return { error: "That username or phone number is already taken." };
     if (m.includes("password")) return { error: "Please choose a stronger password (at least 8 characters)." };
     return { error: tr.errGeneric };
+  }
+
+  // Invite link (?ref=CODE): save who invited this player. Only here, once, by
+  // the server; unknown codes and self-referrals are ignored by the database.
+  const jarRef = await cookies();
+  const refCode = normalizeReferralCode(String(formData.get("ref") ?? "")) ?? normalizeReferralCode(jarRef.get(REF_COOKIE)?.value);
+  if (refCode && createdUser.user) {
+    await createAdminClient()
+      .rpc("apply_referral", { p_user_id: createdUser.user.id, p_code: refCode, p_ip: await clientIp() })
+      .then(() => null, () => null);
+    jarRef.delete(REF_COOKIE);
   }
 
   // Sign the new player in straight away.

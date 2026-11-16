@@ -51,7 +51,7 @@ export function LoginForm({ next, lang = "en" }: { next?: string; lang?: Lang })
   );
 }
 
-export function RegisterForm({ next, lang = "en" }: { next?: string; lang?: Lang }) {
+export function RegisterForm({ next, lang = "en", referral }: { next?: string; lang?: Lang; referral?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(register, undefined);
   const t = PAGES[lang].auth;
 
@@ -70,6 +70,7 @@ export function RegisterForm({ next, lang = "en" }: { next?: string; lang?: Lang
     <form action={action} className="space-y-4">
       {state?.error && <Banner kind="error">{state.error}</Banner>}
       {next && <input type="hidden" name="next" value={next} />}
+      {referral && <input type="hidden" name="ref" value={referral} />}
       <input type="hidden" name="lang" value={lang} />
       <Field label={t.phone} hint={t.phoneHintRegister}>
         <input name="phone" type="tel" inputMode="tel" autoComplete="tel" required className={inputClass} placeholder="0911 223 344" />

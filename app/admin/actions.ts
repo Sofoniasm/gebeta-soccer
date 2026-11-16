@@ -19,6 +19,7 @@ import { settleDueRounds, settleRoundNow } from "@/lib/round-settle";
 import { createResetCode, deliverResetCode } from "@/lib/password-reset";
 import { sendChannelMessage, telegramChannel } from "@/lib/telegram";
 import { SITE_URL } from "@/lib/site";
+import { normalizeReferralCode } from "@/lib/referrals";
 
 async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
@@ -248,6 +249,42 @@ export async function settle(formData: FormData) {
   const r = await settleRoundNow(Number(formData.get("roundId")), adminId);
   if (r.ok) await pushNotifications();
   return done(r.ok ? "msg" : "err", r.message);
+}
+
+// ------------------------------------------------- sales & referrals
+/** Give a player a referral code (makes them a salesperson). By user id, or by username / phone. */
+export async function setReferralCode(formData: FormData) {
+  await requireAdmin();
+  const code = normalizeReferralCode(String(formData.get("code") ?? ""));
+  if (!code) return done("err", "Code must be 3 to 20 letters or digits, e.g. LAKI10.");
+  const admin = createAdminClient();
+  let userId = String(formData.get("userId") ?? "").trim();
+  if (!userId) {
+    const who = String(formData.get("who") ?? "").trim();
+    if (!who) return done("err", "Enter the player's username or phone.");
+    const digits = who.replace(/\D/g, "");
+    const q = admin.from("profiles").select("id");
+    const { data } = digits.length >= 9 && !/[a-z_]/i.test(who)
+      ? await q.ilike("phone_number", `%${digits.slice(-9)}`).maybeSingle()
+      : await q.ilike("username", who.replace(/[%_\\]/g, "\\$&")).maybeSingle();
+    if (!data) return done("err", `No player found for "${who}".`);
+    userId = data.id;
+  }
+  const { data: taken } = await admin.from("profiles").select("id, username").eq("referral_code", code).maybeSingle();
+  if (taken && taken.id !== userId) return done("err", `Code ${code} already belongs to ${taken.username}.`);
+  const { data: p, error } = await admin.from("profiles").update({ referral_code: code }).eq("id", userId).select("username").maybeSingle();
+  if (error) return done("err", error.message.includes("referral_code") ? "Run the 0044 SQL in Supabase first." : error.message);
+  if (!p) return done("err", "Player not found.");
+  return done("msg", `${p.username} is now a salesperson with code ${code}.`);
+}
+
+/** Remove a salesperson's code: the link stops working and no new commission is paid. Past commission stays. */
+export async function removeReferralCode(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const { data: p, error } = await createAdminClient().from("profiles").update({ referral_code: null }).eq("id", userId).select("username").maybeSingle();
+  if (error) return done("err", error.message);
+  return done("msg", `Referral code removed${p ? ` from ${p.username}` : ""}.`);
 }
 
 // ------------------------------------------------- withdrawal requests

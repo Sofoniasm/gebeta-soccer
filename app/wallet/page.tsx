@@ -20,6 +20,7 @@ const KIND_LABEL: Record<string, string> = {
   refund: "Refund",
   adjustment: "Adjustment",
   subscription: "Gebeta Premium",
+  commission: "Sales commission",
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -122,6 +123,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         return { title: "Refund", note: t.reference ?? "" };
       case "adjustment":
         return { title: amt > 0 ? "Added by admin" : "Deducted by admin", note: t.reference ?? "" };
+      case "commission":
+        return { title: "Sales commission", note: (t.reference ?? "").replace(/^Sales commission ?· ?/, "") };
       default:
         return { title: KIND_LABEL[t.kind] ?? t.kind, note: t.reference ?? "" };
     }

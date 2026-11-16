@@ -15,6 +15,8 @@ export interface Me {
   date_of_birth: string | null;
   avatar_url: string | null;
   excluded_until: string | null;
+  /** Salespeople only (set by the admin). */
+  referral_code: string | null;
 }
 
 /** The signed-in player's profile (cached per request). Redirects to login if signed out. */
@@ -22,14 +24,13 @@ export const getMe = cache(async (next = "/dashboard"): Promise<Me> => {
   const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
   if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
 
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, username, phone_number, email, balance_units, is_admin, created_at, phone_verified_at, date_of_birth, avatar_url, excluded_until")
-    .eq("id", user.id)
-    .single();
-  if (!data) redirect("/login");
+  const cols = "id, username, phone_number, email, balance_units, is_admin, created_at, phone_verified_at, date_of_birth, avatar_url, excluded_until";
+  const first = await supabase.from("profiles").select(`${cols}, referral_code`).eq("id", user.id).single();
+  // Before the 0044 SQL is run there is no referral_code column: keep the app working.
+  const row = (first.data ?? (first.error ? (await supabase.from("profiles").select(cols).eq("id", user.id).single()).data : null)) as Record<string, unknown> | null;
+  if (!row) redirect("/login");
 
-  return { ...data, balance_units: Number(data.balance_units) } as Me;
+  return { ...row, referral_code: (row.referral_code as string | null | undefined) ?? null, balance_units: Number(row.balance_units) } as Me;
 });
 
 /** How many unread notifications the signed-in player has (cached per request). */

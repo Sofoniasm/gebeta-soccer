@@ -16,7 +16,7 @@ const SCRIPT = "https://telegram.org/js/telegram-widget.js?22";
  * let our bot message them, so the bot can write first (no START needed).
  * Telegram only allows it on the domain set in @BotFather → /setdomain.
  */
-export function TelegramLoginButton({ botId, next, label, failedText }: { botId: string; next?: string; label: string; failedText: string }) {
+export function TelegramLoginButton({ botId, next, referral, label, failedText }: { botId: string; next?: string; referral?: string; label: string; failedText: string }) {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -49,6 +49,7 @@ export function TelegramLoginButton({ botId, next, label, failedText }: { botId:
       const q = new URLSearchParams();
       for (const [k, v] of Object.entries(data)) q.set(k, String(v));
       if (next && next !== "/dashboard") q.set("next", next);
+      if (referral) q.set("ref", referral); // not signed by Telegram; only used for the sign-up
       window.location.assign(`/api/telegram/login?${q}`);
     });
   }

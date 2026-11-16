@@ -1,0 +1,142 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  challengeCommissions,
+  commissionCents,
+  commissionUnits,
+  inviteLink,
+  normalizeReferralCode,
+  referralLookalikes,
+  roundCommissions,
+} from "../lib/referrals";
+
+// ---- codes and links ---------------------------------------------------------
+test("referral codes: letters and digits, case-insensitive", () => {
+  assert.equal(normalizeReferralCode(" laki10 "), "LAKI10");
+  assert.equal(normalizeReferralCode("LAKI-10"), null);
+  assert.equal(normalizeReferralCode("ab"), null);
+  assert.equal(normalizeReferralCode(""), null);
+  assert.equal(normalizeReferralCode(null), null);
+  assert.equal(inviteLink("https://www.gebetasoccer.com/", "LAKI10"), "https://www.gebetasoccer.com/register?ref=LAKI10");
+});
+
+// ---- the maths ---------------------------------------------------------------
+test("1 Unit slip, 30% house cut: 0.3 to the house, 0.015 commission -> 0.01 after rounding down", () => {
+  assert.equal(commissionCents(1, 0.3, 0.05), 1);
+  assert.equal(commissionUnits(1, 0.3, 0.05), 0.01);
+});
+
+test("integer cents: no floating-point drift", () => {
+  assert.equal(commissionUnits(2, 0.3, 0.05), 0.03); // 0.6 * 5% = 0.03 exactly
+  assert.equal(commissionUnits(10, 0.3, 0.05), 0.15);
+  assert.equal(commissionUnits(3, 0.3, 0.05), 0.04); // 0.045 -> 0.04
+  assert.equal(commissionUnits(0.5, 0.3, 0.05), 0); // 0.0075 -> skipped
+  assert.equal(commissionUnits(100, 0.1, 0.02), 0.2); // challenge: 10 Unit fee * 2%
+  assert.equal(commissionUnits(5, 0.1, 0.02), 0.01);
+  assert.equal(commissionUnits(1, 0.1, 0.02), 0); // 0.002 -> skipped
+});
+
+test("commission is never more than the house's cut", () => {
+  for (const stake of [1, 1.25, 7.5, 33, 250]) {
+    for (const cut of [0.1, 0.25, 0.3, 0.333]) {
+      assert.ok(commissionUnits(stake, cut, 0.05) <= stake * cut);
+    }
+  }
+});
+
+// ---- main rounds -------------------------------------------------------------
+const referrers = { abel: "sara", bini: "sara", chala: null, sara: null };
+
+test("main round: 5% of the house cut on each referred player's stakes (several slips added up)", () => {
+  const out = roundCommissions({
+    houseCut: 0.3,
+    players: 3,
+    finishedMatches: 10,
+    ledger: [
+      { userId: "abel", kind: "entry_fee", units: -1 },
+      { userId: "abel", kind: "entry_fee", units: -1 },
+      { userId: "bini", kind: "entry_fee", units: -10 },
+      { userId: "chala", kind: "entry_fee", units: -50 },
+    ],
+    referrers,
+  });
+  assert.deepEqual(out, [
+    { salespersonId: "sara", playerId: "abel", stakeUnits: 2, units: 0.03 },
+    { salespersonId: "sara", playerId: "bini", stakeUnits: 10, units: 0.15 },
+  ]);
+});
+
+test("main round: solo refund pays no commission", () => {
+  const out = roundCommissions({
+    houseCut: 0.3, players: 1, finishedMatches: 10,
+    ledger: [{ userId: "abel", kind: "entry_fee", units: -5 }, { userId: "abel", kind: "entry_fee", units: -5 }],
+    referrers,
+  });
+  assert.deepEqual(out, []);
+});
+
+test("main round: every match called off pays no commission", () => {
+  const out = roundCommissions({
+    houseCut: 0.3, players: 3, finishedMatches: 0,
+    ledger: [{ userId: "abel", kind: "entry_fee", units: -5 }, { userId: "bini", kind: "entry_fee", units: -5 }],
+    referrers,
+  });
+  assert.deepEqual(out, []);
+});
+
+test("main round: a refunded slip counts 0", () => {
+  const out = roundCommissions({
+    houseCut: 0.3, players: 3, finishedMatches: 10,
+    ledger: [
+      { userId: "abel", kind: "entry_fee", units: -10 },
+      { userId: "abel", kind: "refund", units: 10 },
+      { userId: "bini", kind: "entry_fee", units: -10 },
+      { userId: "bini", kind: "refund", units: 5 },
+    ],
+    referrers,
+  });
+  assert.deepEqual(out, [{ salespersonId: "sara", playerId: "bini", stakeUnits: 5, units: 0.07 }]); // 5*0.3*0.05 = 0.075 -> 0.07
+});
+
+test("main round: no winner still pays only 5% of the normal house cut", () => {
+  // Same input with or without winners: the commission does not depend on payouts.
+  const out = roundCommissions({ houseCut: 0.3, players: 2, finishedMatches: 10, ledger: [{ userId: "abel", kind: "entry_fee", units: -10 }, { userId: "chala", kind: "entry_fee", units: -10 }], referrers });
+  assert.deepEqual(out, [{ salespersonId: "sara", playerId: "abel", stakeUnits: 10, units: 0.15 }]);
+});
+
+test("no self-referral", () => {
+  const out = roundCommissions({ houseCut: 0.3, players: 2, finishedMatches: 1, ledger: [{ userId: "sara", kind: "entry_fee", units: -10 }, { userId: "chala", kind: "entry_fee", units: -10 }], referrers: { sara: "sara" } });
+  assert.deepEqual(out, []);
+});
+
+// ---- challenges --------------------------------------------------------------
+test("challenge: 2% of the 10% fee on the referred player's stake", () => {
+  const out = challengeCommissions({ outcome: "settled", feePct: 0.1, stakeUnits: 50, entrants: ["abel", "chala"], referrers });
+  assert.deepEqual(out, [{ salespersonId: "sara", playerId: "abel", stakeUnits: 50, units: 0.1 }]);
+});
+
+test("challenge: refunded (nobody joined / called off) pays no commission", () => {
+  assert.deepEqual(challengeCommissions({ outcome: "refunded", feePct: 0.1, stakeUnits: 50, entrants: ["abel", "bini"], referrers }), []);
+  assert.deepEqual(challengeCommissions({ outcome: "settled", feePct: 0.1, stakeUnits: 50, entrants: ["abel"], referrers }), []);
+});
+
+// ---- fraud -------------------------------------------------------------------
+test("referred players that look like the salesperson are flagged", () => {
+  const flags = referralLookalikes({
+    salesperson: { id: "sara", username: "sara", phone_number: "0911000001" },
+    referred: [
+      { id: "abel", username: "abel", phone_number: "0911000002" },
+      { id: "bini", username: "bini", phone_number: "0911000003", referral_ip: "10.0.0.9" },
+      { id: "chala", username: "chala", phone_number: "0911000004" },
+    ],
+    withdrawals: [
+      { user_id: "abel", payout_phone: "0911000001", status: "pending" },
+      { user_id: "sara", payout_phone: "0922000000", status: "paid" },
+      { user_id: "chala", payout_phone: "0911000001", status: "rejected" },
+    ],
+    logins: [{ user_id: "sara", ip: "10.0.0.9" }],
+  });
+  assert.deepEqual(flags.map((f) => f.username), ["abel", "bini"]);
+  assert.match(flags[0].reasons[0], /salesperson's phone/);
+  assert.match(flags[1].reasons[0], /Same IP/);
+});

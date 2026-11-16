@@ -8,19 +8,23 @@ import { telegramBotId, telegramEnabled } from "@/lib/telegram";
 import { PENDING_COOKIE, readPending } from "@/lib/telegram-login";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { OrDivider } from "@/components/OrDivider";
+import { REF_COOKIE, normalizeReferralCode } from "@/lib/referrals";
 
 export async function generateMetadata() {
   const lang = await getLang();
   return pageMeta({ title: PAGES[lang].auth.registerMeta, description: PAGES[lang].auth.registerDescription, path: "/register", lang, translated: true });
 }
 
-export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string; ref?: string }> }) {
+  const { next, ref: refParam } = await searchParams;
   const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   const lang = await getLang();
   const t = PAGES[lang].auth;
   // Came back from "Log in with Telegram" as a new player?
-  const tg = readPending((await cookies()).get(PENDING_COOKIE)?.value, process.env.TELEGRAM_BOT_TOKEN ?? "");
+  const jar = await cookies();
+  const tg = readPending(jar.get(PENDING_COOKIE)?.value, process.env.TELEGRAM_BOT_TOKEN ?? "");
+  // Invite link code (?ref=LAKI10), kept in a cookie through the Telegram sign-up too.
+  const ref = normalizeReferralCode(refParam) ?? normalizeReferralCode(jar.get(REF_COOKIE)?.value) ?? undefined;
   return (
     <div className="space-y-5">
       <div>
@@ -35,12 +39,12 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         telegramEnabled() && (
           <>
             <p className="text-center text-xs text-mist">{t.tgSignupHint}</p>
-            <TelegramLoginButton botId={telegramBotId()} next={safe} label={t.tgSignup} failedText={t.tgFailed} />
+            <TelegramLoginButton botId={telegramBotId()} next={safe} referral={ref} label={t.tgSignup} failedText={t.tgFailed} />
             <OrDivider label={t.tgOr} />
           </>
         )
       )}
-      <RegisterForm next={safe} lang={lang} />
+      <RegisterForm next={safe} lang={lang} referral={ref} />
     </div>
   );
 }

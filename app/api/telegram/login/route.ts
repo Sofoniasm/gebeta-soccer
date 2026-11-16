@@ -21,6 +21,7 @@ import { PENDING_COOKIE, PENDING_TTL_SECONDS, safeNextPath, signPending, verifyL
 import { startSessionFor } from "@/lib/telegram-session";
 import { startTelegramVerificationDm } from "@/lib/verification";
 import { sendMessage } from "@/lib/telegram";
+import { REF_COOKIE, REF_COOKIE_MAX_AGE, normalizeReferralCode } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -96,5 +97,10 @@ export async function GET(req: NextRequest) {
     v.user.id,
     `👋 Hi${hi}! Welcome to <b>GebetaSoccer</b>.\n\nFinish the short sign-up form on the website (phone number, date of birth, password). Then I'll send you a button here to confirm your number with one tap.`,
   ).catch(() => null);
-  return go("/register", { tg: "1", ...(next !== "/dashboard" ? { next } : {}) });
+  // Invite link code: keep it for the sign-up form (also saved by the proxy cookie).
+  const ref = normalizeReferralCode(q.get("ref"));
+  if (ref) {
+    (await cookies()).set(REF_COOKIE, ref, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: REF_COOKIE_MAX_AGE });
+  }
+  return go("/register", { tg: "1", ...(next !== "/dashboard" ? { next } : {}), ...(ref ? { ref } : {}) });
 }

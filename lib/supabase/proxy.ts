@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
 import { LANG_COOKIE, LANG_HEADER, isTranslatable, localPath, stripLang } from "@/lib/i18n";
 
-const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates", "/leagues", "/join", "/challenges", "/premium", "/slip"];
+const PRIVATE_PREFIXES = ["/dashboard", "/admin", "/leaderboard", "/results", "/wallet", "/profile", "/notifications", "/todo", "/fixtures", "/match", "/career", "/certificates", "/leagues", "/join", "/challenges", "/premium", "/slip", "/sales"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function updateSession(request: NextRequest) {
