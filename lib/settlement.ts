@@ -5,10 +5,15 @@
  * Writing them to the database is done by the `settle_round` SQL
  * function so everything is saved in a single transaction.
  *
- * Money rules
- *   pool        = entrants × entry fee (in units; 1 unit = 200 ETB)
- *   prize fund  = pool × (1 − houseCut)          (houseCut default 30%)
- *   payout      = prize fund × winning percentage for that position
+ * Money rules (fair fee: the house only takes a share of what a winner
+ * wins FROM OTHER PLAYERS, never of the winner's own stake)
+ *   stake       = entry fee per entrant (in units; 1 unit = 200 ETB)
+ *   winners     = everyone level in first place (they share)
+ *   losers' pot = stakes of everyone else
+ *   each winner = own stake back + losers' pot × (1 − houseCut) ÷ winners
+ *   house       = losers' pot × houseCut + rounding leftovers
+ *   Example: 2 players × 200 ETB, 30% cut → winner gets 200 + 140 = 340, house 60.
+ *   Everyone level → nobody won anything from anybody: every stake back, house 0.
  *
  * Ranking
  *   1. Most total points (match points + Slam Points)
@@ -52,11 +57,6 @@ export interface SettlementInput {
   entryFeeUnits: number;
   /** Fraction kept by the house, e.g. 0.3 for 30%. */
   houseCut?: number;
-  /**
-   * Winning percentage per finishing position, must add up to ≤ 1.
-   * [1] = winner takes all (default). [0.6, 0.3, 0.1] = top 3 paid.
-   */
-  prizeSplit?: number[];
   /** Winning bar: match points must be strictly greater than this to win. */
   minMatchPoints?: number;
 }
@@ -101,12 +101,8 @@ const fromCents = (cents: number) => cents / 100;
 
 export function settleRound(input: SettlementInput): SettlementResult {
   const houseCut = input.houseCut ?? DEFAULT_HOUSE_CUT;
-  const prizeSplit = input.prizeSplit ?? [1];
 
   if (houseCut < 0 || houseCut >= 1) throw new RangeError("houseCut must be in [0, 1)");
-  if (prizeSplit.some((p) => p < 0)) throw new RangeError("prizeSplit values must be ≥ 0");
-  const splitTotal = prizeSplit.reduce((a, b) => a + b, 0);
-  if (splitTotal > 1 + 1e-9) throw new RangeError("prizeSplit must add up to ≤ 1");
 
   const entrants = new Set(input.entrantIds);
   const resultByMatch = new Map(input.results.map((r) => [r.matchId, r]));
@@ -185,37 +181,29 @@ export function settleRound(input: SettlementInput): SettlementResult {
   }
 
   // ---- 3. Money -------------------------------------------------------
-  const poolCents = toCents(entrants.size * input.entryFeeUnits);
-  const prizeFundCents = Math.floor(poolCents * (1 - houseCut));
-
-  const standings: Standing[] = [];
-  const payouts: Payout[] = [];
-  let paidCents = 0;
-  let position = 0; // 0-based finishing position of the group's first player
-  let prizePosition = 0; // positions among entrants who cleared the winning bar
+  const stakeCents = toCents(input.entryFeeUnits);
+  const poolCents = stakeCents * entrants.size;
   const bar = input.minMatchPoints ?? null;
   // A group shares totals and correct results, so it shares match points too.
   const clears = (g: (typeof sorted)[number][]) => bar === null || g[0].matchPoints > bar + 1e-9;
 
-  for (const group of groups) {
-    // Prize % for the positions this group occupies, shared equally.
-    // Below the winning bar a group is ranked but never paid.
-    const share = clears(group)
-      ? prizeSplit.slice(prizePosition, prizePosition + group.length).reduce((a, b) => a + b, 0)
-      : 0;
-    if (clears(group)) prizePosition += group.length;
-    // + 1e-6 absorbs float error (0.6 + 0.3 + 0.1 = 0.9999999999999999)
-    const groupCents = Math.floor(prizeFundCents * share + 1e-6);
-    const eachCents = Math.floor(groupCents / group.length);
+  // Winners: the first-place group, if it clears the winning bar (if any).
+  const winners = groups.length > 0 && clears(groups[0]) ? groups[0] : [];
+  const { eachCents, prizeFundCents } = fairPrize(stakeCents, entrants.size, winners.length, houseCut);
 
-    for (const s of group) {
-      standings.push({ ...s, rank: position + 1 });
-      if (eachCents > 0) {
-        payouts.push({ userId: s.userId, units: fromCents(eachCents) });
-        paidCents += eachCents;
-      }
-    }
+  const standings: Standing[] = [];
+  const payouts: Payout[] = [];
+  let position = 0;
+  for (const group of groups) {
+    for (const s of group) standings.push({ ...s, rank: position + 1 });
     position += group.length;
+  }
+  let paidCents = 0;
+  if (eachCents > 0) {
+    for (const w of winners) {
+      payouts.push({ userId: w.userId, units: fromCents(eachCents) });
+      paidCents += eachCents;
+    }
   }
 
   return {
@@ -230,4 +218,27 @@ export function settleRound(input: SettlementInput): SettlementResult {
     barMet: bar === null || sorted.some((x) => x.matchPoints > bar + 1e-9),
     topMatchPoints: sorted.reduce((m, x) => Math.max(m, x.matchPoints), 0),
   };
+}
+
+/**
+ * Fair-fee prize, in cents. The house only takes `houseCut` of the losers' stakes.
+ * Each winner gets their own stake back plus an equal share of the rest
+ * (rounded DOWN to the cent; leftovers stay with the house).
+ *   eachCents      what one winner is paid (0 when there is no winner)
+ *   prizeFundCents what all winners are paid together
+ * Mirror of the SQL in supabase/migrations/0049_fair_fee.sql.
+ */
+export function fairPrize(stakeCents: number, entrants: number, winners: number, houseCut: number): { eachCents: number; prizeFundCents: number } {
+  if (winners <= 0 || entrants <= 0 || stakeCents <= 0) return { eachCents: 0, prizeFundCents: 0 };
+  const w = Math.min(winners, entrants);
+  const losersCents = stakeCents * (entrants - w);
+  // + 1e-6 absorbs float error (e.g. 30000 × 0.7 = 20999.999999999996)
+  const shareCents = Math.floor((losersCents * (1 - houseCut)) / w + 1e-6);
+  const eachCents = stakeCents + shareCents;
+  return { eachCents, prizeFundCents: eachCents * w };
+}
+
+/** What ONE winner would get if they won alone (for "prize" displays), in units. */
+export function singleWinnerPrizeUnits(stakeUnits: number, entrants: number, houseCut: number): number {
+  return fromCents(fairPrize(toCents(stakeUnits), entrants, 1, houseCut).eachCents);
 }

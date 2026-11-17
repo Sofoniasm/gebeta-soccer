@@ -47,7 +47,7 @@ export function CreateLeagueForm({ rounds, balance }: { rounds: { id: number; na
             }`}
           >
             <span className="block text-sm font-extrabold">{t === "free" ? "Free league" : "Paid league"}</span>
-            <span className="block text-xs text-mist">{t === "free" ? "Just for bragging rights" : "Everyone pays · the winner takes 70%"}</span>
+            <span className="block text-xs text-mist">{t === "free" ? "Just for bragging rights" : "Everyone pays · winner gets their fee back + 70% of the rest"}</span>
           </button>
         ))}
       </div>
@@ -69,7 +69,7 @@ export function CreateLeagueForm({ rounds, balance }: { rounds: { id: number; na
           </label>
           <p className="text-xs text-mist">
             = <b className="text-white">{(feeN * ETB).toLocaleString("en-US")} ETB</b> each. With 10 friends the winner gets{" "}
-            <b className="text-emerald-200">{(feeN * 10 * 0.7 * ETB).toLocaleString("en-US")} ETB</b> (70% of the pot).
+            <b className="text-emerald-200">{(feeN * ETB + feeN * 9 * 0.7 * ETB).toLocaleString("en-US")} ETB</b> (their own fee back + 70% of the other 9 fees).
           </p>
           <p className="text-xs text-mist">
             {balance >= feeN

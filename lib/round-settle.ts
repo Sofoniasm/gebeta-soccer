@@ -1,5 +1,5 @@
 /**
- * Settle one main-pool round: score every slip, pay the winners (70%, winning
+ * Settle one main-pool round: score every slip, pay the winners (own stake back + 70% of the other stakes, winning
  * bar applies), tell everyone their result and settle the round's private
  * leagues. Only one player in the round (any number of slips): every stake is
  * refunded in full, no house fee, no winner. Used by the admin "Settle" button and by the automatic sync for

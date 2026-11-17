@@ -364,7 +364,7 @@ export default async function RoundsAdminPage({ searchParams }: { searchParams: 
                   <div className="flex justify-between"><dt className="text-mist">Players</dt><dd className="font-bold">{pool.players}</dd></div>
                   <div className="flex justify-between"><dt className="text-mist">Entry</dt><dd className="font-bold">{formatUnits(Number(round.entry_fee_units))}</dd></div>
                   <div className="flex justify-between"><dt className="text-mist">Pool</dt><dd className="font-bold">{etbLabel(pool.pool_units)}</dd></div>
-                  <div className="flex justify-between"><dt className="text-mist">Prize (70%)</dt><dd className="font-bold text-lilac-soft">{etbLabel(pool.prize_fund_units)}</dd></div>
+                  <div className="flex justify-between"><dt className="text-mist">One winner gets</dt><dd className="font-bold text-lilac-soft">{etbLabel(pool.prize_fund_units)}</dd></div>
                 </dl>
               )}
               <form action={setRoundStatus} className="mt-5">

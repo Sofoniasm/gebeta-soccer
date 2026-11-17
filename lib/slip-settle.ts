@@ -1,7 +1,7 @@
 /**
  * Settlement for multi-slip rounds (server only). Every SLIP is an entrant:
  * it pays one entry fee and competes on its own. Same scoring and tie-breaks
- * as before (lib/settlement.ts); winners' slips share 70% of the pool, but
+ * as before (lib/settlement.ts); winning slips get their stake back + 70% of the other stakes, but
  * only slips with MORE than half the match points can win. If none do,
  * the house keeps the whole pool.
  */

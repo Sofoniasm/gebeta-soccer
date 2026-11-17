@@ -308,7 +308,7 @@ export function ChallengeBuilder({
 
           {!sErr && (
             <div className="rounded-2xl border border-lilac/25 bg-lilac/10 p-4 text-sm">
-              <p className="font-extrabold text-white">Winner takes {Math.round((1 - CHALLENGE_FEE) * 100)}% of all stakes</p>
+              <p className="font-extrabold text-white">Winner gets their stake back + {Math.round((1 - CHALLENGE_FEE) * 100)}% of the other players&apos; stakes</p>
               <ul className="mt-2 space-y-1 text-mist">
                 {[2, 3, 5].filter((n) => !maxPlayers || n <= maxPlayers).map((n) => (
                   <li key={n} className="flex justify-between">

@@ -27,9 +27,11 @@ test("Ethiopian phone numbers", () => {
   }
 });
 
-test("challenges: winner gets 90% of all stakes; stake rules", () => {
-  assert.equal(challengePrizeUnits(50, 2), 90); // 10,000 ETB each, 2 players -> 18,000 ETB
-  assert.equal(challengePrizeUnits(1, 3), 2.7);
+test("challenges: winner gets own stake back + 90% of the other stakes; stake rules", () => {
+  assert.equal(challengePrizeUnits(1.5, 2), 2.85); // 300 ETB each, 2 players -> 300 + 270 = 570 ETB
+  assert.equal(challengePrizeUnits(50, 2), 95); // 10,000 ETB each -> 10,000 + 9,000 = 19,000 ETB
+  assert.equal(challengePrizeUnits(1, 3), 2.8);
+  assert.equal(challengePrizeUnits(1, 1), 1); // alone: only your own stake (and it is refunded)
   assert.equal(etbToUnits(10000), 50);
   assert.equal(stakeError(200), null);
   assert.equal(stakeError(250), null);

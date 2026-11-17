@@ -90,7 +90,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const ch = challengeOf(t);
     if (ch) {
       if (t.kind === "entry_fee") return { title: `Challenge stake: ${ch.title}`, note: ch.code };
-      if (t.kind === "payout") return { title: `Won challenge: ${ch.title}`, note: "90% of the pot" };
+      if (t.kind === "payout") return { title: `Won challenge: ${ch.title}`, note: "your stake back + 90% of the other stakes" };
       if (t.kind === "refund") {
         const why = (t.reference ?? "").includes("cancelled") ? "Cancelled" : (t.reference ?? "").includes("called off") ? "Matches called off" : "Nobody joined";
         return { title: `Challenge refund: ${ch.title}`, note: why };
@@ -110,7 +110,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       case "payout": {
         if (league) {
           const m = (t.reference ?? "").match(/\(Rank (\d+)\)/);
-          return { title: `Won league ${league}${m ? ` (Rank ${m[1]})` : ""}`, note: "70% of the league pot" };
+          return { title: `Won league ${league}${m ? ` (Rank ${m[1]})` : ""}`, note: "your fee back + 70% of the other fees" };
         }
         const slipWin = (t.reference ?? "").match(/^Slip #(\d+) winnings \(Rank (\d+)\)/);
         if (slipWin) return { title: `Won ${round} (Slip #${slipWin[1]}, Rank ${slipWin[2]})`, note: "Prize money" };

@@ -33,7 +33,7 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
         <h2 className="relative text-xl font-extrabold sm:text-2xl">Challenge your friends</h2>
         <p className="relative mt-2 max-w-xl text-sm text-mist">
           Pick 1 to 10 matches, set your stake and send the link. Everyone who joins pays the same and predicts the same matches.
-          Highest score takes {Math.round((1 - CHALLENGE_FEE) * 100)}% of the pot.
+          Highest score gets their stake back + {Math.round((1 - CHALLENGE_FEE) * 100)}% of the other stakes.
         </p>
         <Link href="/challenges/new" className="relative mt-5 inline-flex rounded-full bg-lilac px-6 py-3 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft">
           + Create a challenge

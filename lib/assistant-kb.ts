@@ -12,7 +12,7 @@ ROUNDS
 - Each round has 5 to 10 matches. On the Dashboard pick the round, set a score for every match with the up/down arrows (0-15), press Place bet. The entry fee (usually 1 Unit = 200 ETB) comes out of the wallet.
 - Picks can be edited for free until the first kickoff; then the round locks and nobody can change or add slips. A player can place more than one slip; each slip costs the entry fee. Slips are not refunded once placed.
 - Scoring: exact score 3 points; close (right result and one goal away, or same goal difference two goals away like 1-1 vs 2-2) 1.5; right result only 1; wrong 0. Slam Points for many correct results: 5-7 correct +1, 8-9 +2, all 10 +3. Postponed or cancelled matches score 0 for everyone.
-- Prize: the slip with the most points wins 70% of the pool, every round, whatever the score (ties share; tie-breaks: most correct results, most exact scores, most close picks, smallest goal difference). 30% is the GebetaSoccer fee. Results come in automatically and winners are paid to the wallet automatically after the last match.
+- Prize: the slip with the most points gets its own stake back plus 70% of all the other stakes, every round, whatever the score (ties share; tie-breaks: most correct results, most exact scores, most close picks, smallest goal difference). The 30% GebetaSoccer fee is taken only from the money won from other players, never from the winner's own stake (2 players x 200 ETB: the winner gets 340 ETB). Results come in automatically and winners are paid to the wallet automatically after the last match.
 - Daily Football Quiz (menu: Quiz, /quiz): free, no entry fee and no prizes. 5 multiple-choice questions a day, 20 seconds each, 1 point per right answer, one try per question. New quiz at midnight Addis time. Monthly quiz Top 10 on the same page.
 - Leaderboard shows live points. A player's own picks are always visible; other players' picks become visible after the round locks.
 
@@ -39,8 +39,8 @@ PREMIUM (optional)
 - Gives: anonymous crowd picks while a round is open (once 5+ slips), a form guide % on pick cards, and every player's full slip after the lock. It does not change points or the chance to win. Nobody sees picks before the lock.
 
 CHALLENGES AND LEAGUES
-- Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets 90% (10% fee). If nobody joins before the first kickoff, everyone is refunded.
-- Private leagues: free (bragging rights) or paid (the winner takes 70% of the league pot).
+- Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets their own stake back plus 90% of the other stakes (10% fee only on the money won from others; 2 x 300 ETB: the winner gets 570 ETB). If nobody joins before the first kickoff, everyone is refunded.
+- Private leagues: free (bragging rights) or paid (the winner gets their fee back plus 70% of the other fees).
 
 RESPONSIBLE PLAY
 - Profile -> Responsible play: Take a break (24 hours, 7 days or 30 days, can't be ended early; withdrawals still work) and a weekly deposit limit (lowering is immediate, raising waits 7 days).

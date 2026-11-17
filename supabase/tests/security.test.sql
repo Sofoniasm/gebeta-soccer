@@ -329,10 +329,10 @@ do $$ begin
   if (select status from public.challenges c join tests_codes t using (code) where t.title = 'Derby bet') <> 'settled' then
     raise exception 'FAIL: finished challenge not settled';
   end if;
-  -- pot 60, 10% fee -> 54 to alice
+  -- fair fee (0049): alice's own 30 back + bob's 30 minus 10% = 57
   if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-000000000001')
-     <> (select balance_units from tests_bal where id = '11111111-0000-0000-0000-000000000001') - 30 + 54 then
-    raise exception 'FAIL: challenge winner not paid 90%% of the pot (or other stakes not refunded)';
+     <> (select balance_units from tests_bal where id = '11111111-0000-0000-0000-000000000001') - 30 + 57 then
+    raise exception 'FAIL: challenge winner not paid own stake + 90%% of the other stake (or other stakes not refunded)';
   end if;
   if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-000000000002')
      <> (select balance_units from tests_bal where id = '11111111-0000-0000-0000-000000000002') - 30 then

@@ -1,6 +1,6 @@
 /**
  * Settle one private league with the same scoring as rounds:
- * league members only, 70% of the league pot to the winner(s) (ties share),
+ * league members only, winner(s) get their fee back + 70% of the other fees (ties share),
  * 30% house. The best member always wins (no minimum score).
  * Free leagues settle with no money moving. A paid league with only ONE
  * member refunds the entry fee in full (no fee, no winner).

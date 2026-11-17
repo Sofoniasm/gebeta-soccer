@@ -48,7 +48,7 @@ export default async function LeaguesPage() {
     <AppShell title="Private leagues" next="/leagues">
       <p className="mb-5 max-w-2xl text-sm text-mist">
         Play the same round's matches against just your friends, family or workmates. Make it <b className="text-white">free</b> for bragging rights,
-        or <b className="text-white">paid</b> — everyone puts in the same amount and the winner takes 70% of the league pot.
+        or <b className="text-white">paid</b> — everyone puts in the same amount and the winner gets their fee back + 70% of the other fees.
       </p>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_minmax(0,24rem)]">

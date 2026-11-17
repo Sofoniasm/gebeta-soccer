@@ -101,7 +101,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
         {mine && <p className={`mt-3 text-sm font-semibold ${mine.kind === "waiting" ? "text-mist" : "text-white"}`}>{myPrizeText(mine)}</p>}
         <p className="mt-3 text-xs text-mist">
           {open
-            ? `Closes at the first kickoff: ${formatKickoff(c.lock_at)}. Winner takes ${Math.round((1 - Number(c.fee_pct)) * 100)}% of all stakes; ties share.`
+            ? `Closes at the first kickoff: ${formatKickoff(c.lock_at)}. Winner gets their stake back + ${Math.round((1 - Number(c.fee_pct)) * 100)}% of the other stakes; ties share.`
             : c.status === "open"
               ? "Matches under way. Scores update as results come in; the prize is paid automatically when the last match ends."
               : `Started ${formatKickoff(c.lock_at)}.`}
@@ -128,7 +128,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
           <Banner kind="success">
             {c.players <= 1
               ? c.is_member ? SOLO_REFUND_MESSAGE : "Nobody else joined, so the stake was refunded in full."
-              : "Every match was called off, so every stake went back to the wallets in full."}
+              : "Every match was called off, or everyone finished level, so every stake went back to the wallets in full."}
           </Banner>
         </div>
       )}

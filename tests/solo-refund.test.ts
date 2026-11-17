@@ -11,7 +11,9 @@ import {
   WAITING_MESSAGE,
 } from "../lib/solo";
 import { challengePrizeUnits } from "../lib/challenges";
-import { settleRound } from "../lib/settlement";
+import { settleRound, singleWinnerPrizeUnits } from "../lib/settlement";
+
+const pick1 = (user: string, h: number, a: number) => ({ predictionId: user === "s1" ? 1 : 2, userId: user, matchId: 1, predictedHome: h, predictedAway: a });
 import { buildRoundRecaps } from "../lib/round-recap";
 
 // ---- who counts as "solo" ---------------------------------------------------
@@ -40,8 +42,13 @@ test("no solo refund when a second player is in", () => {
 });
 
 test("solo: refund equals the whole pool, the house gets nothing", () => {
-  // Without the solo rule the scorer would pay the lone player 70% of their own money.
-  const r = settleRound({ entrantIds: ["s1", "s2"], entryFeeUnits: 5, results: [], predictions: [] });
+  // Without the solo rule the scorer would treat the lone player's 2nd slip as "another player" and keep a fee.
+  const r = settleRound({
+    entrantIds: ["s1", "s2"],
+    entryFeeUnits: 5,
+    results: [{ matchId: 1, homeScore: 1, awayScore: 0 }],
+    predictions: [pick1("s1", 1, 0), pick1("s2", 0, 3)],
+  });
   assert.equal(r.poolUnits, 10);
   assert.ok(r.houseUnits > 0, "plain settlement keeps a house fee");
   const refunds = soloRefunds([{ userId: "a", units: 5 }, { userId: "a", units: 5 }])!;
@@ -58,22 +65,22 @@ test("nobody else in: waiting, no prize amount", () => {
   assert.doesNotMatch(myPrizeText(p), /ETB/);
 });
 
-test("challenge, 2 players, 1,000 ETB stake, 10% fee", () => {
-  const x = challengePrizeUnits(5, 2); // 9 Units = 1,800 ETB
+test("challenge, 2 players, 1,000 ETB stake, 10% fee only on the other player's stake", () => {
+  const x = challengePrizeUnits(5, 2); // 9.5 Units = 1,900 ETB
   const p = myPrize(x, 5, 1);
-  assert.deepEqual(p, { kind: "prize", winUnits: 9, ownUnits: 5, fromOthersUnits: 4 });
-  assert.equal(myPrizeText(p), "You can win 1,800 ETB: your 1,000 ETB back + 800 ETB from other players");
+  assert.deepEqual(p, { kind: "prize", winUnits: 9.5, ownUnits: 5, fromOthersUnits: 4.5 });
+  assert.equal(myPrizeText(p), "You can win 1,900 ETB: your 1,000 ETB back + 900 ETB from other players");
 });
 
 test("league, 4 members, 5 Units fee, 30% house", () => {
-  const prizeFund = Math.round(4 * 5 * 0.7 * 100) / 100; // 14 Units
-  const p = myPrize(prizeFund, 5, 3);
+  const prize = singleWinnerPrizeUnits(5, 4, 0.3); // 5 back + 15 x 0.7 = 15.5 Units
+  const p = myPrize(prize, 5, 3);
   assert.equal(p.kind, "prize");
   if (p.kind !== "prize") return;
-  assert.equal(p.winUnits, 14);
+  assert.equal(p.winUnits, 15.5);
   assert.equal(p.ownUnits, 5);
-  assert.equal(p.fromOthersUnits, 9);
-  assert.equal(myPrizeText(p), "You can win 2,800 ETB: your 1,000 ETB back + 1,800 ETB from other players");
+  assert.equal(p.fromOthersUnits, 10.5);
+  assert.equal(myPrizeText(p), "You can win 3,100 ETB: your 1,000 ETB back + 2,100 ETB from other players");
 });
 
 test("round: X = Y + Z always holds, in hundredths", () => {

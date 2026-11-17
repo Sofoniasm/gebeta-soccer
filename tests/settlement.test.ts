@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { settleRound } from "../lib/settlement";
+import { fairPrize, settleRound, singleWinnerPrizeUnits } from "../lib/settlement";
 
 const pick = (id: number, user: string, match: number, h: number, a: number) => ({
   predictionId: id, userId: user, matchId: match, predictedHome: h, predictedAway: a,
 });
 
-test("70% to the winner, 30% house", () => {
+test("fair fee: winner gets own stake back + 70% of the others, house 30% of the others", () => {
   const r = settleRound({
     entrantIds: ["a", "b", "c", "d"],
     entryFeeUnits: 5,
@@ -14,9 +14,9 @@ test("70% to the winner, 30% house", () => {
     predictions: [pick(1, "a", 1, 2, 1), pick(2, "b", 1, 1, 0), pick(3, "c", 1, 0, 2)],
   });
   assert.equal(r.poolUnits, 20);
-  assert.equal(r.prizeFundUnits, 14);
-  assert.equal(r.houseUnits, 6);
-  assert.deepEqual(r.payouts, [{ userId: "a", units: 14 }]);
+  assert.equal(r.prizeFundUnits, 15.5); // 5 back + 15 x 0.7
+  assert.equal(r.houseUnits, 4.5); // 30% of the other 15 only
+  assert.deepEqual(r.payouts, [{ userId: "a", units: 15.5 }]);
 });
 
 test("players still tied after every tie-break share the prize", () => {
@@ -26,7 +26,8 @@ test("players still tied after every tie-break share the prize", () => {
     results: [{ matchId: 1, homeScore: 1, awayScore: 0 }],
     predictions: [pick(1, "a", 1, 1, 0), pick(2, "b", 1, 1, 0)],
   });
-  assert.deepEqual(r.payouts, [{ userId: "a", units: 1.05 }, { userId: "b", units: 1.05 }]);
+  // each: own 1 back + half of c's 1 x 0.7
+  assert.deepEqual(r.payouts, [{ userId: "a", units: 1.35 }, { userId: "b", units: 1.35 }]);
 });
 
 test("tie-break: same points → more correct results wins", () => {
@@ -87,7 +88,7 @@ test("multi-slip: each slip is an entrant; one player's two winning slips share 
     predictions: [pick(1, "1", 1, 2, 0), pick(2, "2", 1, 2, 0), pick(3, "3", 1, 0, 1)],
   });
   assert.equal(r.poolUnits, 3); // three slips paid
-  assert.deepEqual(r.payouts, [{ userId: "1", units: 1.05 }, { userId: "2", units: 1.05 }]);
+  assert.deepEqual(r.payouts, [{ userId: "1", units: 1.35 }, { userId: "2", units: 1.35 }]);
 });
 
 // ---- winning bar: more than half the match points (main pool) -----------
@@ -118,7 +119,7 @@ test("winning bar: exactly 15 of 30 is not enough, house keeps the whole pool", 
   assert.equal(r.houseUnits, 2);
 });
 
-test("winning bar: 15.5 of 30 wins 70%", () => {
+test("winning bar: 15.5 of 30 wins (own stake back + 70% of the other)", () => {
   const r = settleRound({
     entrantIds: ["a", "b"],
     entryFeeUnits: 1,
@@ -131,7 +132,7 @@ test("winning bar: 15.5 of 30 wins 70%", () => {
   });
   assert.equal(r.standings[0].matchPoints, 15.5);
   assert.equal(r.barMet, true);
-  assert.deepEqual(r.payouts, [{ userId: "a", units: 1.4 }]);
+  assert.deepEqual(r.payouts, [{ userId: "a", units: 1.7 }]);
 });
 
 test("winning bar: tied slips above the bar share; a cancelled match lowers the bar", () => {
@@ -145,7 +146,7 @@ test("winning bar: tied slips above the bar share; a cancelled match lowers the 
     predictions: [...slip("a", k), ...slip("b", k, 100), ...slip("c", Array(10).fill("wrong"), 200)],
   });
   assert.equal(r.barMet, true);
-  assert.deepEqual(r.payouts, [{ userId: "a", units: 10.5 }, { userId: "b", units: 10.5 }]);
+  assert.deepEqual(r.payouts, [{ userId: "a", units: 13.5 }, { userId: "b", units: 13.5 }]);
 });
 
 test("free play without a bar still has a winner (free leagues)", () => {
@@ -157,4 +158,53 @@ test("free play without a bar still has a winner (free leagues)", () => {
   });
   assert.equal(r.barMet, true);
   assert.equal(r.standings[0].userId, "a");
+});
+
+// ---- fair fee (0049): the house only takes from what a winner wins from OTHERS ----
+test("fair fee: main round, 2 players x 200 ETB -> winner 340 ETB, house 60 ETB", () => {
+  const r = settleRound({
+    entrantIds: ["me", "friend"],
+    entryFeeUnits: 1, // 200 ETB
+    houseCut: 0.3,
+    results: [{ matchId: 1, homeScore: 2, awayScore: 1 }],
+    predictions: [pick(1, "me", 1, 2, 1), pick(2, "friend", 1, 0, 2)],
+  });
+  assert.deepEqual(r.payouts, [{ userId: "me", units: 1.7 }]); // 340 ETB
+  assert.equal(r.houseUnits, 0.3); // 60 ETB
+});
+
+test("fair fee: challenge, 2 players x 300 ETB, 10% -> winner 570 ETB, house 30 ETB", () => {
+  const { eachCents, prizeFundCents } = fairPrize(150, 2, 1, 0.1); // 1.5 Units = 300 ETB
+  assert.equal(eachCents, 285); // 2.85 Units = 570 ETB
+  assert.equal(300 - prizeFundCents, 15); // 0.15 Units = 30 ETB
+});
+
+test("fair fee: everyone level -> every stake back, house 0", () => {
+  const r = settleRound({
+    entrantIds: ["a", "b", "c"],
+    entryFeeUnits: 1,
+    results: [{ matchId: 1, homeScore: 1, awayScore: 0 }],
+    predictions: [pick(1, "a", 1, 1, 0), pick(2, "b", 1, 1, 0), pick(3, "c", 1, 1, 0)],
+  });
+  assert.deepEqual(r.payouts.map((p) => p.units), [1, 1, 1]);
+  assert.equal(r.houseUnits, 0);
+});
+
+test("fair fee: a winner always gets at least their own stake back, never more than the pool", () => {
+  for (let n = 2; n <= 40; n++) {
+    for (let w = 1; w <= n; w++) {
+      for (const cut of [0.1, 0.3]) {
+        const { eachCents, prizeFundCents } = fairPrize(137, n, w, cut);
+        assert.ok(eachCents >= 137, `n=${n} w=${w}: winner below own stake`);
+        assert.ok(prizeFundCents <= 137 * n, `n=${n} w=${w}: paid more than the pool`);
+      }
+    }
+  }
+});
+
+test("fair fee: odd cents are rounded down for the winners, the rest stays with the house", () => {
+  // 3 entrants x 0.01 Unit, 2 winners, 30% cut: losers 1 cent x 0.7 / 2 = 0.35 -> 0
+  assert.deepEqual(fairPrize(1, 3, 2, 0.3), { eachCents: 1, prizeFundCents: 2 });
+  assert.equal(singleWinnerPrizeUnits(1, 2, 0.3), 1.7);
+  assert.equal(singleWinnerPrizeUnits(1, 0, 0.3), 0);
 });

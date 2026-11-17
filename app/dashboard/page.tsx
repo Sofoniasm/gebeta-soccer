@@ -71,7 +71,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
   // A player with slips never sees their own stakes as a prize from others.
   const mine = round && pool && slips.length > 0
-    ? myPrize(pool.prize_fund_units, slips.length * Number(round.entry_fee_units), pool.players - 1)
+    ? myPrize(pool.prize_fund_units, Number(round.entry_fee_units), pool.players - 1)
     : null;
 
   // The whole round locks at its first kickoff.
@@ -289,7 +289,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <p className={`ml-auto max-w-xs text-sm font-semibold ${mine.kind === "waiting" ? "text-mist" : "text-white"}`}>{myPrizeText(mine)}</p>
                   ) : (
                     <p className="text-[11px] text-mist">
-                      winners&apos; share: 70% of {formatEtb(unitsToEtb(pool.entrants * Number(round.entry_fee_units)))} in bets
+                      winner gets their stake back + {Math.round((1 - Number(round.house_cut)) * 100)}% of the other {formatEtb(unitsToEtb(Math.max(0, pool.entrants - 1) * Number(round.entry_fee_units)))} in bets
                     </p>
                   )}
                   <p className="flex items-center justify-end gap-1 text-xs text-mist">

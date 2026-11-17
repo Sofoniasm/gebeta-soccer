@@ -1,8 +1,9 @@
 /** Private challenges: shared types and money helpers (client + server). */
 import { ETB_PER_UNIT } from "@/lib/money";
+import { singleWinnerPrizeUnits } from "@/lib/settlement";
 import type { HtResult, PropKey } from "@/lib/challenge-props";
 
-/** GebetaSoccer keeps 10% of every challenge pot; the winner(s) share 90%. */
+/** GebetaSoccer keeps 10% of what the winner wins from the OTHER players (never of their own stake). */
 export const CHALLENGE_FEE = 0.1;
 export const CHALLENGE_MIN_ETB = 200;
 export const CHALLENGE_MAX_ETB = 1_000_000;
@@ -11,9 +12,13 @@ export const CHALLENGE_MAX_MATCHES = 10;
 
 export const etbToUnits = (etb: number) => etb / ETB_PER_UNIT;
 
-/** Prize for the winner when `players` people paid `stakeUnits` each (rounded down to 0.01 Unit). */
+/**
+ * What a lone winner receives when `players` people paid `stakeUnits` each:
+ * their own stake back + 90% of the other players' stakes (rounded down to 0.01 Unit).
+ * 2 × 300 ETB → 300 + 270 = 570 ETB.
+ */
 export function challengePrizeUnits(stakeUnits: number, players: number): number {
-  return Math.floor(stakeUnits * players * (1 - CHALLENGE_FEE) * 100) / 100;
+  return singleWinnerPrizeUnits(stakeUnits, players, CHALLENGE_FEE);
 }
 
 export function stakeError(etb: number): string | null {
