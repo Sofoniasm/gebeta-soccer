@@ -9,27 +9,16 @@ import { SendIcon, SpinnerIcon } from "@/components/icons";
 import { etbLabel } from "@/lib/money";
 import type { ChallengeMatch, ChallengePick } from "@/lib/challenges";
 import { cancelChallenge, joinChallenge, saveChallengePicks } from "../actions";
+import { ScoreStepper } from "@/components/ScoreStepper";
+import { FormBar } from "@/components/FormBar";
+import { CrowdLine } from "@/components/CrowdLine";
+import type { FormMap } from "@/lib/form";
+import type { CrowdMap } from "@/lib/crowd";
 import { PropPicker, effectivePropPick } from "@/components/PropPicker";
 import { propsComplete, type PropKey, type PropPick } from "@/lib/challenge-props";
 
 type Score = { home: string; away: string };
 
-function ScoreBox({ value, label, disabled, onChange }: { value: string; label: string; disabled?: boolean; onChange: (v: string) => void }) {
-  return (
-    <input
-      aria-label={label}
-      inputMode="numeric"
-      pattern="[0-9]*"
-      maxLength={2}
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 2))}
-      onFocus={(e) => e.target.select()}
-      placeholder="–"
-      className="h-12 w-12 rounded-2xl border border-white/15 bg-ink text-center text-xl font-extrabold text-white outline-none focus:border-lilac focus:ring-2 focus:ring-lilac/25 disabled:opacity-50"
-    />
-  );
-}
 
 /** Join form (new player) or edit form (already in), until the first kickoff. */
 export function ChallengePicksForm({
@@ -40,7 +29,11 @@ export function ChallengePicksForm({
   stakeUnits,
   balanceUnits,
   props = [],
+  form = {},
+  crowd = {},
 }: {
+  form?: FormMap;
+  crowd?: CrowdMap;
   code: string;
   props?: PropKey[];
   matches: ChallengeMatch[];
@@ -91,19 +84,26 @@ export function ChallengePicksForm({
           </p>
           <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
             <span className="flex min-w-0 items-center justify-end gap-2 text-right">
-              <span className="truncate text-sm font-semibold">{m.home_team}</span>
+              <span className="flex min-w-0 flex-col items-end gap-1">
+                <span className="max-w-full truncate text-sm font-semibold">{m.home_team}</span>
+                <FormBar team={m.home_team} form={form[m.home_team]} />
+              </span>
               <Crest src={m.home_crest} name={m.home_team} size={24} />
             </span>
             <span className="flex items-center gap-1.5">
-              <ScoreBox value={scores[m.id].home} label={`${m.home_team} score`} onChange={(v) => setScores((s) => ({ ...s, [m.id]: { ...s[m.id], home: v } }))} />
+              <ScoreStepper max={20} value={scores[m.id].home} label={`${m.home_team} score`} onChange={(v) => setScores((s) => ({ ...s, [m.id]: { ...s[m.id], home: v } }))} />
               <span className="text-mist">:</span>
-              <ScoreBox value={scores[m.id].away} label={`${m.away_team} score`} onChange={(v) => setScores((s) => ({ ...s, [m.id]: { ...s[m.id], away: v } }))} />
+              <ScoreStepper max={20} value={scores[m.id].away} label={`${m.away_team} score`} onChange={(v) => setScores((s) => ({ ...s, [m.id]: { ...s[m.id], away: v } }))} />
             </span>
             <span className="flex min-w-0 items-center gap-2">
               <Crest src={m.away_crest} name={m.away_team} size={24} />
-              <span className="truncate text-sm font-semibold">{m.away_team}</span>
+              <span className="flex min-w-0 flex-col items-start gap-1">
+                <span className="max-w-full truncate text-sm font-semibold">{m.away_team}</span>
+                <FormBar team={m.away_team} form={form[m.away_team]} />
+              </span>
             </span>
           </div>
+          <CrowdLine crowd={crowd[m.id]} homeTeam={m.home_team} awayTeam={m.away_team} />
           <PropPicker
             props={props}
             value={extra[m.id] ?? {}}

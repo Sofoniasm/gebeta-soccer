@@ -9,6 +9,11 @@ import { SpinnerIcon } from "@/components/icons";
 import { ETB_PER_UNIT, etbLabel, unitsLabel } from "@/lib/money";
 import { CHALLENGE_FEE, CHALLENGE_MAX_MATCHES, challengePrizeUnits, etbToUnits, stakeError } from "@/lib/challenges";
 import { createChallenge } from "../actions";
+import { ScoreStepper } from "@/components/ScoreStepper";
+import { FormBar } from "@/components/FormBar";
+import { CrowdLine } from "@/components/CrowdLine";
+import type { FormMap } from "@/lib/form";
+import type { CrowdMap } from "@/lib/crowd";
 import { PropPicker, effectivePropPick } from "@/components/PropPicker";
 import { PROP_INFO, PROP_KEYS, propsComplete, type PropKey, type PropPick } from "@/lib/challenge-props";
 
@@ -35,23 +40,6 @@ const MAX_OPTIONS: [string, number | null][] = [
   ["20", 20],
 ];
 
-function ScoreBox({ value, label, onChange }: { value: string; label: string; onChange: (v: string) => void }) {
-  return (
-    <input
-      aria-label={label}
-      inputMode="numeric"
-      pattern="[0-9]*"
-      maxLength={2}
-      value={value}
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
-      onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 2))}
-      onFocus={(e) => e.target.select()}
-      placeholder="–"
-      className="h-12 w-12 rounded-2xl border border-white/15 bg-ink text-center text-xl font-extrabold text-white outline-none focus:border-lilac focus:ring-2 focus:ring-lilac/25"
-    />
-  );
-}
 
 export function ChallengeBuilder({
   matches,
@@ -59,7 +47,11 @@ export function ChallengeBuilder({
   defaultTitle,
   phoneVerified,
   initialMatchId = null,
+  form = {},
+  crowd = {},
 }: {
+  form?: FormMap;
+  crowd?: CrowdMap;
   matches: UpcomingMatch[];
   balanceUnits: number;
   defaultTitle: string;
@@ -223,23 +215,30 @@ export function ChallengeBuilder({
                             </div>
                             <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                               <span className="flex min-w-0 items-center justify-end gap-2 text-right">
-                                <span className="truncate text-sm font-semibold">{m.home_team}</span>
+                                <span className="flex min-w-0 flex-col items-end gap-1">
+                                  <span className="max-w-full truncate text-sm font-semibold">{m.home_team}</span>
+                                  <FormBar team={m.home_team} form={form[m.home_team]} />
+                                </span>
                                 <Crest src={m.home_crest} name={m.home_team} size={24} />
                               </span>
                               {sel ? (
                                 <span className="flex items-center gap-1.5">
-                                  <ScoreBox value={sel.home} label={`${m.home_team} score`} onChange={(v) => setPicked((p) => ({ ...p, [m.id]: { ...p[m.id], home: v } }))} />
+                                  <ScoreStepper max={20} value={sel.home} label={`${m.home_team} score`} onChange={(v) => setPicked((p) => ({ ...p, [m.id]: { ...p[m.id], home: v } }))} />
                                   <span className="text-mist">:</span>
-                                  <ScoreBox value={sel.away} label={`${m.away_team} score`} onChange={(v) => setPicked((p) => ({ ...p, [m.id]: { ...p[m.id], away: v } }))} />
+                                  <ScoreStepper max={20} value={sel.away} label={`${m.away_team} score`} onChange={(v) => setPicked((p) => ({ ...p, [m.id]: { ...p[m.id], away: v } }))} />
                                 </span>
                               ) : (
                                 <span className="px-3 text-xs font-extrabold text-mist">VS</span>
                               )}
                               <span className="flex min-w-0 items-center gap-2">
                                 <Crest src={m.away_crest} name={m.away_team} size={24} />
-                                <span className="truncate text-sm font-semibold">{m.away_team}</span>
+                                <span className="flex min-w-0 flex-col items-start gap-1">
+                                  <span className="max-w-full truncate text-sm font-semibold">{m.away_team}</span>
+                                  <FormBar team={m.away_team} form={form[m.away_team]} />
+                                </span>
                               </span>
                             </div>
+                            <CrowdLine crowd={crowd[m.id]} homeTeam={m.home_team} awayTeam={m.away_team} />
                             {sel && (
                               <PropPicker
                                 props={props}

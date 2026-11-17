@@ -9,6 +9,9 @@ import type { MatchRow } from "@/lib/rounds";
 import { Banner, primaryButtonClass } from "@/components/ui";
 import { CheckIcon, ClockIcon, LockIcon, SpinnerIcon } from "@/components/icons";
 import { FormBar } from "@/components/FormBar";
+import { ScoreStepper } from "@/components/ScoreStepper";
+import { CrowdLine } from "@/components/CrowdLine";
+import type { CrowdMap } from "@/lib/crowd";
 import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES } from "@/lib/round-slots";
 import type { Chances, FormMap } from "@/lib/form";
 
@@ -30,6 +33,8 @@ interface Props {
   form?: FormMap;
   /** Premium only: rough result chances per match id. */
   chances?: Record<number, Chances>;
+  /** How other players picked each match (split hidden before kickoff unless Premium). */
+  crowd?: CrowdMap;
 }
 
 type Draft = Record<number, { home: string; away: string }>;
@@ -44,43 +49,6 @@ function Crest({ src, name }: { src: string | null; name: string }) {
   );
 }
 
-const MAX_GOALS = 15;
-
-/** Score box with ▲ / ▼ buttons (0–15). Tap to change; typing still works. */
-function ScoreInput(props: { value: string; disabled: boolean; label: string; onChange: (v: string) => void }) {
-  const n = props.value === "" ? null : Number(props.value);
-  const step = (d: number) => {
-    const next = n === null ? (d > 0 ? 0 : 0) : Math.min(MAX_GOALS, Math.max(0, n + d));
-    props.onChange(String(n === null && d > 0 ? 0 : next));
-  };
-  const btn =
-    "flex h-7 w-14 items-center justify-center rounded-xl text-sm text-mist transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30";
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <button type="button" aria-label={`${props.label}: one more`} disabled={props.disabled || n === MAX_GOALS} onClick={() => step(1)} className={btn}>
-        ▲
-      </button>
-      <input
-        aria-label={props.label}
-        inputMode="numeric"
-        pattern="[0-9]*"
-        maxLength={2}
-        value={props.value}
-        disabled={props.disabled}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-          props.onChange(digits === "" ? "" : String(Math.min(MAX_GOALS, Number(digits))));
-        }}
-        onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
-        className="h-12 w-14 rounded-2xl border border-white/15 bg-ink text-center text-2xl font-extrabold text-white outline-none transition focus:border-lilac focus:ring-2 focus:ring-lilac/25 disabled:border-transparent disabled:bg-white/5 disabled:text-mist"
-        placeholder="–"
-      />
-      <button type="button" aria-label={`${props.label}: one less`} disabled={props.disabled || n === null || n === 0} onClick={() => step(-1)} className={btn}>
-        ▼
-      </button>
-    </div>
-  );
-}
 
 const draftFrom = (matches: MatchRow[], slip?: SlipData): Draft => {
   const d: Draft = {};
@@ -95,7 +63,7 @@ const draftFrom = (matches: MatchRow[], slip?: SlipData): Draft => {
  * The betting slip: 10 matches, one score each. A player can place several
  * slips (each paid separately) and edit them for free until the first kickoff.
  */
-export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entryFeeLabel, balanceUnits, matches, slips, form = {}, chances }: Props) {
+export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entryFeeLabel, balanceUnits, matches, slips, form = {}, chances, crowd = {} }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<number | typeof NEW>(slips.length ? slips[0].id : NEW);
   const slip = useMemo(() => slips.find((s) => s.id === selected), [slips, selected]);
@@ -249,9 +217,9 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
                     <FormBar team={m.home_team} form={form[m.home_team]} />
                   </div>
                   <div className="flex items-center gap-2">
-                    <ScoreInput label={`${m.home_team} score`} value={draft[m.id]?.home ?? ""} disabled={!open} onChange={(v) => update(m.id, "home", v)} />
+                    <ScoreStepper label={`${m.home_team} score`} value={draft[m.id]?.home ?? ""} disabled={!open} onChange={(v) => update(m.id, "home", v)} />
                     <span className="text-mist/70">:</span>
-                    <ScoreInput label={`${m.away_team} score`} value={draft[m.id]?.away ?? ""} disabled={!open} onChange={(v) => update(m.id, "away", v)} />
+                    <ScoreStepper label={`${m.away_team} score`} value={draft[m.id]?.away ?? ""} disabled={!open} onChange={(v) => update(m.id, "away", v)} />
                   </div>
                   <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
                     <Crest src={m.away_crest} name={m.away_team} />
@@ -259,6 +227,7 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
                     <FormBar team={m.away_team} form={form[m.away_team]} />
                   </div>
                 </div>
+                <CrowdLine crowd={crowd[m.id]} homeTeam={m.home_team} awayTeam={m.away_team} />
                 {chances?.[m.id] && (
                   <p className="mt-2 text-center text-[11px] text-mist" title="Rough guide from each team's last 5 results and home advantage. Not a prediction.">
                     ⭐ Form guide: <b className="text-white">{m.home_team} {chances[m.id].home}%</b> · Draw {chances[m.id].draw}% ·{" "}

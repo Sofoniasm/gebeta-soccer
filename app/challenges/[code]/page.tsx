@@ -13,6 +13,8 @@ import { TELEGRAM_BOT_USERNAME } from "@/lib/telegram";
 import { challengePrizeUnits, type Challenge } from "@/lib/challenges";
 import { myPrize, myPrizeText, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
 import { normalizeProps, PROP_INFO, propSummary } from "@/lib/challenge-props";
+import { getForm } from "@/lib/form";
+import { getMatchesCrowd } from "@/lib/crowd";
 import { CancelChallengeButton, ChallengePicksForm, ShareChallenge } from "./ChallengePlay";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +62,10 @@ export default async function ChallengePage({ params, searchParams }: { params: 
   const url = `${SITE_URL}/challenges/${c.code}`;
   const tgLink = TELEGRAM_BOT_USERNAME ? `https://t.me/${TELEGRAM_BOT_USERNAME}?start=c_${c.code}` : null;
   const winners = c.entries.filter((e) => e.rank === 1 && (e.payout_units ?? 0) > 0);
+  // Last 5 results and crowd picks for the join / edit form (while the challenge is open).
+  const [form, crowd] = c.status === "open" && !c.locked
+    ? await Promise.all([getForm(supabase, c.matches.flatMap((m) => [m.home_team, m.away_team])), getMatchesCrowd(supabase, c.matches.map((m) => m.id))])
+    : [{}, {}];
   const { data: avatarRows } = await supabase.rpc("get_avatars", { p_usernames: c.entries.map((e) => e.username) });
   const avatarOf = new Map(((avatarRows ?? []) as { username: string; avatar_url: string }[]).map((a) => [a.username, a.avatar_url]));
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-5 sm:p-6";
@@ -160,7 +166,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
                 Enter your score for every match. {etbLabel(c.stake_units)} is taken from your wallet when you join. Your balance: <b className="text-white">{etbLabel(me.balance_units)}</b>
               </p>
               {me.phone_verified_at ? (
-                <ChallengePicksForm code={c.code} matches={c.matches} myPicks={null} mode="join" stakeUnits={c.stake_units} balanceUnits={me.balance_units} props={c.props} />
+                <ChallengePicksForm code={c.code} matches={c.matches} myPicks={null} mode="join" stakeUnits={c.stake_units} balanceUnits={me.balance_units} props={c.props} form={form} crowd={crowd} />
               ) : (
                 <Banner kind="error">Confirm your phone number first. <Link href="/profile" className="underline">Go to Profile</Link></Banner>
               )}
@@ -172,7 +178,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
         <section className={`${card} mb-5`}>
           <h2 className="text-lg font-extrabold">Your scores</h2>
           <p className="mb-4 mt-1 text-sm text-mist">You can change them for free until the first kickoff. Other players&apos; picks stay hidden until then.</p>
-          <ChallengePicksForm code={c.code} matches={c.matches} myPicks={me_entry?.picks ?? null} mode="edit" stakeUnits={c.stake_units} balanceUnits={me.balance_units} props={c.props} />
+          <ChallengePicksForm code={c.code} matches={c.matches} myPicks={me_entry?.picks ?? null} mode="edit" stakeUnits={c.stake_units} balanceUnits={me.balance_units} props={c.props} form={form} crowd={crowd} />
         </section>
       )}
 

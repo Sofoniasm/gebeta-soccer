@@ -19,6 +19,7 @@ import { RecentWinners } from "@/components/RecentWinners";
 import { CrowdPicks } from "@/components/CrowdPicks";
 import { getMyPremium } from "@/lib/premium";
 import { formChances, getForm, type Chances } from "@/lib/form";
+import { getMatchesCrowd } from "@/lib/crowd";
 import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES, slotHours, slotInfo, type Slot } from "@/lib/round-slots";
 
 export const metadata = { title: "Predict · GebetaSoccer" };
@@ -114,7 +115,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const premium = (await getMyPremium(supabase, me.id)).active;
   // Team form (last 5 results) on every pick card; Premium also gets a rough result guide.
-  const form = matches.length ? await getForm(supabase, matches.flatMap((m) => [m.home_team, m.away_team])) : {};
+  const [form, crowd] = matches.length
+    ? await Promise.all([getForm(supabase, matches.flatMap((m) => [m.home_team, m.away_team])), getMatchesCrowd(supabase, matches.map((m) => m.id))])
+    : [{}, {}];
   const chances: Record<number, Chances> = {};
   if (premium) {
     for (const m of matches) {
@@ -333,6 +336,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             matches={matches}
             slips={slips}
             form={form}
+            crowd={crowd}
             chances={premium ? chances : undefined}
           />
           {/* Premium before the lock; free for everyone once the round has locked. */}
