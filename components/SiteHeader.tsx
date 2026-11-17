@@ -13,7 +13,13 @@ export async function SiteHeader({ loggedIn }: { loggedIn: boolean }) {
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[#0b0912]/85 backdrop-blur-xl">
       <nav className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
-        <Logo size="lg" href={localPath("/", lang)} />
+        {/* Smaller logo on phones so the Log in button and the menu always fit */}
+        <span className="sm:hidden">
+          <Logo size="sm" href={localPath("/", lang)} />
+        </span>
+        <span className="hidden sm:block">
+          <Logo size="lg" href={localPath("/", lang)} />
+        </span>
         <SiteNavLinks lang={lang} />
         <div className="flex items-center gap-2">
           {/* Very narrow phones: the language switch moves into the ≡ menu */}
