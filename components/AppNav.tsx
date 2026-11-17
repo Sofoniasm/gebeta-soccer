@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { signOut } from "@/app/(auth)/actions";
 import {
   AwardIcon,
   BallIcon,
@@ -19,6 +21,9 @@ import {
   UsersIcon,
   WalletIcon,
   SendIcon,
+  MenuIcon,
+  XIcon,
+  LogOutIcon,
 } from "./icons";
 
 type Item = { href: string; label: string; icon: (p: { size?: number }) => React.ReactNode; badge?: "todo" };
@@ -61,14 +66,25 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/site", label: "Site", icon: SettingsIcon },
 ];
 
-/** Mobile bottom bar: the five most used places. "Me" opens Career, which links to the rest. */
+/**
+ * Phone / Telegram Mini App bottom bar: the main places to PLAY, plus "Menu",
+ * which opens every other page (nothing is desktop-only any more).
+ */
 const BOTTOM: Item[] = [
   { href: "/dashboard", label: "Predict", icon: BallIcon },
-  { href: "/todo", label: "To-do", icon: ListCheckIcon, badge: "todo" },
-  { href: "/leaderboard", label: "Table", icon: TrophyIcon },
+  { href: "/challenges", label: "Challenge", icon: VersusIcon },
+  { href: "/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/wallet", label: "Wallet", icon: WalletIcon },
-  { href: "/career", label: "Me", icon: ChartIcon },
 ];
+
+/** Small vibration inside Telegram (does nothing in a normal browser). */
+function tap() {
+  try {
+    (window as unknown as { Telegram?: { WebApp?: { HapticFeedback?: { selectionChanged?: () => void } } } }).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+  } catch {
+    /* not in Telegram */
+  }
+}
 
 const isActive = (path: string, href: string) =>
   href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`);
@@ -119,31 +135,112 @@ export function SideNav({ isAdmin, todoCount = 0 }: { isAdmin: boolean; todoCoun
   );
 }
 
-export function BottomNav({ todoCount = 0 }: { todoCount?: number }) {
+export function BottomNav({ todoCount = 0, isAdmin = false }: { todoCount?: number; isAdmin?: boolean }) {
   const path = usePathname();
-  const meActive = ["/challenges", "/career", "/certificates", "/profile", "/results", "/fixtures", "/notifications", "/leagues", "/join", "/sales"].some((p) => path.startsWith(p));
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [path]); // close the menu after moving to a page
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const inBar = BOTTOM.some((b) => isActive(path, b.href));
+  const item = (active: boolean) =>
+    `flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold uppercase tracking-wide ${active ? "text-lilac" : "text-mist/70"}`;
+  const pill = (active: boolean) => `relative flex h-8 w-12 items-center justify-center rounded-full transition ${active ? "bg-lilac/15" : ""}`;
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0912]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-      <div className="mx-auto grid max-w-lg grid-cols-5">
-        {BOTTOM.map(({ href, label, icon: Icon, badge }) => {
-          const active = href === "/career" ? meActive : isActive(path, href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold uppercase tracking-wide ${
-                active ? "text-lilac" : "text-mist/70"
-              }`}
-            >
-              <span className={`relative flex h-8 w-12 items-center justify-center rounded-full transition ${active ? "bg-lilac/15" : ""}`}>
-                <Icon size={20} />
-                {badge === "todo" && <Badge n={todoCount} className="absolute -right-0.5 -top-1" />}
-              </span>
-              {label}
-            </Link>
-          );
-        })}
+    <>
+      {open && <MenuSheet path={path} todoCount={todoCount} isAdmin={isAdmin} onClose={() => setOpen(false)} />}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0912]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {BOTTOM.map(({ href, label, icon: Icon }) => {
+            const active = !open && isActive(path, href);
+            return (
+              <Link key={href} href={href} onClick={tap} className={item(active)} aria-current={active ? "page" : undefined}>
+                <span className={pill(active)}>
+                  <Icon size={20} />
+                </span>
+                {label}
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => {
+              tap();
+              setOpen((v) => !v);
+            }}
+            aria-expanded={open}
+            aria-label={open ? "Close menu" : "Open menu: all pages"}
+            className={item(open || !inBar)}
+          >
+            <span className={pill(open || !inBar)}>
+              {open ? <XIcon size={20} /> : <MenuIcon size={20} />}
+              {!open && todoCount > 0 && <Badge n={todoCount} className="absolute -right-0.5 -top-1" />}
+            </span>
+            Menu
+          </button>
+        </div>
+      </nav>
+    </>
+  );
+}
+
+/** Full-screen list of every page, grouped like the desktop sidebar, as big tiles. */
+function MenuSheet({ path, todoCount, isAdmin, onClose }: { path: string; todoCount: number; isAdmin: boolean; onClose: () => void }) {
+  const groups: { title: string; items: Item[] }[] = [
+    { title: "Play", items: [...PLAY.filter((i) => !BOTTOM.some((b) => b.href === i.href)), { href: "/challenges/new", label: "New challenge", icon: VersusIcon }] },
+    { title: "My game", items: ME.filter((i) => !BOTTOM.some((b) => b.href === i.href)) },
+    ...(isAdmin ? [{ title: "Manage", items: [{ href: "/admin", label: "Admin panel", icon: ShieldIcon }] }] : []),
+  ];
+  return (
+    <div className="fixed inset-0 z-[39] overflow-y-auto bg-[#0b0912]/97 px-4 pb-32 pt-4 backdrop-blur-xl lg:hidden" role="dialog" aria-modal="true" aria-label="All pages">
+      <div className="mx-auto max-w-lg">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-lg font-extrabold">Menu</p>
+          <button type="button" onClick={onClose} className="rounded-full bg-white/5 p-2 text-mist hover:text-white" aria-label="Close menu">
+            <XIcon size={18} />
+          </button>
+        </div>
+        {groups.map((g) => (
+          <section key={g.title} className="mt-4">
+            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/60">{g.title}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {g.items.map(({ href, label, icon: Icon, badge }) => {
+                const active = isActive(path, href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={tap}
+                    className={`relative flex flex-col items-center gap-2 rounded-2xl border p-3 text-center text-xs font-bold transition ${
+                      active ? "border-lilac bg-lilac/20 text-white" : "border-white/5 bg-card/70 text-mist hover:border-lilac/40 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lilac/15 text-lilac">
+                      <Icon size={20} />
+                    </span>
+                    {label}
+                    {badge === "todo" && <Badge n={todoCount} className="absolute right-2 top-2" />}
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+        <form action={signOut} className="mt-6">
+          <button className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 py-3 text-sm font-semibold text-mist hover:bg-white/5 hover:text-white">
+            <LogOutIcon size={16} /> Sign out
+          </button>
+        </form>
       </div>
-    </nav>
+    </div>
   );
 }

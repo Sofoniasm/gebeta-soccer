@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChannelBanner } from "@/components/ChannelBanner";
+import { QuickActions } from "@/components/QuickActions";
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
 import { getActiveRounds, getCurrentRound, getRoundMatches, getRoundPool } from "@/lib/rounds";
@@ -163,17 +164,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           })}
         </div>
       )}
-      <Link
-        href="/challenges"
-        className="mb-4 flex items-center gap-3 rounded-2xl border border-lilac/25 bg-gradient-to-r from-lilac/15 to-transparent px-4 py-3 transition hover:border-lilac/50"
-      >
-        <span className="text-xl">🤝</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-extrabold text-white">Challenge a friend</span>
-          <span className="block truncate text-xs text-mist">Pick 1 to 10 matches, set your own stake, share the link</span>
-        </span>
-        <span className="text-xs font-bold uppercase tracking-wider text-lilac">Start →</span>
-      </Link>
+      <QuickActions
+        username={me.username}
+        balanceUnits={me.balance_units}
+        roundOpen={!!round && bettable}
+        picksNeeded={picksNeededWithin(todo, 24)}
+      />
       <ChannelBanner className="mb-4" />
       {/* Superbru-style "picks needed" countdown chips */}
       <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
@@ -327,6 +323,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </p>
           )}
 
+          <div id="slip" className="scroll-mt-20">
           <PredictionBoard
             roundId={round.id}
             bettable={bettable}
@@ -339,6 +336,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             crowd={crowd}
             chances={premium ? chances : undefined}
           />
+          </div>
           {/* Premium before the lock; free for everyone once the round has locked. */}
           <CrowdPicks roundId={round.id} matches={matches} premium={premium || !bettable} locked={!bettable} />
         </>
