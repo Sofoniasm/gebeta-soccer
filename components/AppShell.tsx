@@ -107,7 +107,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
         </div>
       </main>
 
-      <BottomNav todoCount={todo.count} isAdmin={me.is_admin} />
+      <BottomNav todoCount={todo.count} isAdmin={me.is_admin} username={me.username} balance={`${units} · ${etb}`} />
       {/* Help assistant, one tap away on every screen (also inside the Telegram Mini App) */}
       <ChatBubble />
     </div>

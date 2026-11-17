@@ -135,7 +135,7 @@ export function SideNav({ isAdmin, todoCount = 0 }: { isAdmin: boolean; todoCoun
   );
 }
 
-export function BottomNav({ todoCount = 0, isAdmin = false }: { todoCount?: number; isAdmin?: boolean }) {
+export function BottomNav({ todoCount = 0, isAdmin = false, username = "", balance = "" }: { todoCount?: number; isAdmin?: boolean; username?: string; balance?: string }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]); // close the menu after moving to a page
@@ -157,7 +157,7 @@ export function BottomNav({ todoCount = 0, isAdmin = false }: { todoCount?: numb
 
   return (
     <>
-      {open && <MenuSheet path={path} todoCount={todoCount} isAdmin={isAdmin} onClose={() => setOpen(false)} />}
+      {open && <MenuSheet path={path} todoCount={todoCount} isAdmin={isAdmin} username={username} balance={balance} onClose={() => setOpen(false)} />}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0912]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {BOTTOM.map(({ href, label, icon: Icon }) => {
@@ -194,7 +194,7 @@ export function BottomNav({ todoCount = 0, isAdmin = false }: { todoCount?: numb
 }
 
 /** Full-screen list of every page, grouped like the desktop sidebar, as big tiles. */
-function MenuSheet({ path, todoCount, isAdmin, onClose }: { path: string; todoCount: number; isAdmin: boolean; onClose: () => void }) {
+function MenuSheet({ path, todoCount, isAdmin, username, balance, onClose }: { path: string; todoCount: number; isAdmin: boolean; username: string; balance: string; onClose: () => void }) {
   const groups: { title: string; items: Item[] }[] = [
     { title: "Play", items: [...PLAY.filter((i) => !BOTTOM.some((b) => b.href === i.href)), { href: "/challenges/new", label: "New challenge", icon: VersusIcon }] },
     { title: "My game", items: ME.filter((i) => !BOTTOM.some((b) => b.href === i.href)) },
@@ -214,6 +214,15 @@ function MenuSheet({ path, todoCount, isAdmin, onClose }: { path: string; todoCo
             <XIcon size={18} />
           </button>
         </div>
+        {username && (
+          <Link href="/wallet" onClick={tap} className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-lilac/25 bg-gradient-to-br from-lilac/20 to-transparent p-4">
+            <span className="min-w-0">
+              <span className="block truncate text-base font-extrabold">{username}</span>
+              <span className="block text-xs text-mist">Wallet balance</span>
+            </span>
+            <span className="shrink-0 text-right text-sm font-extrabold text-white">{balance}</span>
+          </Link>
+        )}
         {groups.map((g) => (
           <section key={g.title} className="mt-4">
             <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/60">{g.title}</p>

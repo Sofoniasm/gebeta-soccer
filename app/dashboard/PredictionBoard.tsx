@@ -10,6 +10,7 @@ import { Banner, primaryButtonClass } from "@/components/ui";
 import { CheckIcon, ClockIcon, LockIcon, SpinnerIcon } from "@/components/icons";
 import { FormBar } from "@/components/FormBar";
 import { ScoreStepper } from "@/components/ScoreStepper";
+import { useBottomBar } from "@/components/useBottomBar";
 import { CrowdLine } from "@/components/CrowdLine";
 import type { CrowdMap } from "@/lib/crowd";
 import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES } from "@/lib/round-slots";
@@ -60,7 +61,7 @@ const draftFrom = (matches: MatchRow[], slip?: SlipData): Draft => {
 };
 
 /**
- * The betting slip: 10 matches, one score each. A player can place several
+ * The betting slip: 5 to 10 matches (the round's own number), one score each. A player can place several
  * slips (each paid separately) and edit them for free until the first kickoff.
  */
 export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entryFeeLabel, balanceUnits, matches, slips, form = {}, chances, crowd = {} }: Props) {
@@ -87,6 +88,10 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
 
   const picked = matches.filter((m) => draft[m.id]?.home !== "" && draft[m.id]?.away !== "").length;
   const complete = picked === matches.length && matches.length >= MIN_ROUND_MATCHES && matches.length <= MAX_ROUND_MATCHES;
+  // The Place bet / Save bar works for every round size (5 to 10 matches), not only 10.
+  const roundSizeOk = matches.length >= MIN_ROUND_MATCHES && matches.length <= MAX_ROUND_MATCHES;
+  const showBar = open && (selected === NEW || !!slip) && roundSizeOk;
+  useBottomBar(showBar);
   const changed = slip
     ? matches.some((m) => {
         const p = slip.picks[m.id];
@@ -161,7 +166,7 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
       {selected === NEW && open && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-4 text-sm">
           <p className="text-mist">
-            Fill in all <b className="text-white">10 scores</b>, then place your bet for <b className="text-white">{entryFeeLabel}</b>. You can edit it free until the first kickoff. No refunds once placed.
+            Fill in all <b className="text-white">{matches.length} scores</b>, then place your bet for <b className="text-white">{entryFeeLabel}</b>. You can edit it free until the first kickoff. No refunds once placed.
           </p>
           {slips.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -260,24 +265,24 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
       )}
 
       {/* Betting slip bar */}
-      {open && (selected === NEW || slip) && matches.length === 10 && (
+      {showBar && (
         <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-white/10 bg-[#0b0912]/90 p-3 backdrop-blur-xl lg:bottom-0 lg:left-72 lg:p-4">
           <div className="mx-auto flex max-w-2xl items-center gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">{selected === NEW ? "New slip" : `Slip #${slip?.slip_no}`}</p>
               <p className="text-sm font-extrabold">
-                {picked}/10 picked
+                {picked}/{matches.length} picked
                 {selected === NEW && <span className="ml-1.5 text-xs font-bold text-mist">· costs {entryFeeLabel}</span>}
                 {selected !== NEW && changed && <span className="ml-1.5 text-xs font-bold text-amber-200">· unsaved changes</span>}
               </p>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div className={`h-full rounded-full transition-all ${complete ? "bg-emerald-300" : "bg-lilac"}`} style={{ width: `${picked * 10}%` }} />
+                <div className={`h-full rounded-full transition-all ${complete ? "bg-emerald-300" : "bg-lilac"}`} style={{ width: `${matches.length ? Math.round((picked / matches.length) * 100) : 0}%` }} />
               </div>
             </div>
             {selected === NEW ? (
               canAfford ? (
                 <button onClick={onPlace} disabled={pending || !complete} className={`${primaryButtonClass.replace("w-full ", "")} shrink-0`}>
-                  {pending && <SpinnerIcon size={18} />} {complete ? "Place bet" : `${10 - picked} to go`}
+                  {pending && <SpinnerIcon size={18} />} {complete ? "Place bet" : `${matches.length - picked} to go`}
                 </button>
               ) : (
                 <a href="/wallet" className={`${primaryButtonClass.replace("w-full ", "")} shrink-0`}>

@@ -60,3 +60,12 @@ html {
   --animate-pitch-zoom: pitch-zoom 30s ease-in-out infinite alternate;
 }
 @keyframes pitch-zoom { from { transform: scale(1.02); } to { transform: scale(1.12) translateY(-1%); } }
+
+/* Phones: when a page has a bottom action bar (Place bet, Create & pay), keep the
+   💬 help bubble above it so it never covers the button (components/useBottomBar.ts). */
+@media (max-width: 1023px) {
+  body[data-bottombar="1"] .gs-chat-fab,
+  body[data-bottombar="1"] .gs-chat-panel {
+    bottom: calc(10.5rem + env(safe-area-inset-bottom));
+  }
+}

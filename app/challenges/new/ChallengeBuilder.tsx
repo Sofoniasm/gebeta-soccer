@@ -10,6 +10,7 @@ import { ETB_PER_UNIT, etbLabel, unitsLabel } from "@/lib/money";
 import { CHALLENGE_FEE, CHALLENGE_MAX_MATCHES, challengePrizeUnits, etbToUnits, stakeError } from "@/lib/challenges";
 import { createChallenge } from "../actions";
 import { ScoreStepper } from "@/components/ScoreStepper";
+import { useBottomBar } from "@/components/useBottomBar";
 import { FormBar } from "@/components/FormBar";
 import { CrowdLine } from "@/components/CrowdLine";
 import type { FormMap } from "@/lib/form";
@@ -73,6 +74,7 @@ export function ChallengeBuilder({
   const [props, setProps] = useState<PropKey[]>([]);
   const [extra, setExtra] = useState<Record<number, PropPick>>({});
   const effOf = (id: number) => effectivePropPick(extra[id] ?? {}, picked[id]?.home ?? "", picked[id]?.away ?? "");
+  useBottomBar(phoneVerified);
 
   const comps = useMemo(() => ["All", ...Array.from(new Set(matches.map((m) => m.competition ?? "Other")))], [matches]);
   const shown = comp === "All" ? matches : matches.filter((m) => (m.competition ?? "Other") === comp);
