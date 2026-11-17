@@ -74,6 +74,11 @@ export async function AppShell({ children, title, next }: { children: React.Reac
             <Link href="/profile" aria-label="Profile">
               <Avatar name={me.username} src={me.avatar_url} size={32} />
             </Link>
+            <form action={signOut}>
+              <button className="rounded-full bg-white/5 p-2 text-mist hover:bg-white/10 hover:text-white" aria-label="Log out" title="Log out">
+                <LogOutIcon size={16} />
+              </button>
+            </form>
           </div>
         </div>
       </header>

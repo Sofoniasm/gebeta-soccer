@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 
 import { localPath, stripLang, type Lang } from "@/lib/i18n";
 import { COMMON, SITE_LINK_KEYS } from "@/lib/i18n/common";
+import { signOut } from "@/app/(auth)/actions";
+import { LangSwitch } from "./LangSwitch";
 
 export function MobileMenu({ loggedIn, lang = "en" }: { loggedIn: boolean; lang?: Lang }) {
   const [open, setOpen] = useState(false);
@@ -41,15 +43,25 @@ export function MobileMenu({ loggedIn, lang = "en" }: { loggedIn: boolean; lang?
           </nav>
           <div className="mt-5 grid grid-cols-2 gap-3">
             {loggedIn ? (
-              <Link href="/dashboard" className="col-span-2 rounded-full bg-lilac py-3 text-center text-xs font-bold uppercase tracking-wider text-ink">
-                {t.myPredictions}
-              </Link>
+              <>
+                <Link href="/dashboard" className="col-span-2 rounded-full bg-lilac py-3 text-center text-xs font-bold uppercase tracking-wider text-ink">
+                  {t.myPredictions}
+                </Link>
+                <form action={signOut} className="col-span-2">
+                  <button className="w-full rounded-full border border-white/40 py-3 text-center text-xs font-bold uppercase tracking-wider text-white">
+                    {t.logOut}
+                  </button>
+                </form>
+              </>
             ) : (
               <>
                 <Link href="/login" className="rounded-full border border-white/60 py-3 text-center text-xs font-bold uppercase tracking-wider">{t.logIn}</Link>
                 <Link href="/register" className="rounded-full bg-lilac py-3 text-center text-xs font-bold uppercase tracking-wider text-ink">{t.join}</Link>
               </>
             )}
+          </div>
+          <div className="mt-4 flex justify-center">
+            <LangSwitch />
           </div>
         </div>
       )}

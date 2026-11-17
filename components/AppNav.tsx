@@ -205,6 +205,11 @@ function MenuSheet({ path, todoCount, isAdmin, onClose }: { path: string; todoCo
       <div className="mx-auto max-w-lg">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-lg font-extrabold">Menu</p>
+          <form action={signOut} className="ml-auto mr-2">
+            <button className="flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-mist hover:text-white">
+              <LogOutIcon size={14} /> Log out
+            </button>
+          </form>
           <button type="button" onClick={onClose} className="rounded-full bg-white/5 p-2 text-mist hover:text-white" aria-label="Close menu">
             <XIcon size={18} />
           </button>

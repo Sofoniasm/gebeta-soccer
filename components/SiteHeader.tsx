@@ -16,7 +16,17 @@ export async function SiteHeader({ loggedIn }: { loggedIn: boolean }) {
         <Logo size="lg" href={localPath("/", lang)} />
         <SiteNavLinks lang={lang} />
         <div className="flex items-center gap-2">
-          <LangSwitch />
+          {/* Very narrow phones: the language switch moves into the ≡ menu */}
+          <span className="hidden min-[400px]:block">
+            <LangSwitch />
+          </span>
+          {/* Phones: one clear button next to the menu (the wide buttons below need more room) */}
+          <Link
+            href={loggedIn ? "/dashboard" : "/login"}
+            className="rounded-full bg-lilac px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft sm:hidden"
+          >
+            {loggedIn ? t.myPicks : t.logIn}
+          </Link>
           {loggedIn ? (
             <Link href="/dashboard" className="hidden rounded-full bg-lilac px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-lilac-soft sm:inline-flex">
               {t.myPredictions}
