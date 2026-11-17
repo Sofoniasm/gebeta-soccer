@@ -23,6 +23,13 @@ export function TelegramBridge() {
       app.expand();
       app.setHeaderColor?.("#0b0912");
       app.setBackgroundColor?.("#1b1630");
+      // Telegram closes / shrinks the app when you swipe down at the top of a page,
+      // which makes scrolling feel stuck. Turn that off (Telegram 7.7+).
+      try {
+        app.disableVerticalSwipes?.();
+      } catch {
+        /* older Telegram */
+      }
       document.documentElement.dataset.telegram = "1";
       setWa(app);
     });

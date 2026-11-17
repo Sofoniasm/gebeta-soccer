@@ -6,6 +6,7 @@ export interface TelegramWebApp {
   colorScheme?: "light" | "dark";
   ready(): void;
   expand(): void;
+  disableVerticalSwipes?(): void;
   close(): void;
   setHeaderColor?(color: string): void;
   setBackgroundColor?(color: string): void;
