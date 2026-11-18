@@ -5,6 +5,10 @@ import { findPlayer, recordDeposit, type DepositState, type LookupState } from "
 import { Banner, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { SpinnerIcon, CheckIcon } from "@/components/icons";
 
+/** "20 Nov, 10:03" in Ethiopian time. */
+const eat = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { timeZone: "Africa/Addis_Ababa", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
 const ETB_PER_UNIT = 200;
 const MAX_DEPOSIT_UNITS = 500;
 const QUICK = [1000, 2000, 5000, 10000, 50000, 100000];
@@ -70,6 +74,23 @@ export function DepositForm() {
             <p>
               Weekly deposit limit set by the player: <b>{(p.limit_units * ETB_PER_UNIT).toLocaleString("en-US")} ETB</b>. Left this week:{" "}
               <b>{((p.limit_left ?? 0) * ETB_PER_UNIT).toLocaleString("en-US")} ETB</b>.
+            </p>
+          )}
+          {p.limit_units !== null && p.next_deposit_at && (
+            <p className="mt-1">
+              Next deposit possible from <b>{eat(p.next_deposit_at)}</b> EAT
+              {p.left_at_next !== null ? <> (up to <b>{(p.left_at_next * ETB_PER_UNIT).toLocaleString("en-US")} ETB</b> then)</> : <> (no limit then)</>}.
+            </p>
+          )}
+          {p.limit_units !== null && p.full_room_at && (
+            <p className="mt-1">
+              Full {(p.limit_units * ETB_PER_UNIT).toLocaleString("en-US")} ETB free again from <b>{eat(p.full_room_at)}</b> EAT.
+            </p>
+          )}
+          {p.pending_limit_at && (
+            <p className="mt-1">
+              The player asked to {p.pending_limit_units === null ? <b>remove the limit</b> : <>raise it to <b>{(p.pending_limit_units * ETB_PER_UNIT).toLocaleString("en-US")} ETB</b></>}; that applies from{" "}
+              <b>{eat(p.pending_limit_at)}</b> EAT (a looser limit always waits 7 days).
             </p>
           )}
           {p.on_break_until && (

@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
 import { pushNotifications } from "@/lib/notify";
 import { ETB_PER_UNIT, MAX_DEPOSIT_UNITS, MIN_DEPOSIT_UNITS, formatUnits } from "@/lib/money";
+import { limitOutlook } from "@/lib/deposit-limit";
 
 export interface FoundPlayer {
   id: string;
@@ -16,6 +17,14 @@ export interface FoundPlayer {
   /** Player's own weekly deposit limit (units) and what is left of it; null = no limit. */
   limit_units: number | null;
   limit_left: number | null;
+  /** When a deposit fits again (ISO), and how many Units fit then (null = no limit by then). */
+  next_deposit_at: string | null;
+  left_at_next: number | null;
+  /** When the whole weekly amount is free again (ISO). */
+  full_room_at: string | null;
+  /** A looser limit the player asked for: new Units (null = no limit) and when it applies. */
+  pending_limit_units: number | null;
+  pending_limit_at: string | null;
   on_break_until: string | null;
 }
 export type LookupState = { player?: FoundPlayer; error?: string } | undefined;
@@ -29,17 +38,30 @@ export async function findPlayer(_prev: LookupState, formData: FormData): Promis
 
   const admin = createAdminClient();
   const phone = normalizeEthiopianPhone(raw);
-  const query = admin.from("profiles").select("id, username, phone_number, balance_units, excluded_until");
+  const query = admin.from("profiles").select("id, username, phone_number, balance_units, excluded_until, deposit_limit_units, deposit_limit_next_units, deposit_limit_next_at");
   const { data } = phone
     ? await query.eq("phone_number", phone).maybeSingle()
     : await query.ilike("username", raw.replace(/^@/, "").replace(/[%_\\]/g, "\\$&")).maybeSingle();
 
   if (!data) return { error: `No player found for “${raw}”.` };
-  const [{ data: limit }, { data: used }] = await Promise.all([
+  const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const [{ data: limit }, { data: used }, { data: recent }] = await Promise.all([
     admin.rpc("effective_deposit_limit", { p_user_id: data.id }),
     admin.rpc("deposits_last_7_days", { p_user_id: data.id }),
+    admin.from("wallet_ledger").select("amount_units, created_at").eq("user_id", data.id).eq("kind", "deposit").gt("created_at", since),
   ]);
   const limitUnits = limit === null || limit === undefined ? null : Number(limit);
+  // A pending change only matters while it has not applied yet.
+  const nextAt = data.deposit_limit_next_at && new Date(data.deposit_limit_next_at).getTime() > Date.now() ? (data.deposit_limit_next_at as string) : null;
+  const nextUnits = nextAt ? (data.deposit_limit_next_units === null ? null : Number(data.deposit_limit_next_units)) : null;
+  const outlook = limitOutlook({
+    deposits: ((recent ?? []) as { amount_units: number; created_at: string }[]).map((d) => ({ units: Number(d.amount_units), at: d.created_at })),
+    limitUnits,
+    nextUnits,
+    nextAt,
+    minUnits: MIN_DEPOSIT_UNITS,
+  });
+  const finite = (n: number | null) => (n === null || !Number.isFinite(n) ? null : n);
   return {
     player: {
       id: data.id,
@@ -48,6 +70,11 @@ export async function findPlayer(_prev: LookupState, formData: FormData): Promis
       balance_units: Number(data.balance_units),
       limit_units: limitUnits,
       limit_left: limitUnits === null ? null : Math.max(0, limitUnits - Number(used ?? 0)),
+      next_deposit_at: outlook.nextDepositAt?.toISOString() ?? null,
+      left_at_next: finite(outlook.leftAtNext),
+      full_room_at: outlook.fullRoomAt?.toISOString() ?? null,
+      pending_limit_units: nextUnits,
+      pending_limit_at: nextAt,
       on_break_until: data.excluded_until && new Date(data.excluded_until).getTime() > Date.now() ? data.excluded_until : null,
     },
   };
