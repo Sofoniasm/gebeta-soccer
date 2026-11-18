@@ -48,7 +48,7 @@ export function buildRoundAnnouncement(r: RoundAnnouncementInput): {
     `⚽ ${r.matchCount} matches`,
     `🔒 Closes ${formatKickoff(r.lockAt)} (EAT)`,
   ];
-  if (r.feeUnits != null && r.feeUnits > 0) lines.push(`🎟 Entry: ${r.feeUnits} Units (${r.feeUnits * 200} ETB)`);
+  if (r.feeUnits != null && r.feeUnits > 0) lines.push(`🎟 Entry: ${unitsText(r.feeUnits)} (${etbText(r.feeUnits)})`);
   lines.push("", "Predict the scores and win the pot. Good luck! 🍀");
 
   const site = r.siteUrl.replace(/\/+$/, "");
@@ -90,7 +90,7 @@ export function buildWinnersPost(r: WinnersPostInput): {
   const lines = [`🏆 <b>${esc(r.roundName)}: results</b>`, ""];
   for (const w of top) lines.push(`${MEDAL[Math.min(w.rank, 3) - 1] ?? "🏅"} <b>${esc(w.username)}</b> won ${unitsText(w.units)} (${etbText(w.units)})`);
   if (list.length > top.length) lines.push(`…and ${list.length - top.length} more winner${list.length - top.length === 1 ? "" : "s"}`);
-  lines.push("", `💰 Pool: ${unitsText(r.poolUnits)} (${etbText(r.poolUnits)}) · ${r.players} players`, "", "Congratulations! 🎉 Next round is waiting for you.");
+  lines.push("", `💰 Pool: ${unitsText(r.poolUnits)} (${etbText(r.poolUnits)}) · ${r.players} player${r.players === 1 ? "" : "s"}`, "", "Congratulations! 🎉 Next round is waiting for you.");
   const site = r.siteUrl.replace(/\/+$/, "");
   return { text: lines.join("\n"), reply_markup: { inline_keyboard: [[{ text: "▶️ Play next round", url: `${site}/dashboard` }]] } };
 }

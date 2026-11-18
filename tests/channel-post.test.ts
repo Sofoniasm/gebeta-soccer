@@ -30,7 +30,8 @@ test("channel: round announcement text and buttons", () => {
   assert.ok(p.text.includes("<b>Evening 10 · Thu 12 Nov</b>"));
   assert.ok(p.text.includes("10 matches"));
   assert.ok(p.text.includes("Thu 12 Nov, 15:30"), "lock time in Ethiopian time");
-  assert.ok(p.text.includes("1 Units (200 ETB)"));
+  assert.ok(p.text.includes("Entry: 1 Unit (200 ETB)"), "singular for 1 Unit");
+  assert.ok(!p.text.includes("1 Units"));
   const row = p.reply_markup.inline_keyboard[0];
   assert.equal(row[0].url, "https://gebetasoccer.com/dashboard?round=42");
   assert.equal(row[1].url, "https://t.me/GebetaSoccerbot?start=play");
