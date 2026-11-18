@@ -208,3 +208,19 @@ test("fair fee: odd cents are rounded down for the winners, the rest stays with 
   assert.equal(singleWinnerPrizeUnits(1, 2, 0.3), 1.7);
   assert.equal(singleWinnerPrizeUnits(1, 0, 0.3), 0);
 });
+
+test("main rounds: no winning bar — a best slip with only 15 of 30 match points still wins (0051)", () => {
+  const r = settleRound({
+    entrantIds: ["a", "b"],
+    entryFeeUnits: 1,
+    // no minMatchPoints: the app never passes one for main rounds
+    results: tenMatches,
+    predictions: [
+      ...slip("a", ["exact", "exact", "exact", "exact", "exact", "wrong", "wrong", "wrong", "wrong", "wrong"]), // 15 match points
+      ...slip("b", Array(10).fill("wrong"), 100),
+    ],
+  });
+  assert.equal(r.standings[0].matchPoints, 15);
+  assert.equal(r.barMet, true);
+  assert.deepEqual(r.payouts, [{ userId: "a", units: 1.7 }]); // own 200 ETB back + 140 ETB
+});
