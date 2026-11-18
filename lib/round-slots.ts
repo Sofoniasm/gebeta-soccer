@@ -2,9 +2,11 @@
  * Time slots for automatic rounds, in Ethiopian time (EAT, UTC+3, no
  * daylight saving). Pure functions only, so they can be unit-tested.
  */
-export type Slot = "morning" | "evening" | "night";
+export type Slot = "late" | "morning" | "evening" | "night";
 
 export const SLOTS: { key: Slot; label: string; from: number; to: number; emoji: string }[] = [
+  // After midnight in Ethiopia: South American (Brazil) and late US games. Bet before you sleep.
+  { key: "late", label: "Late night 10", from: 0, to: 6, emoji: "🌌" },
   { key: "morning", label: "Morning 10", from: 6, to: 12, emoji: "🌅" },
   { key: "evening", label: "Evening 10", from: 12, to: 19, emoji: "🌇" },
   { key: "night", label: "Night 10", from: 19, to: 24, emoji: "🌙" },
@@ -46,7 +48,7 @@ export function slotWindow(date: string, slot: Slot): { start: Date; end: Date }
   };
 }
 
-/** Which slot an instant falls in (null for 00:00–05:59 EAT). */
+/** Which slot an instant falls in (every hour of the day belongs to one slot). */
 export function slotOf(iso: string): Slot | null {
   const h = (new Date(iso).getUTCHours() + EAT_OFFSET_H) % 24;
   return SLOTS.find((s) => h >= s.from && h < s.to)?.key ?? null;

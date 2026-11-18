@@ -13,7 +13,9 @@ test("slots: Ethiopian time windows", () => {
   assert.equal(slotOf("2026-11-12T09:00:00Z"), "evening"); // 12:00 EAT
   assert.equal(slotOf("2026-11-12T15:59:00Z"), "evening"); // 18:59 EAT
   assert.equal(slotOf("2026-11-12T16:00:00Z"), "night"); // 19:00 EAT
-  assert.equal(slotOf("2026-11-12T22:00:00Z"), null); // 01:00 EAT next day
+  assert.equal(slotOf("2026-11-12T22:00:00Z"), "late"); // 01:00 EAT next day: Late night slot
+  assert.equal(slotOf("2026-11-13T02:59:00Z"), "late"); // 05:59 EAT
+  assert.equal(slotOf("2026-11-13T03:00:00Z"), "morning"); // 06:00 EAT
   // 23:30 UTC on the 12th is already the 13th in Addis
   assert.equal(eatDate(new Date("2026-11-12T23:30:00Z")), "2026-11-13");
   assert.equal(eatDate(new Date("2026-11-12T20:00:00Z"), 1), "2026-11-13");
@@ -50,4 +52,18 @@ test("smaller rounds: 5 to 9 matches open once the first game is within 24 hours
   const twelve = Array.from({ length: 12 }, (_, i) => at(13, 20, i));
   assert.equal(pickSlotMatches(twelve, "2026-11-13", "night", far)!.length, 10); // 10+: right away
   assert.equal(autoRoundName("2026-11-13", "night", 7), "Night 7 · Fri 13 Nov");
+});
+
+test("late night slot: Brazilian games at 01:30-03:30 EAT get their own round", () => {
+  // Thu 19 Nov 2026, 01:30-03:30 EAT = Wed 18 Nov 22:30-00:30 UTC
+  const br = [
+    "2026-11-18T22:30:00Z", "2026-11-18T23:00:00Z", "2026-11-18T23:30:00Z",
+    "2026-11-18T23:30:00Z", "2026-11-19T00:30:00Z", "2026-11-19T00:30:00Z",
+  ].map((kickoff_at, i) => ({ id: i, kickoff_at }));
+  const w = slotWindow("2026-11-19", "late");
+  assert.equal(w.start.toISOString(), "2026-11-18T21:00:00.000Z"); // 00:00 EAT
+  assert.equal(w.end.toISOString(), "2026-11-19T03:00:00.000Z"); // 06:00 EAT
+  const noon = new Date("2026-11-18T09:00:00Z"); // Wed 12:00 EAT: first game within 24 h
+  assert.equal(pickSlotMatches(br, "2026-11-19", "late", noon)!.length, 6);
+  assert.equal(autoRoundName("2026-11-19", "late", 6), "Late night 6 · Thu 19 Nov");
 });
