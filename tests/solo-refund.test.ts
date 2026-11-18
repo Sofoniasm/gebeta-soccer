@@ -5,6 +5,8 @@ import {
   isSoloEntry,
   myPrize,
   myPrizeText,
+  myWinUnits,
+  winFromOthersUnits,
   playersLabel,
   soloRefunds,
   SOLO_REFUND_MESSAGE,
@@ -69,7 +71,8 @@ test("challenge, 2 players, 1,000 ETB stake, 10% fee only on the other player's 
   const x = challengePrizeUnits(5, 2); // 9.5 Units = 1,900 ETB
   const p = myPrize(x, 5, 1);
   assert.deepEqual(p, { kind: "prize", winUnits: 9.5, ownUnits: 5, fromOthersUnits: 4.5 });
-  assert.equal(myPrizeText(p), "You can win 1,900 ETB: your 1,000 ETB back + 900 ETB from other players");
+  assert.equal(myWinUnits(p), 4.5); // big number: 900 ETB won from the other player, after the 10% cut
+  assert.equal(myPrizeText(p), "+ your 1,000 ETB stake comes back if you win");
 });
 
 test("league, 4 members, 5 Units fee, 30% house", () => {
@@ -80,7 +83,8 @@ test("league, 4 members, 5 Units fee, 30% house", () => {
   assert.equal(p.winUnits, 15.5);
   assert.equal(p.ownUnits, 5);
   assert.equal(p.fromOthersUnits, 10.5);
-  assert.equal(myPrizeText(p), "You can win 3,100 ETB: your 1,000 ETB back + 2,100 ETB from other players");
+  assert.equal(myWinUnits(p), 10.5); // big number: 2,100 ETB from the 3 others after the 30% cut
+  assert.equal(myPrizeText(p), "+ your 1,000 ETB stake comes back if you win");
 });
 
 test("round: X = Y + Z always holds, in hundredths", () => {
@@ -94,12 +98,17 @@ test("round: X = Y + Z always holds, in hundredths", () => {
   assert.equal(p.kind === "prize" && p.fromOthersUnits, 0.2); // not 0.19999999999999998
 });
 
-test("many own slips against one other: never claims money from others", () => {
-  // 3 own slips + 1 other slip at 5 Units, 30% house: pot 20, prize 14, own 15.
-  const p = myPrize(14, 15, 1);
-  assert.equal(p.kind === "prize" && p.fromOthersUnits, -1);
-  assert.equal(myPrizeText(p), "You can win 2,800 ETB (you put in 3,000 ETB)");
-  assert.doesNotMatch(myPrizeText(p), /from other players/);
+test("big number never counts your own stake or our cut (2 players x 200 ETB -> 140 ETB)", () => {
+  const fromOthers = winFromOthersUnits(1, 0.3); // the other player's 200 ETB slip, 30% cut
+  assert.equal(fromOthers, 0.7); // 140 ETB
+  const p = myPrize(1 + fromOthers, 1, 1);
+  assert.equal(myWinUnits(p), 0.7);
+  assert.equal(myPrizeText(p), "+ your 200 ETB stake comes back if you win");
+  // more players join: the number grows by itself (3 others -> 420 ETB)
+  assert.equal(winFromOthersUnits(3, 0.3), 2.1);
+  // your own extra slips are never counted as winnings
+  assert.equal(winFromOthersUnits(0, 0.3), 0);
+  assert.equal(myWinUnits(myPrize(1, 1, 0)), null); // nobody else: waiting, no amount
 });
 
 test("players box: N + you", () => {

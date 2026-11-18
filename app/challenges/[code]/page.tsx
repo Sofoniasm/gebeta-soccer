@@ -11,9 +11,10 @@ import { etbLabel, unitsLabel } from "@/lib/money";
 import { SITE_URL } from "@/lib/site";
 import { TELEGRAM_BOT_USERNAME } from "@/lib/telegram";
 import { challengePrizeUnits, type Challenge } from "@/lib/challenges";
-import { myPrize, myPrizeText, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
+import { myPrize, myPrizeText, myWinUnits, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
 import { normalizeProps, PROP_INFO, propSummary } from "@/lib/challenge-props";
 import { getForm } from "@/lib/form";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { getMatchesCrowd } from "@/lib/crowd";
 import { CancelChallengeButton, ChallengePicksForm, ShareChallenge } from "./ChallengePlay";
 
@@ -78,6 +79,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
   return (
     <AppShell title="Challenge" next={`/challenges/${c.code}`}>
       <Link href="/challenges" className="mb-4 inline-block text-xs font-bold uppercase tracking-widest text-lilac hover:text-lilac-soft">← My challenges</Link>
+      {c.status === "open" && <LiveRefresh seconds={30} />}
       {created && <div className="mb-4"><Banner kind="success">Challenge created and your stake is locked. Now send the link to your friends!</Banner></div>}
 
       {/* Header */}
@@ -100,8 +102,8 @@ export default async function ChallengePage({ params, searchParams }: { params: 
             </p>
           </div>
           <div className="rounded-2xl bg-ink/50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-mist">{c.status === "settled" ? "Paid" : "Prize"}</p>
-            <p className="mt-1 text-sm font-extrabold text-lilac-soft sm:text-lg">{mine?.kind === "waiting" ? "—" : etbLabel(prize)}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-mist">{c.status === "settled" ? "Paid" : mine ? "You win" : "Prize"}</p>
+            <p className="mt-1 text-sm font-extrabold text-lilac-soft sm:text-lg">{mine?.kind === "waiting" ? "—" : etbLabel(mine ? (myWinUnits(mine) ?? 0) : prize)}</p>
           </div>
         </div>
         {mine && <p className={`mt-3 text-sm font-semibold ${mine.kind === "waiting" ? "text-mist" : "text-white"}`}>{myPrizeText(mine)}</p>}

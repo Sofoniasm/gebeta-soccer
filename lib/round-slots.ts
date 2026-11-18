@@ -4,12 +4,12 @@
  */
 export type Slot = "late" | "morning" | "evening" | "night";
 
-export const SLOTS: { key: Slot; label: string; from: number; to: number; emoji: string }[] = [
+export const SLOTS: { key: Slot; label: string; am: string; from: number; to: number; emoji: string }[] = [
   // After midnight in Ethiopia: South American (Brazil) and late US games. Bet before you sleep.
-  { key: "late", label: "Late night 10", from: 0, to: 6, emoji: "🌌" },
-  { key: "morning", label: "Morning 10", from: 6, to: 12, emoji: "🌅" },
-  { key: "evening", label: "Evening 10", from: 12, to: 19, emoji: "🌇" },
-  { key: "night", label: "Night 10", from: 19, to: 24, emoji: "🌙" },
+  { key: "late", label: "Late night 10", am: "የሌሊት", from: 0, to: 6, emoji: "🌌" },
+  { key: "morning", label: "Morning 10", am: "የጠዋት", from: 6, to: 12, emoji: "🌅" },
+  { key: "evening", label: "Evening 10", am: "የከሰዓት", from: 12, to: 19, emoji: "🌇" },
+  { key: "night", label: "Night 10", am: "የምሽት", from: 19, to: 24, emoji: "🌙" },
 ];
 
 const EAT_OFFSET_H = 3;
@@ -54,11 +54,25 @@ export function slotOf(iso: string): Slot | null {
   return SLOTS.find((s) => h >= s.from && h < s.to)?.key ?? null;
 }
 
-/** "Evening 10 · Thu 12 Nov" (the number is how many matches the round has) */
+/**
+ * "የከሰዓት 10 · Evening · Thu 12 Nov": Amharic slot name first, then English
+ * (the number is how many matches the round has).
+ */
 export function autoRoundName(date: string, slot: Slot, matchCount = MAX_ROUND_MATCHES): string {
   const day = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }).format(new Date(`${date}T00:00:00Z`));
-  const base = slotInfo(slot)!.label.replace(/\s*\d+$/, "");
-  return `${base} ${matchCount} · ${day}`;
+  const x = slotInfo(slot)!;
+  const en = x.label.replace(/\s*\d+$/, "");
+  return `${x.am} ${matchCount} · ${en} · ${day}`;
+}
+
+/**
+ * Split a round name for display: "የከሰዓት 10 · Evening · Sat 21 Nov" →
+ * { main: "የከሰዓት 10", sub: "Evening · Sat 21 Nov" }. Other names stay whole.
+ */
+export function splitRoundName(name: string): { main: string; sub: string | null } {
+  const i = name.indexOf(" · ");
+  if (i > 0 && /[\u1200-\u137F]/.test(name.slice(0, i))) return { main: name.slice(0, i), sub: name.slice(i + 3) };
+  return { main: name, sub: null };
 }
 
 /**

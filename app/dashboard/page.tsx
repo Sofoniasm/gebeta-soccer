@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { ChannelBanner } from "@/components/ChannelBanner";
 import { QuickActions } from "@/components/QuickActions";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
 import { getActiveRounds, getCurrentRound, getRoundMatches, getRoundPool } from "@/lib/rounds";
 import { formatKickoff } from "@/lib/format";
 import { formatUnits, unitsToEtb } from "@/lib/money";
-import { myPrize, myPrizeText, playersLabel } from "@/lib/solo";
+import { myPrize, myPrizeText, myWinUnits, playersLabel, winFromOthersUnits } from "@/lib/solo";
 import { formatEtb } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Countdown } from "@/components/Countdown";
@@ -21,7 +22,7 @@ import { CrowdPicks } from "@/components/CrowdPicks";
 import { getMyPremium } from "@/lib/premium";
 import { formChances, getForm, type Chances } from "@/lib/form";
 import { getMatchesCrowd } from "@/lib/crowd";
-import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES, slotHours, slotInfo, type Slot } from "@/lib/round-slots";
+import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES, slotHours, slotInfo, splitRoundName, type Slot } from "@/lib/round-slots";
 
 export const metadata = { title: "Predict · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -73,7 +74,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
   // A player with slips never sees their own stakes as a prize from others.
   const mine = round && pool && slips.length > 0
-    ? myPrize(pool.prize_fund_units, Number(round.entry_fee_units), pool.players - 1)
+    ? (() => {
+        // Only OTHER players' slips count as winnings; your own stake comes back on top.
+        const fee = Number(round.entry_fee_units);
+        const fromOthers = winFromOthersUnits(Math.max(0, pool.entrants - slips.length) * fee, Number(round.house_cut));
+        return myPrize(fee + fromOthers, fee, pool.players - 1);
+      })()
     : null;
 
   // The whole round locks at its first kickoff.
@@ -164,6 +170,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           })}
         </div>
       )}
+      {/* Prize and players update by themselves while the round is open */}
+      {round && bettable && <LiveRefresh seconds={30} />}
       <QuickActions
         username={me.username}
         balanceUnits={me.balance_units}
@@ -262,7 +270,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">
                   {round.status === "open" ? "Current round" : round.status === "locked" ? "In progress" : "Last round"}
                 </p>
-                <h1 className="mt-1 text-3xl font-extrabold tracking-tight">{round.name}</h1>
+                <h1 className="mt-1 text-3xl font-extrabold tracking-tight">{splitRoundName(round.name).main}</h1>
+                {splitRoundName(round.name).sub && <p className="text-sm font-semibold text-lilac-soft">{splitRoundName(round.name).sub}</p>}
                 <p className="mt-1 text-sm text-mist">
                   {matches.length} matches · entry {formatUnits(Number(round.entry_fee_units))}
                   {round.auto_slot && slotInfo(round.auto_slot) ? ` · ${slotInfo(round.auto_slot)!.emoji} all kickoffs ${slotHours(round.auto_slot as Slot)}` : ""}
@@ -281,7 +290,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       <p className="flex items-center justify-end gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">
                         <TrophyIcon size={13} /> {mine ? "You can win" : "Prize pot"}
                       </p>
-                      <p className="text-3xl font-extrabold text-white">{formatEtb(unitsToEtb(pool.prize_fund_units))}</p>
+                      <p className="text-3xl font-extrabold text-white">{formatEtb(unitsToEtb(mine ? (myWinUnits(mine) ?? 0) : pool.prize_fund_units))}</p>
                     </>
                   )}
                   {mine ? (

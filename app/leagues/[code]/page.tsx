@@ -2,12 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMe } from "@/lib/me";
 import { etbLabel, unitsLabel } from "@/lib/money";
-import { myPrize, myPrizeText, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
+import { myPrize, myPrizeText, myWinUnits, playersLabel, SOLO_REFUND_MESSAGE } from "@/lib/solo";
 import { AppShell } from "@/components/AppShell";
 import { Banner } from "@/components/ui";
 import { TrophyIcon, UsersIcon } from "@/components/icons";
 import { CopyInvite, JoinLeagueBox } from "../LeagueForms";
 import { SITE_URL } from "@/lib/site";
+import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,7 @@ export default async function LeaguePage({
       <Link href="/leagues" className="mb-4 inline-block text-xs font-bold uppercase tracking-wider text-lilac hover:text-lilac-soft">
         ← My leagues
       </Link>
+      {open && <LiveRefresh seconds={30} />}
       {created && <div className="mb-4"><Banner kind="success">League created! Share the invite link below with your friends.</Banner></div>}
 
       {/* Header */}
@@ -127,7 +129,7 @@ export default async function LeaguePage({
                 <p className="flex items-center justify-end gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-lilac">
                   <TrophyIcon size={13} /> {mine ? "You can win" : "Winner gets"}
                 </p>
-                <p className="text-3xl font-extrabold">{etbLabel(Number(pool.prize_fund_units))}</p>
+                <p className="text-3xl font-extrabold">{etbLabel(mine ? (myWinUnits(mine) ?? 0) : Number(pool.prize_fund_units))}</p>
               </>
             )}
             {mine && (

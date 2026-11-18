@@ -72,10 +72,14 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // switching slips loads that slip's scores
+  // switching slips (or a saved change to this slip) loads that slip's scores.
+  // Keyed on content, not on object identity, so the 30 s live refresh never wipes what you are typing.
+  const slipKey = slip ? `${slip.id}:${JSON.stringify(slip.picks)}` : "new";
+  const matchKey = matches.map((m) => m.id).join(",");
   useEffect(() => {
     setDraft(draftFrom(matches, slip));
-  }, [selected, slip, matches]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, slipKey, matchKey]);
 
   // re-render every 15 s so the slip locks at the first kickoff without a refresh
   const [, setTick] = useState(0);

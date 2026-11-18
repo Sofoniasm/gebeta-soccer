@@ -65,14 +65,24 @@ export function myPrize(prizeUnits: number, myStakeUnits: number, otherPlayers: 
   return { kind: "prize", winUnits: x / 100, ownUnits: y / 100, fromOthersUnits: (x - y) / 100 };
 }
 
-/** The sentence shown under the prize. */
+/**
+ * The big number a player sees: what they win FROM OTHER PLAYERS, after our
+ * cut. Their own stake is not counted (it comes back on top). null = waiting.
+ */
+export function myWinUnits(p: MyPrize): number | null {
+  return p.kind === "prize" ? Math.max(0, p.fromOthersUnits) : null;
+}
+
+/** The small line under the big number. */
 export function myPrizeText(p: MyPrize): string {
   if (p.kind === "waiting") return WAITING_MESSAGE;
-  if (p.fromOthersUnits > 0) {
-    return `You can win ${etbLabel(p.winUnits)}: your ${etbLabel(p.ownUnits)} back + ${etbLabel(p.fromOthersUnits)} from other players`;
-  }
-  // Several own slips against few others: the prize is not more than what you put in.
-  return `You can win ${etbLabel(p.winUnits)} (you put in ${etbLabel(p.ownUnits)})`;
+  return `+ your ${etbLabel(p.ownUnits)} stake comes back if you win`;
+}
+
+/** Money a lone winner takes from other players' stakes after the house cut (rounded down to 0.01). */
+export function winFromOthersUnits(othersStakeUnits: number, houseCut: number): number {
+  if (othersStakeUnits <= 0) return 0;
+  return Math.floor(Math.round(othersStakeUnits * 100) * (1 - houseCut) + 1e-6) / 100;
 }
 
 /** Players box: "N + you" for someone who is in, "N players" otherwise. */

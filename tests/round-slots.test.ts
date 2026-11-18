@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { autoRoundName, MIN_ROUND_MATCHES, eatDate, pickSlotMatches, slotOf, slotWindow } from "../lib/round-slots";
+import { autoRoundName, MIN_ROUND_MATCHES, eatDate, pickSlotMatches, slotOf, slotWindow, splitRoundName } from "../lib/round-slots";
 
 test("slots: Ethiopian time windows", () => {
   const w = slotWindow("2026-11-12", "morning");
@@ -19,7 +19,7 @@ test("slots: Ethiopian time windows", () => {
   // 23:30 UTC on the 12th is already the 13th in Addis
   assert.equal(eatDate(new Date("2026-11-12T23:30:00Z")), "2026-11-13");
   assert.equal(eatDate(new Date("2026-11-12T20:00:00Z"), 1), "2026-11-13");
-  assert.equal(autoRoundName("2026-11-12", "evening"), "Evening 10 · Thu 12 Nov");
+  assert.equal(autoRoundName("2026-11-12", "evening"), "የከሰዓት 10 · Evening · Thu 12 Nov");
 });
 
 test("slots: 10 matches from one slot only, never mixed, with time to play", () => {
@@ -51,7 +51,7 @@ test("smaller rounds: 5 to 9 matches open once the first game is within 24 hours
   assert.equal(pickSlotMatches(four, "2026-11-13", "night", soon), null); // fewer than 5: never
   const twelve = Array.from({ length: 12 }, (_, i) => at(13, 20, i));
   assert.equal(pickSlotMatches(twelve, "2026-11-13", "night", far)!.length, 10); // 10+: right away
-  assert.equal(autoRoundName("2026-11-13", "night", 7), "Night 7 · Fri 13 Nov");
+  assert.equal(autoRoundName("2026-11-13", "night", 7), "የምሽት 7 · Night · Fri 13 Nov");
 });
 
 test("late night slot: Brazilian games at 01:30-03:30 EAT get their own round", () => {
@@ -65,5 +65,7 @@ test("late night slot: Brazilian games at 01:30-03:30 EAT get their own round", 
   assert.equal(w.end.toISOString(), "2026-11-19T03:00:00.000Z"); // 06:00 EAT
   const noon = new Date("2026-11-18T09:00:00Z"); // Wed 12:00 EAT: first game within 24 h
   assert.equal(pickSlotMatches(br, "2026-11-19", "late", noon)!.length, 6);
-  assert.equal(autoRoundName("2026-11-19", "late", 6), "Late night 6 · Thu 19 Nov");
+  assert.equal(autoRoundName("2026-11-19", "late", 6), "የሌሊት 6 · Late night · Thu 19 Nov");
+  assert.deepEqual(splitRoundName("የሌሊት 6 · Late night · Thu 19 Nov"), { main: "የሌሊት 6", sub: "Late night · Thu 19 Nov" });
+  assert.deepEqual(splitRoundName("Evening 10 · Thu 12 Nov"), { main: "Evening 10 · Thu 12 Nov", sub: null }); // older rounds unchanged
 });
