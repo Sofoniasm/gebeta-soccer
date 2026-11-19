@@ -98,7 +98,12 @@ export async function inviteToChallenge(code: string, raw: string): Promise<Invi
   if (phones.length > MAX_INVITES_AT_ONCE) return { ok: false, message: `Invite up to ${MAX_INVITES_AT_ONCE} players at a time.` };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("invite_to_challenge", { p_code: code, p_phones: phones });
-  if (error) return { ok: false, message: inviteError(error.message) };
+  if (error) {
+    console.error("invite_to_challenge:", error.code, error.message);
+    const friendly = inviteError(error.message);
+    // Unexpected failures carry the database error code so the cause can be found quickly.
+    return { ok: false, message: friendly.startsWith("Could not send") ? `${friendly} (error ${error.code ?? "unknown"})` : friendly };
+  }
   await pushNotifications(); // sends the Telegram messages
   refresh(code);
   const results = (Array.isArray(data) ? data : []) as InviteRow[];
