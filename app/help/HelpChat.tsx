@@ -16,7 +16,11 @@ export function HelpChat({ lang = "en", loggedIn, compact = false }: { lang?: "e
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), [turns, busy]);
+  // Braces on purpose: newer browsers make scrollIntoView return a Promise, and an
+  // arrow that returns it would hand React a "cleanup" that is not a function (crash).
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [turns, busy]);
 
   async function send(q: string) {
     const question = q.trim();
