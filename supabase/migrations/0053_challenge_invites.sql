@@ -186,9 +186,11 @@ begin
 end $$;
 revoke all on function public.challenge_invites_on_verify() from public, anon, authenticated;
 
-drop trigger if exists profiles_challenge_invites on public.profiles;
-create trigger profiles_challenge_invites
+create or replace trigger profiles_challenge_invites
   after update of phone_verified_at on public.profiles
   for each row
   when (old.phone_verified_at is null and new.phone_verified_at is not null)
   execute function public.challenge_invites_on_verify();
+
+-- make the new functions visible to the API right away
+notify pgrst, 'reload schema';
