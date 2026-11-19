@@ -41,7 +41,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const current = round ? null : await getCurrentRound(supabase, { includeTest: me.is_admin });
   const lastSettled = current?.status === "settled" ? current : null;
   const matches = round ? await getRoundMatches(supabase, round.id) : [];
-  const pool = round ? await getRoundPool(supabase, round.id) : null;
+  // Pool of every open round: the round chips show how many players are in each.
+  const pools = new Map(await Promise.all(active.map(async (r) => [r.id, await getRoundPool(supabase, r.id)] as const)));
+  const pool = round ? pools.get(round.id) ?? null : null;
 
   let leagueNames: string[] = [];
   let slips: SlipData[] = [];
@@ -173,6 +175,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </span>
                 <span className={`block text-[11px] ${r.bettable ? "text-emerald-200" : "text-mist"}`}>
                   {r.bettable && r.lock_at ? `Open · locks ${formatKickoff(r.lock_at)} EAT` : "In play"}
+                </span>
+                <span className="block text-[11px] font-bold text-white/80">
+                  {(() => {
+                    const n = pools.get(r.id)?.players ?? 0;
+                    return n === 0 ? "No players yet" : `👥 ${n} player${n === 1 ? "" : "s"}`;
+                  })()}
                 </span>
               </Link>
             );
