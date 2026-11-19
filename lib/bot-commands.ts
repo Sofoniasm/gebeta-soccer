@@ -150,6 +150,7 @@ export const BOT_COMMANDS = {
     { command: "settings", description: "Account and language" },
     { command: "help", description: "What this bot can do" },
     { command: "amharic", description: "Reply in Amharic" },
+    { command: "english", description: "Reply in English" },
   ],
   am: [
     { command: "start", description: "ገበጣሶከርን ክፈት" },
@@ -158,5 +159,6 @@ export const BOT_COMMANDS = {
     { command: "settings", description: "መለያና ቋንቋ" },
     { command: "help", description: "ቦቱ ምን ይሰራል" },
     { command: "english", description: "በእንግሊዝኛ መልስ" },
+    { command: "amharic", description: "በአማርኛ መልስ" },
   ],
 };

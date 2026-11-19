@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   await tg("setMyDescription", {
     description:
       "⚽ GebetaSoccer: Ethiopia's daily football prediction game (18+).\n\n" +
-      "• Predict the scores of 10 big matches in the Morning, Evening or Night round\n" +
+      "• Predict the scores of 10 big matches in the Late night, Morning, Evening or Night round\n" +
       "• The best slip gets its stake back + 70% of the other bets, every round\n" +
       "• Challenge friends, check your wallet and get your results right here\n\n" +
       "Tap START, then Play. Signed up on the website? Tap \"Continue with my Telegram number\" once and you're in.",
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     language_code: "am",
     description:
       "⚽ ገበጣሶከር፦ የኢትዮጵያ የዕለት የእግር ኳስ ውጤት ግምት ጨዋታ (18+)።\n\n" +
-      "• በጠዋት፣ ከሰዓት ወይም ማታ ዙር የ10 ታላላቅ ጨዋታዎችን ውጤት ይገምቱ\n" +
+      "• በሌሊት፣ በጠዋት፣ ከሰዓት ወይም ማታ ዙር የ10 ታላላቅ ጨዋታዎችን ውጤት ይገምቱ\n" +
       "• ምርጡ ስሊፕ በእያንዳንዱ ዙር ውርርዱን መልሶ ያገኛል፣ ከሌሎቹ ውርርዶች ደግሞ 70% ያሸንፋል\n" +
       "• ጓደኞችዎን ይግጠሙ፣ ዋሌትዎንና ውጤቶችዎን እዚሁ ይመልከቱ\n\n" +
       "START ን ከዚያ ይጫወቱን ይንኩ። በድረ-ገጹ ተመዝግበዋል? አንድ ጊዜ «በቴሌግራም ቁጥሬ ቀጥል» ን ይንኩ።",
