@@ -8,7 +8,8 @@ import { Banner, inputClass } from "@/components/ui";
 import { SpinnerIcon } from "@/components/icons";
 import { ETB_PER_UNIT, etbLabel, unitsLabel } from "@/lib/money";
 import { CHALLENGE_FEE, CHALLENGE_MAX_MATCHES, challengePrizeUnits, etbToUnits, stakeError } from "@/lib/challenges";
-import { createChallenge } from "../actions";
+import { createChallenge, inviteToChallenge } from "../actions";
+import { MAX_INVITES_AT_ONCE, parseInvitePhones } from "@/lib/invites";
 import { ScoreStepper } from "@/components/ScoreStepper";
 import { useBottomBar } from "@/components/useBottomBar";
 import { FormBar } from "@/components/FormBar";
@@ -69,6 +70,8 @@ export function ChallengeBuilder({
   const [stake, setStake] = useState("1000");
   const [maxPlayers, setMaxPlayers] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [inviteText, setInviteText] = useState("");
+  const invite = parseInvitePhones(inviteText);
   const [pending, start] = useTransition();
   // Extra picks (+1 point each per match), chosen by the creator for everyone.
   const [props, setProps] = useState<PropKey[]>([]);
@@ -115,6 +118,14 @@ export function ChallengeBuilder({
 
   function submit() {
     setError(null);
+    if (invite.bad.length > 0) {
+      setError(`This does not look like an Ethiopian mobile number: ${invite.bad.join(", ")}`);
+      return;
+    }
+    if (invite.phones.length > MAX_INVITES_AT_ONCE) {
+      setError(`Invite up to ${MAX_INVITES_AT_ONCE} players here (you can invite more on the challenge page).`);
+      return;
+    }
     start(async () => {
       const r = await createChallenge({
         title,
@@ -127,6 +138,8 @@ export function ChallengeBuilder({
         setError(r.message);
         return;
       }
+      // Invites are sent after the challenge exists; the challenge page shows who was reached.
+      if (invite.phones.length > 0) await inviteToChallenge(r.code!, inviteText);
       router.push(`/challenges/${r.code}?created=1`);
     });
   }
@@ -305,6 +318,22 @@ export function ChallengeBuilder({
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="ch-invite" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-mist">Invite players by phone number (optional)</label>
+            <textarea
+              id="ch-invite"
+              rows={2}
+              value={inviteText}
+              onChange={(e) => setInviteText(e.target.value)}
+              placeholder={"0911 223 344, 0922 334 455"}
+              className={`${inputClass} text-base`}
+            />
+            <p className="mt-1.5 text-xs text-mist">
+              One per line. Players on GebetaSoccer get a notification in the app and Telegram. Not on GebetaSoccer yet? They are told when they sign up with that number. Nobody pays until they join.
+            </p>
+            {invite.bad.length > 0 && <p className="mt-1 text-xs text-amber-100">Not an Ethiopian mobile number: {invite.bad.join(", ")}</p>}
           </div>
 
           {!sErr && (

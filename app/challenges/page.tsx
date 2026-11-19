@@ -22,7 +22,10 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
   await getMe("/challenges");
   const { err } = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase.rpc("get_my_challenges");
+  const [{ data }, { data: inviteData }] = await Promise.all([supabase.rpc("get_my_challenges"), supabase.rpc("my_challenge_invites")]);
+  const invites = ((inviteData ?? []) as { code: string; title: string; creator: string; stake_units: number; matches: number; players: number; lock_at: string }[]).map((i) => ({
+    ...i, stake_units: Number(i.stake_units), matches: Number(i.matches), players: Number(i.players),
+  }));
   const list = ((data ?? []) as MyChallenge[]).map((c) => ({ ...c, stake_units: Number(c.stake_units), players: Number(c.players), matches: Number(c.matches), my_payout: c.my_payout === null ? null : Number(c.my_payout) }));
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-5 sm:p-6";
 
@@ -39,6 +42,29 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
           + Create a challenge
         </Link>
       </section>
+
+      {invites.length > 0 && (
+        <section className="mb-5 rounded-[2rem] border border-lilac/40 bg-lilac/10 p-5 sm:p-6">
+          <h2 className="mb-1 text-lg font-extrabold">🤝 Invitations for you</h2>
+          <p className="mb-3 text-sm text-mist">Friends challenged you. Nothing is taken from your wallet until you join.</p>
+          <ul className="divide-y divide-white/10">
+            {invites.map((i) => (
+              <li key={i.code}>
+                <Link href={`/challenges/${i.code}`} className="flex items-center gap-3 py-3 hover:opacity-90">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{i.creator} challenged you</p>
+                    <p className="truncate text-xs text-mist">“{i.title}”</p>
+                    <p className="text-xs text-mist">
+                      {i.matches} match{i.matches === 1 ? "" : "es"} · stake {etbLabel(i.stake_units)} · {i.players} player{i.players === 1 ? "" : "s"} in · closes {formatKickoff(i.lock_at)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-lilac px-4 py-2 text-[11px] font-extrabold uppercase tracking-wider text-ink">See & join</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={`${card} mb-5`}>
         <form action={openChallengeByCode} className="flex gap-2">

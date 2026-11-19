@@ -18,6 +18,7 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 import { getMatchesCrowd } from "@/lib/crowd";
 import { getMyPremium } from "@/lib/premium";
 import { CancelChallengeButton, ChallengePicksForm, ShareChallenge } from "./ChallengePlay";
+import { InvitePlayers, type InvitedRow } from "./InvitePlayers";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,13 @@ export default async function ChallengePage({ params, searchParams }: { params: 
         getMyPremium(supabase, me.id).then((p) => (p.active ? getMatchesCrowd(supabase, c.matches.map((m) => m.id)) : {})),
       ])
     : [{}, {}];
+  // Creator: who was invited. Anyone else: were they invited (banner on top)?
+  const [{ data: invitedRows }, { data: myInvites }] = await Promise.all([
+    c.is_creator && open ? supabase.rpc("challenge_invite_list", { p_code: c.code }) : Promise.resolve({ data: [] }),
+    !c.is_member && open ? supabase.rpc("my_challenge_invites") : Promise.resolve({ data: [] }),
+  ]);
+  const invited = ((invitedRows ?? []) as InvitedRow[]).map((r) => ({ phone: r.phone, status: r.status }));
+  const invitedByName = !c.is_member ? ((myInvites ?? []) as { code: string; creator: string }[]).find((i) => i.code === c.code)?.creator ?? null : null;
   const { data: avatarRows } = await supabase.rpc("get_avatars", { p_usernames: c.entries.map((e) => e.username) });
   const avatarOf = new Map(((avatarRows ?? []) as { username: string; avatar_url: string }[]).map((a) => [a.username, a.avatar_url]));
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-5 sm:p-6";
@@ -86,6 +94,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
       <Link href="/challenges" className="mb-4 inline-block text-xs font-bold uppercase tracking-widest text-lilac hover:text-lilac-soft">← My challenges</Link>
       {c.status === "open" && <LiveRefresh seconds={30} />}
       {created && <div className="mb-4"><Banner kind="success">Challenge created and your stake is locked. Now send the link to your friends!</Banner></div>}
+      {invitedByName && <div className="mb-4"><Banner kind="success">🤝 {invitedByName} challenged you! Enter your score for every match below and press Join to take the challenge.</Banner></div>}
 
       {/* Header */}
       <section className="relative mb-5 overflow-hidden rounded-[2rem] border border-lilac/20 bg-gradient-to-br from-[#4a3f86] via-card to-ink p-5 sm:p-6">
@@ -158,6 +167,15 @@ export default async function ChallengePage({ params, searchParams }: { params: 
               <CancelChallengeButton code={c.code} />
             </div>
           )}
+        </section>
+      )}
+
+      {/* Invite players by phone number (creator, while open) */}
+      {open && c.is_creator && (
+        <section className={`${card} mb-5`}>
+          <h2 className="mb-1 text-lg font-extrabold">Invite players by phone number</h2>
+          <p className="mb-3 text-sm text-mist">They get a clear notification with your challenge: stake, matches and closing time.</p>
+          <InvitePlayers code={c.code} invited={invited} />
         </section>
       )}
 

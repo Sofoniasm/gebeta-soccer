@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { pushNotifications } from "@/lib/notify";
 import { CHALLENGE_MAX_MATCHES, challengeError, etbToUnits, stakeError } from "@/lib/challenges";
 import { normalizeProps, type HtResult, type PropKey } from "@/lib/challenge-props";
+import { inviteError, inviteSummary, MAX_INVITES_AT_ONCE, parseInvitePhones, type InviteRow } from "@/lib/invites";
 
 export interface PickInput {
   matchId: number;
@@ -85,4 +86,21 @@ export async function cancelChallenge(code: string): Promise<ChallengeResult> {
   if (error) return { ok: false, message: challengeError(error.message) };
   refresh(code);
   return { ok: true, message: "Challenge cancelled. Your stake is back in your wallet." };
+}
+
+export type InviteResult = { ok: boolean; message: string; results?: InviteRow[] };
+
+/** The creator invites players by phone number: they get a notification (app + Telegram), or it waits for them to sign up. */
+export async function inviteToChallenge(code: string, raw: string): Promise<InviteResult> {
+  const { phones, bad } = parseInvitePhones(raw);
+  if (bad.length) return { ok: false, message: `This does not look like an Ethiopian mobile number: ${bad.join(", ")}` };
+  if (phones.length === 0) return { ok: false, message: "Type at least one phone number." };
+  if (phones.length > MAX_INVITES_AT_ONCE) return { ok: false, message: `Invite up to ${MAX_INVITES_AT_ONCE} players at a time.` };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("invite_to_challenge", { p_code: code, p_phones: phones });
+  if (error) return { ok: false, message: inviteError(error.message) };
+  await pushNotifications(); // sends the Telegram messages
+  refresh(code);
+  const results = (Array.isArray(data) ? data : []) as InviteRow[];
+  return { ok: true, message: inviteSummary(results), results };
 }

@@ -614,4 +614,98 @@ begin
   raise notice 'ok  quiz: questions, answers and leaderboard are server-only';
 end $$;
 
+-- ---------- challenge invites by phone (0053) ----------
+reset role;
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.challenge_invites', 'select') or has_table_privilege('anon', 'public.challenge_invites', 'select')
+     or has_table_privilege('authenticated', 'public.challenge_invites', 'insert') then
+    raise exception 'FAIL: challenge invites readable or writable directly';
+  end if;
+  if has_function_privilege('anon', 'public.invite_to_challenge(text, text[])', 'execute')
+     or has_function_privilege('anon', 'public.my_challenge_invites()', 'execute')
+     or has_function_privilege('anon', 'public.challenge_invite_list(text)', 'execute') then
+    raise exception 'FAIL: logged-out visitors can run invite functions';
+  end if;
+  if has_function_privilege('authenticated', 'public.notify_challenge_invite(bigint)', 'execute')
+     or has_function_privilege('authenticated', 'public.challenge_invites_on_verify()', 'execute') then
+    raise exception 'FAIL: players can run internal invite functions';
+  end if;
+end $$;
+select public.admin_add_units('11111111-0000-0000-0000-000000000001', 50, 'test', null) \g /dev/null
+insert into public.matches (home_team, away_team, kickoff_at) values ('Inv A', 'Inv B', now() + interval '3 days');
+create table tests_inv_j as select jsonb_build_array(jsonb_build_object('match_id', id, 'home', 1, 'away', 0)) j from public.matches where home_team = 'Inv A';
+grant select on tests_inv_j to authenticated;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', false) \g /dev/null
+select public.create_challenge('Invite bet', 5, null, (select j from tests_inv_j)) \g /dev/null
+reset role;
+create table tests_inv_code as select code from public.challenges where title = 'Invite bet';
+grant select on tests_inv_code to authenticated;
+create table tests_inv_res (r jsonb);
+grant select, insert on tests_inv_res to authenticated;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', false) \g /dev/null
+insert into tests_inv_res select public.invite_to_challenge((select code from tests_inv_code),
+  array['+251911000002', '+251911000009', '+251911000001', '+25191', '+251911000009']);
+reset role;
+do $$
+declare v_code text := (select code from tests_inv_code); v_r jsonb := (select r from tests_inv_res);
+begin
+  if v_r -> 0 ->> 'status' <> 'notified'        then raise exception 'FAIL: invite to an existing player: %', v_r; end if;
+  if v_r -> 1 ->> 'status' <> 'not_on_app'      then raise exception 'FAIL: invite to a number with no account: %', v_r; end if;
+  if v_r -> 2 ->> 'status' <> 'self'            then raise exception 'FAIL: invited myself: %', v_r; end if;
+  if v_r -> 3 ->> 'status' <> 'invalid'         then raise exception 'FAIL: invalid number accepted: %', v_r; end if;
+  if v_r -> 4 ->> 'status' <> 'already_invited' then raise exception 'FAIL: same number invited twice: %', v_r; end if;
+  if (select count(*) from public.notifications where user_id = '11111111-0000-0000-0000-000000000002' and kind = 'challenge_invite' and link = '/challenges/' || v_code) <> 1 then
+    raise exception 'FAIL: the invited player got no (or a double) notification';
+  end if;
+  if not exists (select 1 from public.notifications where kind = 'challenge_invite' and title like '%alice challenged you%' and body like '%Invite bet%' and body like '%ETB%') then
+    raise exception 'FAIL: invite notification text is not clear';
+  end if;
+  if (select count(*) from public.notifications where kind = 'challenge_invite') <> 1 then raise exception 'FAIL: a number with no account got a notification too early'; end if;
+end $$;
+-- only the creator can invite; strangers cannot list invites
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000003', false) \g /dev/null
+do $$
+begin
+  begin perform public.invite_to_challenge((select code from tests_inv_code), array['+251911000005']);
+        raise exception 'FAIL: a stranger invited players to someone elses challenge';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  if exists (select 1 from public.challenge_invite_list((select code from tests_inv_code))) then raise exception 'FAIL: a stranger can read the invite list'; end if;
+  if exists (select 1 from public.my_challenge_invites()) then raise exception 'FAIL: an uninvited player sees invitations'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000002', false) \g /dev/null
+do $$
+begin
+  if (select count(*) from public.my_challenge_invites()) <> 1 then raise exception 'FAIL: invited player does not see the invitation'; end if;
+  if exists (select 1 from public.challenge_invite_list((select code from tests_inv_code))) then raise exception 'FAIL: invited player can read the creators invite list'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', false) \g /dev/null
+do $$
+begin
+  if (select count(*) from public.challenge_invite_list((select code from tests_inv_code))) <> 2 then raise exception 'FAIL: creator sees the wrong invite list'; end if;
+end $$;
+-- someone signs up with the number that had no account: the invite arrives when the phone is confirmed
+reset role;
+insert into auth.users (id, raw_user_meta_data) values
+  ('11111111-0000-0000-0000-000000000009', '{"username":"newbie","phone_number":"+251911000009"}');
+do $$ begin
+  if exists (select 1 from public.notifications where user_id = '11111111-0000-0000-0000-000000000009' and kind = 'challenge_invite') then
+    raise exception 'FAIL: invite delivered before the phone was confirmed';
+  end if;
+end $$;
+update public.profiles set phone_verified_at = now(), date_of_birth = date '1990-01-01' where username = 'newbie';
+do $$ begin
+  if (select count(*) from public.notifications where user_id = '11111111-0000-0000-0000-000000000009' and kind = 'challenge_invite') <> 1 then
+    raise exception 'FAIL: invite not delivered when the new player confirmed the phone';
+  end if;
+  if (select count(*) from public.challenge_invites where user_id = '11111111-0000-0000-0000-000000000009') <> 1 then
+    raise exception 'FAIL: invite not linked to the new player';
+  end if;
+  raise notice 'ok  challenge invites: server-only, creator-only, delivered now or when the number signs up';
+end $$;
+drop table tests_inv_j, tests_inv_code, tests_inv_res;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

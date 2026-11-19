@@ -4,6 +4,7 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
+import { pushNotifications } from "@/lib/notify";
 
 const TELEGRAM_TTL_MIN = 15;
 const SMS_TTL_MIN = 10;
@@ -24,6 +25,9 @@ export async function markPhoneVerified(userId: string, telegramUserId?: number)
   await admin.auth.admin.updateUserById(userId, {
     app_metadata: { ...(data.user?.app_metadata ?? {}), phone_verified: true },
   });
+  // A challenge invite sent to this number before they had an account is delivered by the database
+  // the moment the phone is confirmed; this sends it to their Telegram too.
+  await pushNotifications([userId]);
 }
 
 /** Start a Telegram verification and return the token for the t.me deep link. */
