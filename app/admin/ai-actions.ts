@@ -25,7 +25,7 @@ export type DraftResult = { ok: true; verdict: string; body: string; verdict_am:
 
 export async function draftPreviewWithAI(matchId: number, pickHome: number | null, pickAway: number | null): Promise<DraftResult> {
   await requireAdminId("/admin/previews");
-  if (!aiReady()) return { ok: false, error: "AI is not switched on yet: add ANTHROPIC_API_KEY in Vercel and redeploy." };
+  if (!aiReady()) return { ok: false, error: "AI is not switched on yet: add GEMINI_API_KEY (Google AI Studio) in Vercel and redeploy." };
   const admin = createAdminClient();
   const { data: match } = await admin.from("matches").select("id, competition, home_team, away_team, kickoff_at").eq("id", matchId).maybeSingle();
   if (!match) return { ok: false, error: "Match not found." };
@@ -83,7 +83,7 @@ const MAX_CHARS = 15000;
 /** Translate the given English fields (title, excerpt, body, verdict...) to Amharic. Empty fields stay empty. */
 export async function translateToAmharic(fields: Record<string, string>): Promise<TranslateResult> {
   await requireAdminId("/admin");
-  if (!aiReady()) return { ok: false, error: "AI is not switched on yet: add ANTHROPIC_API_KEY in Vercel and redeploy." };
+  if (!aiReady()) return { ok: false, error: "AI is not switched on yet: add GEMINI_API_KEY (Google AI Studio) in Vercel and redeploy." };
   const keys = Object.keys(fields).filter((k) => /^[a-z_]{1,20}$/.test(k)).slice(0, 6);
   const input: Record<string, string> = {};
   for (const k of keys) if (typeof fields[k] === "string" && fields[k].trim()) input[k] = fields[k].trim();

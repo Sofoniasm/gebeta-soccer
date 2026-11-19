@@ -52,7 +52,7 @@ export async function generateQuiz(formData: FormData) {
   const adminId = await requireAdminId("/admin/quiz");
   const date = String(formData.get("date") ?? "");
   if (!isDate(date)) back(date, "err", "Pick a date.");
-  if (!aiReady()) back(date, "err", "AI is off: add ANTHROPIC_API_KEY in Vercel.");
+  if (!aiReady()) back(date, "err", "AI is off: add GEMINI_API_KEY in Vercel.");
 
   const { data: recent } = await createAdminClient().from("quiz_questions").select("question").order("id", { ascending: false }).limit(150);
   const avoid = ((recent ?? []) as { question: string }[]).map((r) => `- ${r.question}`).join("\n");

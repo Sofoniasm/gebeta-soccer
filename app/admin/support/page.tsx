@@ -83,7 +83,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       {sp.err && <div className="mb-4"><Banner kind="error">{sp.err}</Banner></div>}
       <p className="mb-5 text-sm text-mist">
         The help assistant answers players on the website (Help page) and in the Telegram bot. Money problems, disputes and account issues come here.{" "}
-        {process.env.ANTHROPIC_API_KEY ? <b className="text-emerald-200">Assistant is on.</b> : <b className="text-amber-100">Assistant is off: add ANTHROPIC_API_KEY in Vercel.</b>}{" "}
+        {process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY ? <b className="text-emerald-200">Assistant is on ({process.env.GEMINI_API_KEY ? "Gemini" : "Claude"}).</b> : <b className="text-amber-100">Assistant is off: add GEMINI_API_KEY in Vercel (it still answers simple questions from the guide).</b>}{" "}
         {process.env.RESEND_API_KEY ? `Emails go to ${process.env.SUPPORT_EMAIL || "admin@gebetasoccer.com"}.` : "Email alerts are off: add RESEND_API_KEY in Vercel."} · {today ?? 0} questions in the last 24 h.
       </p>
 

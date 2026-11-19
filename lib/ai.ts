@@ -1,29 +1,16 @@
 /**
- * Small helper for one-off Claude calls from admin tools (drafts, translation).
- * Server-only: uses ANTHROPIC_API_KEY, which must never reach the browser.
+ * Small helper for one-off AI calls from admin tools (drafts, translation, summaries).
+ * Uses lib/llm: Gemini when GEMINI_API_KEY is set, otherwise Claude. Server only.
  */
-
-const MODEL = process.env.ADMIN_AI_MODEL || process.env.ASSISTANT_MODEL || "claude-haiku-5-5";
+import { generate, llmReady } from "@/lib/llm";
 
 export function aiReady(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return llmReady();
 }
 
+/** Kept under its old name so the admin tools need no change; any provider. */
 export async function callClaude(opts: { system: string; user: string; maxTokens?: number }): Promise<string> {
-  if (!aiReady()) throw new Error("ANTHROPIC_API_KEY is not set in Vercel.");
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: opts.maxTokens ?? 1500,
-      system: opts.system,
-      messages: [{ role: "user", content: opts.user }],
-    }),
-  });
-  const data = (await res.json()) as { content?: { type: string; text?: string }[]; error?: { message?: string } };
-  if (!res.ok) throw new Error(data.error?.message ?? `AI error (HTTP ${res.status})`);
-  return (data.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("").trim();
+  return generate({ system: opts.system, messages: [{ role: "user", content: opts.user }], maxTokens: opts.maxTokens ?? 1500, timeoutMs: 60_000 });
 }
 
 /** Pull the first JSON object out of a reply (tolerates ```json fences or a stray sentence). */

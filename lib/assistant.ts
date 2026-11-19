@@ -5,8 +5,11 @@
  * account access to a person: a support request + admin notification
  * (site, Telegram, and email when SUPPORT_EMAIL + RESEND_API_KEY are set).
  *
- * Env: ANTHROPIC_API_KEY (required to answer), ASSISTANT_MODEL (optional).
+ * Env: GEMINI_API_KEY (or ANTHROPIC_API_KEY) to answer, see lib/llm.ts. With no AI or when
+ * it fails, simple questions are answered from our own guide (lib/kb-answer.ts).
  */
+import { generate, llmReady } from "@/lib/llm";
+import { kbAnswer } from "@/lib/kb-answer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushNotifications } from "@/lib/notify";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -16,11 +19,10 @@ import { formatUnits } from "@/lib/money";
 export type Channel = "web" | "telegram";
 export type { Turn };
 
-const MODEL = process.env.ASSISTANT_MODEL || "claude-haiku-5-5";
 const LIMIT_PLAYER_PER_HOUR = 20;
 const LIMIT_GUEST_PER_HOUR = 8;
 
-export const assistantEnabled = () => !!process.env.ANTHROPIC_API_KEY;
+export const assistantEnabled = () => llmReady();
 
 /** Facts about the asking player (never passwords or codes). */
 async function playerFacts(userId: string | null): Promise<string> {
@@ -174,6 +176,8 @@ export async function askAssistant(opts: {
   const am = opts.lang === "am";
   if (!question) return { reply: am ? "ጥያቄዎን ይጻፉ።" : "Type your question.", handedOff: false };
   if (!assistantEnabled()) {
+    const fromGuide = kbAnswer(question, am ? "am" : "en", telegram_support);
+    if (fromGuide) return { reply: fromGuide, handedOff: false };
     return { reply: am ? `ረዳቱ ገና አልበራም። እባክዎ ድጋፍን በቴሌግራም ያግኙ፦ ${telegram_support}` : `The help assistant isn't switched on yet. Please message support on Telegram: ${telegram_support}`, handedOff: false };
   }
   const chatId = opts.chatId ?? null;
@@ -188,21 +192,16 @@ export async function askAssistant(opts: {
   const history = opts.userId ? await serverHistory(opts.userId, opts.channel) : cleanHistory(opts.history);
   let text = "";
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 700,
-        system: systemPrompt(facts, telegram_support, opts.lang ?? null, Boolean(opts.userId)),
-        messages: [...history, { role: "user", content: question }],
-      }),
+    text = await generate({
+      system: systemPrompt(facts, telegram_support, opts.lang ?? null, Boolean(opts.userId)),
+      messages: [...history, { role: "user", content: question }],
+      maxTokens: 700,
     });
-    const data = (await res.json()) as { content?: { type: string; text?: string }[]; error?: { message?: string } };
-    if (!res.ok) throw new Error(data.error?.message ?? `HTTP ${res.status}`);
-    text = (data.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("").trim();
   } catch (e) {
     console.error("assistant:", (e as Error).message);
+    // No silence when the AI is down: answer from our own guide (no account data in it).
+    const fromGuide = kbAnswer(question, am ? "am" : "en", telegram_support);
+    if (fromGuide) return { reply: fromGuide, handedOff: false };
     return { reply: am ? `ይቅርታ፣ አሁን መመለስ አልቻልኩም። ድጋፍን ያግኙ፦ ${telegram_support}` : `Sorry, I can't answer right now. Please message support: ${telegram_support}`, handedOff: false };
   }
 

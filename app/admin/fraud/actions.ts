@@ -7,7 +7,7 @@ import { runFraudWatch } from "@/lib/fraud-watch";
 /** One-sentence plain summary of why an account was flagged, written only from the rule findings. */
 export async function summarizeFlag(userId: string): Promise<{ ok: boolean; text: string }> {
   await requireAdminId("/admin/fraud");
-  if (!aiReady()) return { ok: false, text: "AI is off: add ANTHROPIC_API_KEY in Vercel." };
+  if (!aiReady()) return { ok: false, text: "AI is off: add GEMINI_API_KEY in Vercel." };
   const { flagged } = await runFraudWatch();
   const f = flagged.find((x) => x.user.id === userId);
   if (!f) return { ok: false, text: "This account is no longer flagged." };
