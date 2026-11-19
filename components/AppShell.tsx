@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getMe, getUnreadCount } from "@/lib/me";
 import { getTodo } from "@/lib/todo";
-import { etbLabel, unitsLabel } from "@/lib/money";
 import { signOut } from "@/app/(auth)/actions";
 import { Logo } from "./Logo";
 import { Avatar } from "./Avatar";
@@ -9,6 +8,7 @@ import { DobForm } from "@/app/profile/DobForm";
 import { ChatBubble } from "./ChatBubble";
 import { FlowLines } from "./FlowLines";
 import { BottomNav, SideNav } from "./AppNav";
+import { LiveBalance } from "./LiveBalance";
 import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
 
 /**
@@ -19,8 +19,6 @@ import { BellIcon, LogOutIcon, ShieldIcon, WalletIcon } from "./icons";
 export async function AppShell({ children, title, next }: { children: React.ReactNode; title?: string; next?: string }) {
   // One login check, then everything else at the same time.
   const [me, unread, todo] = await Promise.all([getMe(next), getUnreadCount(), getTodo()]);
-  const units = unitsLabel(me.balance_units);
-  const etb = etbLabel(me.balance_units);
   // 18+ only: a player without a saved date of birth can't open any play page.
   // Profile, Wallet (withdrawals) and Notifications stay open.
   const path = (next ?? "").split("?")[0];
@@ -44,8 +42,8 @@ export async function AppShell({ children, title, next }: { children: React.Reac
         <Link href="/wallet" className="mt-6 block rounded-3xl border border-lilac/20 bg-gradient-to-br from-lilac/20 to-transparent p-4 hover:border-lilac/40">
           <p className="flex items-center gap-2 truncate text-sm font-bold"><Avatar name={me.username} src={me.avatar_url} size={28} /> <span className="truncate">{me.username}</span></p>
           <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-lilac"><WalletIcon size={12} /> Wallet</p>
-          <p className="text-xl font-extrabold">{units}</p>
-          <p className="text-xs text-mist">{etb}</p>
+          <p className="text-xl font-extrabold"><LiveBalance initialUnits={me.balance_units} /></p>
+          <p className="text-xs text-mist"><LiveBalance initialUnits={me.balance_units} show="etb" /></p>
         </Link>
         <div className="mt-6 flex-1 overflow-y-auto">
           <SideNav isAdmin={me.is_admin} todoCount={todo.count} />
@@ -69,7 +67,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
               </Link>
             )}
             <Link href="/wallet" className="rounded-full bg-lilac px-3 py-1.5 text-xs font-extrabold text-ink">
-              {units}
+              <LiveBalance initialUnits={me.balance_units} />
             </Link>
             <Link href="/profile" aria-label="Profile">
               <Avatar name={me.username} src={me.avatar_url} size={32} />
@@ -107,7 +105,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
         </div>
       </main>
 
-      <BottomNav todoCount={todo.count} isAdmin={me.is_admin} username={me.username} balance={`${units} · ${etb}`} />
+      <BottomNav todoCount={todo.count} isAdmin={me.is_admin} username={me.username} balanceUnits={me.balance_units} />
       {/* Help assistant, one tap away on every screen (also inside the Telegram Mini App) */}
       <ChatBubble />
     </div>

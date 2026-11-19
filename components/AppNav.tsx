@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/(auth)/actions";
+import { LiveBalance } from "./LiveBalance";
 import {
   AwardIcon,
   BallIcon,
@@ -135,7 +136,7 @@ export function SideNav({ isAdmin, todoCount = 0 }: { isAdmin: boolean; todoCoun
   );
 }
 
-export function BottomNav({ todoCount = 0, isAdmin = false, username = "", balance = "" }: { todoCount?: number; isAdmin?: boolean; username?: string; balance?: string }) {
+export function BottomNav({ todoCount = 0, isAdmin = false, username = "", balanceUnits = 0 }: { todoCount?: number; isAdmin?: boolean; username?: string; balanceUnits?: number }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]); // close the menu after moving to a page
@@ -157,7 +158,7 @@ export function BottomNav({ todoCount = 0, isAdmin = false, username = "", balan
 
   return (
     <>
-      {open && <MenuSheet path={path} todoCount={todoCount} isAdmin={isAdmin} username={username} balance={balance} onClose={() => setOpen(false)} />}
+      {open && <MenuSheet path={path} todoCount={todoCount} isAdmin={isAdmin} username={username} balanceUnits={balanceUnits} onClose={() => setOpen(false)} />}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0912]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {BOTTOM.map(({ href, label, icon: Icon }) => {
@@ -194,7 +195,7 @@ export function BottomNav({ todoCount = 0, isAdmin = false, username = "", balan
 }
 
 /** Full-screen list of every page, grouped like the desktop sidebar, as big tiles. */
-function MenuSheet({ path, todoCount, isAdmin, username, balance, onClose }: { path: string; todoCount: number; isAdmin: boolean; username: string; balance: string; onClose: () => void }) {
+function MenuSheet({ path, todoCount, isAdmin, username, balanceUnits, onClose }: { path: string; todoCount: number; isAdmin: boolean; username: string; balanceUnits: number; onClose: () => void }) {
   const groups: { title: string; items: Item[] }[] = [
     { title: "Play", items: [...PLAY.filter((i) => !BOTTOM.some((b) => b.href === i.href)), { href: "/challenges/new", label: "New challenge", icon: VersusIcon }] },
     { title: "My game", items: ME.filter((i) => !BOTTOM.some((b) => b.href === i.href)) },
@@ -220,7 +221,7 @@ function MenuSheet({ path, todoCount, isAdmin, username, balance, onClose }: { p
               <span className="block truncate text-base font-extrabold">{username}</span>
               <span className="block text-xs text-mist">Wallet balance</span>
             </span>
-            <span className="shrink-0 text-right text-sm font-extrabold text-white">{balance}</span>
+            <span className="shrink-0 text-right text-sm font-extrabold text-white"><LiveBalance initialUnits={balanceUnits} show="both" /></span>
           </Link>
         )}
         {groups.map((g) => (
