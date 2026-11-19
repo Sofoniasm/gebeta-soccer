@@ -7,6 +7,7 @@ import {
   myPrizeText,
   myWinUnits,
   winFromOthersUnits,
+  slipBreakdown,
   playersLabel,
   soloRefunds,
   SOLO_REFUND_MESSAGE,
@@ -138,4 +139,15 @@ test("solo round recap says the stake was refunded, not 'no prize'", () => {
   assert.match(notes[0].body, new RegExp(SOLO_REFUND_MESSAGE.replace(/\./g, "\\.")));
   assert.doesNotMatch(notes[0].body, /No prize|You won/);
   assert.equal(SOLO_REFUND_MESSAGE, "Nobody else joined, so your stake was refunded in full.");
+});
+
+test("slip breakdown: 3 own slips + 1 other at 200 ETB, 30% cut (the 19 Nov example)", () => {
+  const b = slipBreakdown(1, 3, 4, 0.3)!;
+  assert.deepEqual(b, { stakeBack: 1, fromOthers: 0.7, fromMine: 1.4, total: 3.1, paid: 3, profit: 0.1 });
+  // = 200 back + 140 from the other player + 280 from your own 2 slips = 620 ETB; paid 600; profit +20 ETB
+});
+
+test("slip breakdown: one slip each, 2 players", () => {
+  assert.deepEqual(slipBreakdown(1, 1, 2, 0.3), { stakeBack: 1, fromOthers: 0.7, fromMine: 0, total: 1.7, paid: 1, profit: 0.7 });
+  assert.equal(slipBreakdown(1, 0, 2, 0.3), null);
 });

@@ -7,7 +7,7 @@ import { getMe } from "@/lib/me";
 import { getActiveRounds, getCurrentRound, getRoundMatches, getRoundPool } from "@/lib/rounds";
 import { formatKickoff } from "@/lib/format";
 import { formatUnits, unitsToEtb } from "@/lib/money";
-import { myPrize, myPrizeText, myWinUnits, playersLabel, winFromOthersUnits } from "@/lib/solo";
+import { myPrize, myPrizeText, myWinUnits, playersLabel, slipBreakdown, winFromOthersUnits } from "@/lib/solo";
 import { formatEtb } from "@/lib/format";
 import { AppShell } from "@/components/AppShell";
 import { Countdown } from "@/components/Countdown";
@@ -82,6 +82,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       })()
     : null;
 
+  // The full picture for a bettor with slips in this round (only once someone else is in).
+  const breakdown = round && pool && mine?.kind === "prize"
+    ? slipBreakdown(Number(round.entry_fee_units), slips.length, pool.entrants, Number(round.house_cut))
+    : null;
+
   // The whole round locks at its first kickoff.
   const kickoffs = matches.filter((m) => !["postponed", "cancelled"].includes(m.status)).map((m) => new Date(m.kickoff_at).getTime());
   const lockAt = kickoffs.length ? new Date(Math.min(...kickoffs)).toISOString() : null;
@@ -122,8 +127,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const premium = (await getMyPremium(supabase, me.id)).active;
   // Team form (last 5 results) on every pick card; Premium also gets a rough result guide.
+  // Other players' picks are a Premium feature: free players never get them.
   const [form, crowd] = matches.length
-    ? await Promise.all([getForm(supabase, matches.flatMap((m) => [m.home_team, m.away_team])), getMatchesCrowd(supabase, matches.map((m) => m.id))])
+    ? await Promise.all([
+        getForm(supabase, matches.flatMap((m) => [m.home_team, m.away_team])),
+        premium ? getMatchesCrowd(supabase, matches.map((m) => m.id)) : Promise.resolve({}),
+      ])
     : [{}, {}];
   const chances: Record<number, Chances> = {};
   if (premium) {
@@ -300,6 +309,38 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       winner gets their stake back + {Math.round((1 - Number(round.house_cut)) * 100)}% of the other {formatEtb(unitsToEtb(Math.max(0, pool.entrants - 1) * Number(round.entry_fee_units)))} in bets
                     </p>
                   )}
+                  {breakdown && (
+                    <dl className="ml-auto mt-2 w-full max-w-xs rounded-2xl bg-ink/50 p-3 text-left text-xs tabular-nums">
+                      <dt className="mb-1.5 font-bold text-lilac">If one of your slips wins</dt>
+                      {[
+                        ["Your stake back", breakdown.stakeBack],
+                        ["From other players", breakdown.fromOthers],
+                        ...(breakdown.fromMine > 0 ? [[`From your other ${slips.length - 1} slip${slips.length === 2 ? "" : "s"}`, breakdown.fromMine] as [string, number]] : []),
+                      ].map(([label, units]) => (
+                        <div key={label as string} className="flex justify-between gap-3 text-mist">
+                          <span>{label}</span>
+                          <span className="text-white">{formatEtb(unitsToEtb(units as number))}</span>
+                        </div>
+                      ))}
+                      <div className="mt-1.5 flex justify-between gap-3 border-t border-white/10 pt-1.5 font-bold text-white">
+                        <span>You get</span>
+                        <span>{formatEtb(unitsToEtb(breakdown.total))}</span>
+                      </div>
+                      <div className="flex justify-between gap-3 text-mist">
+                        <span>You paid ({slips.length} slip{slips.length === 1 ? "" : "s"})</span>
+                        <span>{formatEtb(unitsToEtb(breakdown.paid))}</span>
+                      </div>
+                      <div className={`flex justify-between gap-3 font-bold ${breakdown.profit > 0 ? "text-emerald-200" : "text-rose-200"}`}>
+                        <span>Profit</span>
+                        <span>{breakdown.profit > 0 ? "+" : ""}{formatEtb(unitsToEtb(breakdown.profit))}</span>
+                      </div>
+                      {breakdown.fromMine > 0 && (
+                        <dd className="mt-1.5 text-[11px] leading-snug text-mist">
+                          Each slip is its own bet, so our {Math.round(Number(round.house_cut) * 100)}% fee is also taken from your other slips.
+                        </dd>
+                      )}
+                    </dl>
+                  )}
                   <p className="flex items-center justify-end gap-1 text-xs text-mist">
                     <UsersIcon size={13} /> {pool.entrants} slip{pool.entrants === 1 ? "" : "s"} ·{" "}
                     {mine ? playersLabel(pool.players, true) : `${pool.players} player${pool.players === 1 ? "" : "s"}`}
@@ -347,7 +388,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           />
           </div>
           {/* Premium before the lock; free for everyone once the round has locked. */}
-          <CrowdPicks roundId={round.id} matches={matches} premium={premium || !bettable} locked={!bettable} />
+          <CrowdPicks roundId={round.id} matches={matches} premium={premium} locked={!bettable} />
         </>
       ) : (
         <>

@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { ChallengeBuilder, type UpcomingMatch } from "./ChallengeBuilder";
 import { getForm } from "@/lib/form";
 import { getMatchesCrowd } from "@/lib/crowd";
+import { getMyPremium } from "@/lib/premium";
 
 export const metadata = { title: "New challenge · GebetaSoccer" };
 export const dynamic = "force-dynamic";
@@ -27,7 +28,8 @@ export default async function NewChallengePage({ searchParams }: { searchParams:
   // Last 5 results per team and how other players picked (same as the Dashboard).
   const [form, crowd] = await Promise.all([
     getForm(supabase, upcoming.flatMap((m) => [m.home_team, m.away_team])),
-    getMatchesCrowd(supabase, upcoming.map((m) => m.id)),
+    // Other players' picks are a Premium feature.
+    getMyPremium(supabase, me.id).then((p) => (p.active ? getMatchesCrowd(supabase, upcoming.map((m) => m.id)) : {})),
   ]);
 
   return (

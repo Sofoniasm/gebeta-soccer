@@ -8,6 +8,7 @@
  *    won from others: "You can win X: your Y back + Z from other players".
  */
 import { etbLabel } from "@/lib/money";
+import { singleWinnerPrizeUnits } from "@/lib/settlement";
 
 export const SOLO_REFUND_MESSAGE = "Nobody else joined, so your stake was refunded in full.";
 export const SOLO_REFUND_MESSAGE_AM = "ሌላ ተጫዋች ስላልተቀላቀለ ያስያዙት ገንዘብ ሙሉ በሙሉ ተመልሷል።";
@@ -89,4 +90,43 @@ export function winFromOthersUnits(othersStakeUnits: number, houseCut: number): 
 export function playersLabel(totalPlayers: number, imIn: boolean): string {
   if (imIn) return `${Math.max(0, totalPlayers - 1)} + you`;
   return `${totalPlayers} player${totalPlayers === 1 ? "" : "s"}`;
+}
+
+export interface SlipBreakdown {
+  /** The winning slip's own stake, back. */
+  stakeBack: number;
+  /** From other players' slips, after the house cut. */
+  fromOthers: number;
+  /** From the player's OWN other slips in the round, after the house cut (each slip is a separate bet). */
+  fromMine: number;
+  /** Everything paid to the player if one of their slips wins alone. */
+  total: number;
+  /** What the player put in (all their slips). */
+  paid: number;
+  /** total - paid: can be small or negative with many own slips. */
+  profit: number;
+}
+
+/**
+ * What a player really gets if ONE of their slips wins the round alone.
+ * Every slip is a separate bet: the house cut is taken from every other slip,
+ * the player's own other slips included. Same maths as the settlement
+ * (lib/settlement.ts fairPrize), so the numbers match the real payout.
+ */
+export function slipBreakdown(feeUnits: number, mySlips: number, totalSlips: number, houseCut: number): SlipBreakdown | null {
+  if (mySlips < 1 || totalSlips < mySlips || feeUnits <= 0) return null;
+  const c = (u: number) => Math.round(u * 100);
+  const fee = c(feeUnits);
+  const totalC = c(singleWinnerPrizeUnits(feeUnits, totalSlips, houseCut));
+  const othersC = c(winFromOthersUnits((totalSlips - mySlips) * feeUnits, houseCut));
+  const fromMineC = Math.max(0, totalC - fee - othersC);
+  const paidC = fee * mySlips;
+  return {
+    stakeBack: fee / 100,
+    fromOthers: othersC / 100,
+    fromMine: fromMineC / 100,
+    total: totalC / 100,
+    paid: paidC / 100,
+    profit: (totalC - paidC) / 100,
+  };
 }

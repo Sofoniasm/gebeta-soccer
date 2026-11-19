@@ -16,6 +16,7 @@ import { normalizeProps, PROP_INFO, propSummary } from "@/lib/challenge-props";
 import { getForm } from "@/lib/form";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { getMatchesCrowd } from "@/lib/crowd";
+import { getMyPremium } from "@/lib/premium";
 import { CancelChallengeButton, ChallengePicksForm, ShareChallenge } from "./ChallengePlay";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,11 @@ export default async function ChallengePage({ params, searchParams }: { params: 
   const winners = c.entries.filter((e) => e.rank === 1 && (e.payout_units ?? 0) > 0);
   // Last 5 results and crowd picks for the join / edit form (while the challenge is open).
   const [form, crowd] = c.status === "open" && !c.locked
-    ? await Promise.all([getForm(supabase, c.matches.flatMap((m) => [m.home_team, m.away_team])), getMatchesCrowd(supabase, c.matches.map((m) => m.id))])
+    ? await Promise.all([
+        getForm(supabase, c.matches.flatMap((m) => [m.home_team, m.away_team])),
+        // Other players' picks are a Premium feature.
+        getMyPremium(supabase, me.id).then((p) => (p.active ? getMatchesCrowd(supabase, c.matches.map((m) => m.id)) : {})),
+      ])
     : [{}, {}];
   const { data: avatarRows } = await supabase.rpc("get_avatars", { p_usernames: c.entries.map((e) => e.username) });
   const avatarOf = new Map(((avatarRows ?? []) as { username: string; avatar_url: string }[]).map((a) => [a.username, a.avatar_url]));
