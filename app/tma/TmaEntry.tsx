@@ -43,7 +43,7 @@ export function TmaEntry() {
       }
       const initData = initDataFromUrl() ?? wa.initData;
       // The bot links the account a moment after the number arrives: try a few times.
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 12; i++) {
         await new Promise((r) => setTimeout(r, 1200));
         try {
           const res = await fetch("/api/telegram/miniapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData }) });
@@ -60,7 +60,7 @@ export function TmaEntry() {
       }
       setState((s) =>
         s.kind === "unlinked"
-          ? { ...s, sharing: false, note: "We couldn't find a confirmed account with your Telegram number. Check the bot chat, or log in / create an account below." }
+          ? { ...s, sharing: false, note: "We couldn't finish just yet. Check the bot chat (it may have asked something), then tap the button again." }
           : s,
       );
     });
@@ -125,15 +125,17 @@ export function TmaEntry() {
         <div className="w-full max-w-sm space-y-4">
           <div>
             <p className="text-xl font-extrabold">Welcome{state.firstName ? `, ${state.firstName}` : ""}! 👋</p>
-            <p className="mt-1 text-sm text-mist">Connect your GebetaSoccer account once — next time the app opens straight to your picks.</p>
+            <p className="mt-1 text-sm text-mist">One tap, no password. New here? We make your account for you. Already a player? We connect it.</p>
           </div>
           <button type="button" onClick={shareNumber} disabled={state.sharing} className={primaryButtonClass}>
             {state.sharing ? <><SpinnerIcon size={16} /> Linking your account…</> : "📱 Continue with my Telegram number"}
           </button>
-          <p className="text-xs text-mist">Signed up on the website with this phone number? One tap links it, and the app opens straight into your account from then on.</p>
+          <p className="text-xs text-mist">Telegram confirms your phone number, so you never need a password. The first time you will be asked for your date of birth (18+ only).</p>
           {state.note && <p className="text-xs text-amber-100">{state.note}</p>}
-          <Link href="/login?next=%2Ftma%2Flink" className={`${secondaryButtonClass} w-full justify-center`}>Log in with password</Link>
-          <Link href="/register?next=%2Ftma%2Flink" className={`${secondaryButtonClass} w-full justify-center`}>Create a new account</Link>
+          <p className="text-xs text-mist">
+            Have a different number, or prefer a password?{" "}
+            <Link href="/login?next=%2Ftma%2Flink" className="font-bold text-lilac">Log in</Link> · <Link href="/register?next=%2Ftma%2Flink" className="font-bold text-lilac">Sign up with the form</Link>
+          </p>
           <p className="text-xs text-mist">Same account, wallet and picks as the website.</p>
         </div>
       )}

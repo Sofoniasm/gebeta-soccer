@@ -708,4 +708,16 @@ do $$ begin
 end $$;
 drop table tests_inv_j, tests_inv_code, tests_inv_res;
 
+-- ---------- ending a player's sessions is server-only (0054) ----------
+reset role;
+do $$
+begin
+  if has_function_privilege('authenticated', 'public.revoke_user_sessions(uuid)', 'execute')
+     or has_function_privilege('anon', 'public.revoke_user_sessions(uuid)', 'execute') then
+    raise exception 'FAIL: players can end other players sessions';
+  end if;
+  perform public.revoke_user_sessions('11111111-0000-0000-0000-000000000001'); -- runs (nothing to end in this test database)
+  raise notice 'ok  revoke_user_sessions: server-only';
+end $$;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

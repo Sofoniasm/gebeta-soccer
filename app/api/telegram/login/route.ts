@@ -6,9 +6,11 @@
  *  - Telegram already linked to a confirmed player → log them in.
  *  - Logged in on the website already → link this Telegram (or, if the phone
  *    isn't confirmed yet, the bot sends the one-tap "share my number" button).
- *  - New player → remember the Telegram account for 30 minutes (signed cookie),
- *    the bot says hello right away, and they finish the short sign-up form.
- *    After signing up, the bot sends the button to confirm the phone.
+ *  - Telegram not linked yet → remember the Telegram account for 30 minutes (signed cookie)
+ *    and the bot writes first with the one-tap "Share my phone number" button. Telegram vouches
+ *    that the number is theirs, so the account is confirmed (or created) with no password and the
+ *    login page signs them in by itself (see /api/telegram/login-status). The sign-up form stays
+ *    available for people who prefer a password.
  * The button asks for "write" access, so the bot may message the player first:
  * no need to find the bot and press START.
  */
@@ -20,7 +22,7 @@ import { checkLoginLock, clientIp, recordLoginAttempt } from "@/lib/login-lock";
 import { PENDING_COOKIE, PENDING_TTL_SECONDS, safeNextPath, signPending, verifyLoginWidget } from "@/lib/telegram-login";
 import { startSessionFor } from "@/lib/telegram-session";
 import { startTelegramVerificationDm } from "@/lib/verification";
-import { sendMessage } from "@/lib/telegram";
+import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
 import { REF_COOKIE, REF_COOKIE_MAX_AGE, normalizeReferralCode } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
@@ -95,12 +97,13 @@ export async function GET(req: NextRequest) {
   const hi = v.user.first_name ? `, ${esc(v.user.first_name)}` : "";
   await sendMessage(
     v.user.id,
-    `👋 Hi${hi}! Welcome to <b>GebetaSoccer</b>.\n\nFinish the short sign-up form on the website (phone number, date of birth, password). Then I'll send you a button here to confirm your number with one tap.`,
+    `👋 Hi${hi}! Welcome to <b>GebetaSoccer</b>.\n\nTap <b>Share my phone number</b> below, once. Telegram confirms the number is yours, so there is no password. Then go back to the website: you will be signed in by itself.`,
+    shareContactKeyboard,
   ).catch(() => null);
   // Invite link code: keep it for the sign-up form (also saved by the proxy cookie).
   const ref = normalizeReferralCode(q.get("ref"));
   if (ref) {
     (await cookies()).set(REF_COOKIE, ref, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: REF_COOKIE_MAX_AGE });
   }
-  return go("/register", { tg: "1", ...(next !== "/dashboard" ? { next } : {}), ...(ref ? { ref } : {}) });
+  return go("/login", { tgwait: "1", ...(next !== "/dashboard" ? { next } : {}), ...(ref ? { ref } : {}) });
 }
