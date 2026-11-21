@@ -54,6 +54,7 @@ DAMA 1 VS 1
 
 CHESS 1 VS 1
 - Chess 1 vs 1 (menu: Games, then Chess, /chess): normal chess for two players. Each pays the same stake (200 to 5,000 ETB); colours are drawn at random. Every move is checked by the server (castling, en passant, promotion, check, checkmate). Checkmate wins; the winner gets their stake back + 90% of the opponent's stake. Stalemate, insufficient material or the 50-move rule = draw, both stakes returned. 2 minutes per move: running out of time loses; you can also resign. If nobody joins within 30 minutes the stake is refunded.
+- Chess House Bot: when you create a Chess game that is "Open to anyone" with a 200 ETB stake and nobody joins within 2 minutes, a clearly labelled computer player (the House Bot, Stockfish) may join. It plays very strongly, is limited to a few games per player per day, and pays winners from the house wallet. Other players see your open game in the Chess lobby and can join it first. If you don't want the bot, untick "Open to anyone" and send the link to a friend.
 
 CHALLENGES AND LEAGUES
 - Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets their own stake back plus 90% of the other stakes (10% fee only on the money won from others; 2 x 300 ETB: the winner gets 570 ETB). If nobody joins before the first kickoff, everyone is refunded.

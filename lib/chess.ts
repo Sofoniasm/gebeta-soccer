@@ -29,6 +29,23 @@ export interface ChessState {
   winner: string | null;
   result: "checkmate" | "draw" | "timeout" | "resign" | null;
   i_won: boolean | null;
+  /** listed for other players, and the House Bot may join after the wait */
+  open_to_all: boolean;
+  /** the opponent is the House Bot (a computer) */
+  vs_bot: boolean;
+  bot_to_move: boolean;
+  /** seconds until the House Bot may join this open game (null = it cannot) */
+  bot_wait_s: number | null;
+  bot_max_stake_units: number;
+}
+
+export const BOT_NAME = "House Bot";
+
+export interface OpenChessGame {
+  code: string;
+  creator: string;
+  stake_units: number;
+  age_s: number;
 }
 
 export const PIECE_GLYPH: Record<string, string> = {
@@ -62,6 +79,7 @@ export function chessError(m: string): string {
   if (m.includes("not running")) return "This game is not running.";
   if (m.includes("not in this game")) return "You are not a player in this game.";
   if (m.includes("stake must")) return "The stake must be 200 to 10,000 ETB, in steps of 50 ETB.";
+  if (m.includes("bot")) return "The House Bot is not available right now.";
   if (m.includes("not signed in")) return "Please log in again.";
   return "Something went wrong. Please try again.";
 }

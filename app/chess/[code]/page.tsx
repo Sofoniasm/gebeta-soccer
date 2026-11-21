@@ -8,6 +8,7 @@ import type { ChessState } from "@/lib/chess";
 import { ChessGame } from "../ChessGame";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30; // a move against the House Bot waits for the engine
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;

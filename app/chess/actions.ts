@@ -8,15 +8,16 @@ import { pushNotifications } from "@/lib/notify";
 import { etbToUnits } from "@/lib/challenges";
 import { CHESS_STAKES_ETB, chessError, type ChessState } from "@/lib/chess";
 import { checkMove } from "@/lib/chess-rules";
+import { botMove } from "@/lib/chess-bot";
 
 export type ChessResult = { ok: boolean; message: string; code?: string };
 
 const cleanCode = (c: string) => String(c ?? "").trim().toUpperCase().slice(0, 12);
 
-export async function createChess(stakeEtb: number): Promise<ChessResult> {
+export async function createChess(stakeEtb: number, openToAll: boolean): Promise<ChessResult> {
   if (!(CHESS_STAKES_ETB as readonly number[]).includes(stakeEtb)) return { ok: false, message: "Pick one of the stakes." };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("chess_create", { p_stake: etbToUnits(stakeEtb) });
+  const { data, error } = await supabase.rpc("chess_create", { p_stake: etbToUnits(stakeEtb), p_open: openToAll === true });
   if (error) return { ok: false, message: chessError(error.message) };
   revalidatePath("/chess");
   revalidatePath("/wallet");
@@ -75,6 +76,8 @@ export async function moveChess(code: string, from: string, to: string, promotio
   if (chk.outcome) {
     await pushNotifications();
     revalidatePath("/wallet");
+  } else if (st.vs_bot) {
+    await botMove(cleanCode(code)); // the House Bot answers at once, so a player who leaves never wins on the bot's clock
   }
   return { ok: true, message: "" };
 }

@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
   // Admin -> News uploads cover photos (max 3 MB) through a server action.
   experimental: { serverActions: { bodySizeLimit: "4mb" } },
   poweredByHeader: false,
+  // The chess engine (WASM) is loaded by path at run time: make sure it ships with the chess routes.
+  outputFileTracingIncludes: {
+    "/api/chess/[code]": ["./engine/**/*"],
+    "/chess/[code]": ["./engine/**/*"],
+  },
   async headers() {
     return [
       {

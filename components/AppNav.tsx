@@ -64,6 +64,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/previews", label: "Previews", icon: StarIcon },
   { href: "/admin/quiz", label: "Quiz", icon: ListCheckIcon },
   { href: "/admin/royale", label: "Royale", icon: ListCheckIcon },
+  { href: "/admin/chessbot", label: "Chess bot", icon: ShieldIcon },
   { href: "/admin/news", label: "News", icon: NewsIcon },
   { href: "/admin/site", label: "Site", icon: SettingsIcon },
 ];

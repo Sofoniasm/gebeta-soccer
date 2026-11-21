@@ -3,6 +3,7 @@ import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { etbLabel } from "@/lib/money";
+import type { OpenChessGame } from "@/lib/chess";
 import { ChessLobby } from "./ChessLobby";
 
 export const metadata = { title: "Chess 1 vs 1 · GebetaSoccer" };
@@ -28,7 +29,8 @@ const STATUS: Record<string, [string, string]> = {
 export default async function ChessPage() {
   const me = await getMe("/chess");
   const supabase = await createClient();
-  const { data } = await supabase.rpc("chess_my_games");
+  const [{ data }, { data: openData }] = await Promise.all([supabase.rpc("chess_my_games"), supabase.rpc("chess_open_games")]);
+  const openGames = ((openData ?? []) as OpenChessGame[]).map((g) => ({ ...g, stake_units: Number(g.stake_units) }));
   const games = ((data ?? []) as MyChessGame[]).map((g) => ({ ...g, stake_units: Number(g.stake_units) }));
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-5 sm:p-6";
 
@@ -51,6 +53,26 @@ export default async function ChessPage() {
           <p className="text-sm text-mist">Confirm your phone number first. <Link href="/profile" className="font-bold text-lilac">Go to Profile</Link></p>
         )}
       </section>
+
+      {openGames.length > 0 && (
+        <section className={`${card} mb-5`}>
+          <h2 className="mb-1 text-lg font-extrabold">Players waiting for an opponent</h2>
+          <p className="mb-3 text-xs text-mist">Join a real player. Colours are drawn at random.</p>
+          <ul className="divide-y divide-white/5">
+            {openGames.map((g) => (
+              <li key={g.code}>
+                <Link href={`/chess/${g.code}`} className="flex items-center gap-3 py-3 hover:opacity-90">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold">{g.creator}</p>
+                    <p className="text-xs text-mist">Waiting {Math.max(1, Math.round(g.age_s / 60))} min · {g.code}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-lilac px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink">Join · {etbLabel(g.stake_units)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={card}>
         <h2 className="mb-3 text-lg font-extrabold">My games</h2>

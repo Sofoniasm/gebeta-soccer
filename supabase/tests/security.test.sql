@@ -1347,7 +1347,7 @@ begin
      or has_table_privilege('authenticated', 'public.chess_games', 'update') then
     raise exception 'FAIL: players can read or write Chess games directly';
   end if;
-  if has_function_privilege('anon', 'public.chess_state(text)', 'execute') or has_function_privilege('anon', 'public.chess_create(numeric)', 'execute') then
+  if has_function_privilege('anon', 'public.chess_state(text)', 'execute') or has_function_privilege('anon', 'public.chess_create(numeric, boolean)', 'execute') then
     raise exception 'FAIL: anonymous visitors can call Chess functions';
   end if;
   if has_function_privilege('authenticated', 'public.chess_apply_move(text, uuid, text, text, text, text, text, text)', 'execute')
@@ -1477,5 +1477,160 @@ begin
   raise notice 'ok  chess 1v1: server-only moves, turn + position checks, checkmate payout, draw, timeout, refund';
 end $$;
 drop table tests_ch, tests_chb;
+
+-- =====================================================================
+-- House Bot for Chess (0061)
+-- =====================================================================
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.house_bot_settings', 'select') or has_table_privilege('anon', 'public.house_bot_settings', 'select')
+     or has_table_privilege('authenticated', 'public.house_bot_settings', 'update') then
+    raise exception 'FAIL: players can read or change the House Bot settings';
+  end if;
+  if has_function_privilege('authenticated', 'public.chess_bot_join(text)', 'execute') or has_function_privilege('authenticated', 'public.chess_bot_claim(text)', 'execute')
+     or has_function_privilege('authenticated', 'public.house_bot_check(bigint, boolean)', 'execute') or has_function_privilege('anon', 'public.chess_bot_join(text)', 'execute') then
+    raise exception 'FAIL: players can run the House Bot functions';
+  end if;
+  if not has_function_privilege('service_role', 'public.chess_bot_join(text)', 'execute') or not has_function_privilege('service_role', 'public.chess_bot_claim(text)', 'execute') then
+    raise exception 'FAIL: the server cannot run the House Bot functions';
+  end if;
+  if (select enabled from public.house_bot_settings) then raise exception 'FAIL: the House Bot must be switched off until the admin enables it'; end if;
+  if not exists (select 1 from public.profiles where id = '00000000-0000-4000-8000-00000000b075' and username = 'House Bot') then raise exception 'FAIL: the House Bot account is missing'; end if;
+end $$;
+
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a1', 50, 'test', null) \g /dev/null
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a2', 50, 'test', null) \g /dev/null
+select public.admin_add_units('00000000-0000-4000-8000-00000000b075', 20, 'house bot bank', null) \g /dev/null
+create table tests_hb (code text);
+grant select, insert, update on tests_hb to authenticated;
+
+-- open games are listed for other players
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_hb (code) select public.chess_create(1, true);
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+do $$ begin
+  if not exists (select 1 from public.chess_open_games() where code = (select code from tests_hb)) then raise exception 'FAIL: an open game is not listed for other players'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+do $$ begin
+  if exists (select 1 from public.chess_open_games()) then raise exception 'FAIL: my own game is listed as one to join'; end if;
+end $$;
+reset role;
+
+-- the bot refuses while it is off, while the 2 minutes have not passed, and joins after that
+do $$ begin
+  if public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot joined while switched off'; end if;
+end $$;
+update public.house_bot_settings set enabled = true;
+do $$ begin
+  if public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot joined before the 2 minutes were over'; end if;
+end $$;
+update public.chess_games set created_at = now() - interval '3 minutes' where code = (select code from tests_hb);
+do $$
+declare g public.chess_games;
+begin
+  if not public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot did not join after 2 minutes'; end if;
+  select * into g from public.chess_games where code = (select code from tests_hb);
+  if g.status <> 'live' or not g.vs_bot or g.opponent_id <> '00000000-0000-4000-8000-00000000b075' then raise exception 'FAIL: the game should be live against the bot'; end if;
+  if (select balance_units from public.profiles where id = '00000000-0000-4000-8000-00000000b075') <> 19 then raise exception 'FAIL: the bot did not pay its stake'; end if;
+end $$;
+
+-- only one request computes the bot's move; the bot never moves on the human's turn
+update public.chess_games set white_id = '00000000-0000-4000-8000-00000000b075' where code = (select code from tests_hb);
+do $$ begin
+  if not public.chess_bot_claim((select code from tests_hb)) then raise exception 'FAIL: the bot could not claim its turn'; end if;
+  if public.chess_bot_claim((select code from tests_hb)) then raise exception 'FAIL: two requests claimed the same bot move'; end if;
+  perform public.chess_apply_move((select code from tests_hb), '00000000-0000-4000-8000-00000000b075', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', 'e4', 'e2', 'e4', null);
+  if public.chess_bot_claim((select code from tests_hb)) then raise exception 'FAIL: the bot claimed a move on the human''s turn'; end if;
+end $$;
+
+-- the human checkmates the bot: paid from the house bank; the bot has lost 1
+update public.chess_games set white_id = '11111111-0000-0000-0000-0000000000a1' where code = (select code from tests_hb);
+do $$
+declare cur text := (select fen from public.chess_games where code = (select code from tests_hb)); b0 numeric := (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1');
+begin
+  update public.chess_games set fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' where code = (select code from tests_hb);
+  perform public.chess_apply_move((select code from tests_hb), '11111111-0000-0000-0000-0000000000a1', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '4k3/8/8/8/8/8/8/R3K2R b - - 0 9', 'Qxf7#', 'd1', 'f7', 'checkmate');
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> b0 + 1.9 then raise exception 'FAIL: the player was not paid stake + 90%% by the house bank'; end if;
+  if (select paused_at from public.house_bot_settings) is not null then raise exception 'FAIL: the bot paused after only one loss'; end if;
+end $$;
+
+-- a second game, a second loss in a row: the bot pauses itself and stops accepting
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+delete from tests_hb;
+insert into tests_hb (code) select public.chess_create(1, true);
+reset role;
+update public.chess_games set created_at = now() - interval '3 minutes' where code = (select code from tests_hb);
+do $$ begin
+  if not public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot should still accept the second game'; end if;
+end $$;
+update public.chess_games set white_id = '11111111-0000-0000-0000-0000000000a1' where code = (select code from tests_hb);
+do $$ begin
+  perform public.chess_apply_move((select code from tests_hb), '11111111-0000-0000-0000-0000000000a1', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '4k3/8/8/8/8/8/8/R3K2R b - - 0 9', 'Qxf7#', 'd1', 'f7', 'checkmate');
+  if (select paused_at from public.house_bot_settings) is null then raise exception 'FAIL: the bot did not pause after 2 losses in a row'; end if;
+  if not exists (select 1 from public.notifications where kind = 'house_bot_paused') and exists (select 1 from public.profiles where is_admin) then raise exception 'FAIL: the admin was not told'; end if;
+end $$;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+delete from tests_hb;
+insert into tests_hb (code) select public.chess_create(1, true);
+reset role;
+update public.chess_games set created_at = now() - interval '3 minutes' where code = (select code from tests_hb);
+do $$ begin
+  if public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: a paused bot accepted a game'; end if;
+end $$;
+
+-- resumed, but the daily loss limit still protects the bank
+update public.house_bot_settings set paused_at = null, paused_reason = null, daily_loss_limit_units = 2;
+do $$ begin
+  if public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot ignored its daily loss limit'; end if;
+end $$;
+update public.house_bot_settings set daily_loss_limit_units = 50;
+-- it joins; then the BOT runs out of time: the game is a draw and both stakes come back
+do $$
+declare b0 numeric := (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1');
+begin
+  if not public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot should join again after the limit was raised'; end if;
+  update public.chess_games set white_id = '00000000-0000-4000-8000-00000000b075', turn_deadline = now() - interval '1 second' where code = (select code from tests_hb);
+  perform public.settle_due_chess();
+  if (select result from public.chess_games where code = (select code from tests_hb)) <> 'draw' then raise exception 'FAIL: when the bot runs out of time the game must be a draw, not a win for the player'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> b0 + 1 then raise exception 'FAIL: the draw did not return the player''s stake'; end if;
+  if (select paused_at from public.house_bot_settings) is not null then raise exception 'FAIL: a draw must not count as a loss'; end if;
+end $$;
+
+-- each player may play the bot only 3 times a day (3 games so far today for a1); a stake above the limit is refused for everybody
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+delete from tests_hb;
+insert into tests_hb (code) select public.chess_create(1, true);
+reset role;
+update public.chess_games set created_at = now() - interval '3 minutes' where code = (select code from tests_hb);
+do $$ begin
+  if public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot played one player more than 3 times a day'; end if;
+end $$;
+update public.chess_games set expires_at = now() - interval '1 minute' where code = (select code from tests_hb);
+select public.settle_due_chess() \g /dev/null
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+delete from tests_hb;
+insert into tests_hb (code) select public.chess_create(2, true);
+reset role;
+update public.chess_games set created_at = now() - interval '3 minutes' where code = (select code from tests_hb);
+do $$ begin
+  if public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot accepted a stake above its limit'; end if;
+end $$;
+-- a game that is not open to anyone is never offered to the bot
+update public.chess_games set open_to_all = false where code = (select code from tests_hb);
+update public.house_bot_settings set max_stake_units = 5;
+do $$ begin
+  if public.chess_bot_join((select code from tests_hb)) then raise exception 'FAIL: the bot joined a private game'; end if;
+  raise notice 'ok  house bot: off by default, 2 minute wait, open games only, stake/day/loss limits, pauses after 2 losses, bot timeout = draw';
+end $$;
+update public.chess_games set expires_at = now() - interval '1 minute' where code = (select code from tests_hb);
+select public.settle_due_chess() \g /dev/null
+update public.house_bot_settings set enabled = false, max_stake_units = 1;
+drop table tests_hb;
 
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

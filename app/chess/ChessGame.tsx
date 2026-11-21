@@ -6,7 +6,7 @@ import { Banner, primaryButtonClass, secondaryButtonClass } from "@/components/u
 import { SendIcon, SpinnerIcon } from "@/components/icons";
 import { etbLabel } from "@/lib/money";
 import { challengePrizeUnits } from "@/lib/challenges";
-import { CHESS_MOVE_SECONDS, PIECE_GLYPH, movePairs, type ChessState } from "@/lib/chess";
+import { BOT_NAME, CHESS_MOVE_SECONDS, PIECE_GLYPH, movePairs, type ChessState } from "@/lib/chess";
 import { inCheck, legalTargets } from "@/lib/chess-rules";
 import { cancelChess, joinChess, moveChess, resignChess } from "./actions";
 
@@ -81,6 +81,7 @@ export function ChessGame({ code, initial, balanceUnits, url }: { code: string; 
   const color = st.my_color;
   const myTurn = st.status === "live" && color !== null && st.turn === color;
   const left = st.ms_left === null ? 0 : Math.max(0, st.ms_left - (performance.now() - gotAt.current));
+  const botWait = st.bot_wait_s === null ? 0 : Math.max(0, Math.ceil(st.bot_wait_s - (performance.now() - gotAt.current) / 1000));
   const them = seat === 1 ? st.opponent : seat === 2 ? st.creator : st.opponent;
   const prize = challengePrizeUnits(st.stake_units, 2);
   const enough = balanceUnits >= st.stake_units;
@@ -128,7 +129,12 @@ export function ChessGame({ code, initial, balanceUnits, url }: { code: string; 
         </span>
         <span className="text-[10px] font-bold uppercase tracking-widest text-mist">{st.code}</span>
       </div>
-      <h1 className="mt-2 text-2xl font-extrabold">♞ {st.creator} vs {st.opponent ?? "…"}</h1>
+      <h1 className="mt-2 text-2xl font-extrabold">♞ {st.creator} vs {st.opponent === BOT_NAME ? "🤖 " : ""}{st.opponent ?? "…"}</h1>
+      {st.vs_bot && (
+        <p className="mt-2 rounded-xl bg-amber-200/10 px-3 py-2 text-xs text-amber-100">
+          🤖 <b>House Bot</b>: your opponent is a computer (Stockfish), not a person. It plays very strongly. Only 200 ETB games, a few per day.
+        </p>
+      )}
       <div className="mt-3 grid grid-cols-2 gap-2 text-center">
         <div className="rounded-2xl bg-ink/50 p-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-mist">Stake each</p>
@@ -145,7 +151,7 @@ export function ChessGame({ code, initial, balanceUnits, url }: { code: string; 
   const board = (
     <div>
       <div className="mb-2 flex items-center justify-between text-xs font-bold text-mist">
-        <span>{them ?? "Opponent"} {st.status !== "open" && color && <span className="text-white/60">({color === "w" ? "black" : "white"})</span>}</span>
+        <span>{st.vs_bot ? "🤖 " : ""}{them ?? "Opponent"} {st.status !== "open" && color && <span className="text-white/60">({color === "w" ? "black" : "white"})</span>}</span>
         {checked && <span className="rounded-full bg-rose-400/20 px-2 py-0.5 text-rose-200">Check!</span>}
       </div>
       <div className="mx-auto max-w-[32rem] rounded-2xl bg-gradient-to-br from-[#6b4423] to-[#3e2614] p-2 shadow-2xl shadow-black/50">
@@ -311,6 +317,12 @@ export function ChessGame({ code, initial, balanceUnits, url }: { code: string; 
         {seat === 1 ? (
           <>
             <h2 className="text-lg font-extrabold">Waiting for an opponent…</h2>
+            {st.open_to_all && <p className="mt-1 text-sm text-mist">Your game is listed for other players.</p>}
+            {st.bot_wait_s !== null && (
+              <p className="mt-1 rounded-xl bg-amber-200/10 px-3 py-2 text-xs text-amber-100">
+                🤖 If nobody joins in {Math.floor(botWait / 60)}:{String(botWait % 60).padStart(2, "0")}, the <b>House Bot</b> (a computer) may play you. Keep this page open, or share the link to find a real player first.
+              </p>
+            )}
             <p className="mt-1 text-sm text-mist">Send this link to a friend. If nobody joins within {Math.max(1, Math.ceil(st.expires_in_s / 60))} min, your stake is refunded.</p>
             <div className="mt-3 flex gap-2">
               <input readOnly value={url} onFocus={(e) => e.target.select()} className="w-full rounded-2xl border border-white/10 bg-ink/70 px-4 py-3 text-sm text-white outline-none" />
