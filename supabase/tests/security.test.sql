@@ -1633,4 +1633,25 @@ select public.settle_due_chess() \g /dev/null
 update public.house_bot_settings set enabled = false, max_stake_units = 1;
 drop table tests_hb;
 
+-- =====================================================================
+-- Sync on demand (0062)
+-- =====================================================================
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.app_sync_state', 'select') or has_table_privilege('anon', 'public.app_sync_state', 'update') then
+    raise exception 'FAIL: players can read or change the sync state';
+  end if;
+  if has_function_privilege('authenticated', 'public.sync_try_claim(int)', 'execute') or has_function_privilege('anon', 'public.sync_try_claim(int)', 'execute')
+     or has_function_privilege('authenticated', 'public.sync_mark_ran()', 'execute') then
+    raise exception 'FAIL: players can trigger the match sync claim';
+  end if;
+  if not public.sync_try_claim(1500) then raise exception 'FAIL: the first claim should win'; end if;
+  if public.sync_try_claim(1500) then raise exception 'FAIL: a second claim right after should lose'; end if;
+  update public.app_sync_state set last_run_at = now() - interval '26 minutes';
+  if not public.sync_try_claim(1500) then raise exception 'FAIL: after 26 minutes a claim should win again'; end if;
+  perform public.sync_mark_ran();
+  if public.sync_try_claim(1500) then raise exception 'FAIL: a cron run should count as a recent sync'; end if;
+  raise notice 'ok  sync on demand: one claim per 25 minutes, server only';
+end $$;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

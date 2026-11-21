@@ -6,6 +6,7 @@ import { Logo } from "./Logo";
 import { Avatar } from "./Avatar";
 import { DobForm } from "@/app/profile/DobForm";
 import { ChatBubble } from "./ChatBubble";
+import { SyncKick } from "./SyncKick";
 import { FlowLines } from "./FlowLines";
 import { BottomNav, SideNav } from "./AppNav";
 import { LiveBalance } from "./LiveBalance";
@@ -32,6 +33,7 @@ export async function AppShell({ children, title, next }: { children: React.Reac
         <div className="absolute inset-0 bg-gradient-to-b from-plum/40 via-plum/80 to-plum" />
       </div>
       <FlowLines />
+      <SyncKick />
 
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-white/5 bg-[#0b0912]/90 p-5 backdrop-blur-xl lg:flex">
