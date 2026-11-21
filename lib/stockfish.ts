@@ -25,6 +25,16 @@ export function parseUci(m: string): { from: string; to: string; promotion?: str
   return x ? { from: x[1], to: x[2], promotion: x[3] } : null;
 }
 
+/**
+ * The engine's start-up code sets the global `fetch` to null (it thinks it runs in a browser without it).
+ * That broke every later database call in the same server process ("fetch is not a function"), including the
+ * bot's own move. We keep the real fetch and put it back whenever the engine has touched it.
+ */
+const realFetch = globalThis.fetch;
+function restoreFetch() {
+  if (typeof globalThis.fetch !== "function" && typeof realFetch === "function") globalThis.fetch = realFetch;
+}
+
 const ENGINE_FILE = () => path.join(process.cwd(), "engine", "stockfish-19-lite-single.js");
 
 let engine: Engine | null = null;
@@ -39,6 +49,7 @@ function getEngine(): Engine | null {
     delete req.cache[req.resolve(ENGINE_FILE())]; // a fresh copy after a reset
     const make = req(ENGINE_FILE()) as () => Engine;
     const e = make();
+    restoreFetch();
     e.listener = (line: string) => {
       const m = /^bestmove (\S+)/.exec(String(line));
       if (m && current) {
@@ -75,14 +86,17 @@ export function bestMove(fen: string): Promise<string | null> {
     new Promise<string | null>((resolve) => {
       const ms = botThinkMs();
       const eng = getEngine();
+      restoreFetch();
       if (!eng) return resolve(null);
       const timer = setTimeout(() => {
         current = null;
         resetEngine(); // stuck: start from scratch next time
+        restoreFetch();
         resolve(null);
       }, ms + 10000);
       current = (m) => {
         clearTimeout(timer);
+        restoreFetch();
         resolve(m);
       };
       try {
@@ -92,6 +106,7 @@ export function bestMove(fen: string): Promise<string | null> {
       } catch {
         clearTimeout(timer);
         resetEngine();
+        restoreFetch();
         resolve(null);
       }
     });

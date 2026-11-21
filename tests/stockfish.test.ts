@@ -22,3 +22,11 @@ test("stockfish: the House Bot engine plays a legal move and finds a mate in one
   const chk = checkMove(mate, best.from, best.to, best.promotion ?? "q");
   assert.ok(chk.ok && chk.outcome === "checkmate", "finds the checkmate");
 });
+
+test("stockfish: starting the engine does not break the global fetch (the database client needs it)", { timeout: 30000 }, async () => {
+  process.env.CHESS_BOT_MOVETIME_MS = "300";
+  const before = typeof fetch;
+  await bestMove("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  assert.equal(before, "function");
+  assert.equal(typeof fetch, "function");
+});
