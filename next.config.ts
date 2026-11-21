@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/chess/[code]": ["./engine/**/*"],
     "/chess/[code]": ["./engine/**/*"],
+    "/api/admin/chess-engine-check": ["./engine/**/*"],
   },
   async headers() {
     return [
