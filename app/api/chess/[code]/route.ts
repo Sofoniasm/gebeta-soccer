@@ -22,13 +22,19 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ code: stri
     return NextResponse.json({ error: signedOut ? "not signed in" : "unavailable", detail: signedOut ? undefined : error.message }, { status: signedOut ? 401 : 500, headers: { "Cache-Control": "no-store" } });
   }
   // the House Bot joins a game that waited long enough and plays its moves; then read the game again
+  let botNote: string | null = null;
   try {
-    if (data && (await driveBot(code, data as ChessState))) ({ data, error } = await read());
+    if (data) {
+      const r = await driveBot(code, data as ChessState);
+      botNote = r.note;
+      if (r.changed) ({ data, error } = await read());
+    }
   } catch (e) {
+    botNote = `exception: ${(e as Error).message}`;
     console.error("house bot", e);
   }
   if (error) return NextResponse.json({ error: "unavailable", detail: error.message }, { status: 500, headers: { "Cache-Control": "no-store" } });
   const state = data as { status?: string } | null;
   if (state && (state.status === "settled" || state.status === "cancelled")) void pushNotifications();
-  return NextResponse.json(state, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(state ? { ...state, bot_note: botNote } : state, { headers: { "Cache-Control": "no-store" } });
 }

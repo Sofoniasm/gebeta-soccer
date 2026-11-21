@@ -57,17 +57,21 @@ export async function botMove(code: string): Promise<boolean> {
  * Called whenever a player's page asks for the game: lets the bot join a game that waited long enough,
  * and makes the bot move if it is its turn. Returns true when something changed (the caller re-reads the state).
  */
-export async function driveBot(code: string, st: ChessState): Promise<boolean> {
-  let changed = false;
+export async function driveBot(code: string, st: ChessState): Promise<{ changed: boolean; note: string | null }> {
   if (st.status === "open" && st.open_to_all && st.my_seat === 1 && st.bot_wait_s === 0) {
-    const { data } = await createAdminClient().rpc("chess_bot_join", { p_code: code });
+    const { data, error } = await createAdminClient().rpc("chess_bot_join", { p_code: code });
     if (data === true) {
-      changed = true;
       await pushNotifications();
-      await botMove(code); // the bot may be white and open the game
+      const why = await botMoveWhy(code); // the bot may be white and open the game
+      if (!why.startsWith("moved")) console.error("house bot did not move:", why);
+      return { changed: true, note: why };
     }
-    return changed;
+    return { changed: false, note: error ? `join error: ${error.message}` : "the bot did not join" };
   }
-  if (st.status === "live" && st.vs_bot && st.bot_to_move) changed = await botMove(code);
-  return changed;
+  if (st.status === "live" && st.vs_bot && st.bot_to_move) {
+    const why = await botMoveWhy(code);
+    if (!why.startsWith("moved")) console.error("house bot did not move:", why);
+    return { changed: why.startsWith("moved"), note: why };
+  }
+  return { changed: false, note: null };
 }
