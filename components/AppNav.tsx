@@ -40,6 +40,7 @@ const PLAY: Item[] = [
   { href: "/royale", label: "Quiz Royale", icon: VersusIcon },
   { href: "/survivor", label: "Survivor", icon: TrophyIcon },
   { href: "/gebeta", label: "Gebeta 1v1", icon: VersusIcon },
+  { href: "/dama", label: "Dama 1v1", icon: VersusIcon },
   { href: "/results", label: "Results", icon: ClockIcon },
   { href: "/news", label: "News", icon: NewsIcon },
 ];

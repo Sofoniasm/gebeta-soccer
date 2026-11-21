@@ -1174,4 +1174,168 @@ begin
 end $$;
 drop table tests_gb, tests_gbb;
 
+-- =====================================================================
+-- Dama 1 vs 1 (0059)
+-- =====================================================================
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.dama_games', 'select') or has_table_privilege('anon', 'public.dama_games', 'select')
+     or has_table_privilege('authenticated', 'public.dama_games', 'update') then
+    raise exception 'FAIL: players can read or write Dama games directly';
+  end if;
+  if has_function_privilege('anon', 'public.dama_move(text, int, int)', 'execute') or has_function_privilege('anon', 'public.dama_state(text)', 'execute')
+     or has_function_privilege('anon', 'public.dama_create(numeric)', 'execute') then
+    raise exception 'FAIL: anonymous visitors can call Dama functions';
+  end if;
+  if has_function_privilege('authenticated', 'public.dama_finish(bigint, uuid, text)', 'execute') or has_function_privilege('authenticated', 'public.settle_due_dama()', 'execute')
+     or has_function_privilege('authenticated', 'public.dama_legal_moves(int[], int, int)', 'execute') or has_function_privilege('authenticated', 'public.dama_advance(bigint)', 'execute') then
+    raise exception 'FAIL: players can run internal Dama functions';
+  end if;
+  if (select count(*) from unnest(public.dama_initial_board()) x where x = 1) <> 16 or (select count(*) from unnest(public.dama_initial_board()) x where x = 3) <> 16 then
+    raise exception 'FAIL: the starting board should have 16 men each';
+  end if;
+end $$;
+
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a1', 50, 'test', null) \g /dev/null
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a2', 50, 'test', null) \g /dev/null
+create table tests_dm (code text);
+grant select, insert, update on tests_dm to authenticated;
+create table tests_dmb (tag text primary key, bal numeric);
+insert into tests_dmb select 'a1', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_dmb select 'a2', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_dm (code) select public.dama_create(5);
+do $$
+begin
+  begin perform public.dama_create(5); raise exception 'FAIL: a second open game';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.dama_move((select code from tests_dm), 8, 16); raise exception 'FAIL: moved in a game that has not started';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.dama_join((select code from tests_dm)) \g /dev/null
+reset role;
+
+-- a plain game: player 1 may step forward, not backward or diagonally
+update public.dama_games set turn = 1, turn_deadline = now() + interval '60 seconds' where code = (select code from tests_dm);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+do $$
+begin
+  begin perform public.dama_move((select code from tests_dm), 8, 1); raise exception 'FAIL: moved backwards';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.dama_move((select code from tests_dm), 8, 17); raise exception 'FAIL: moved diagonally';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.dama_move((select code from tests_dm), 8, 16); raise exception 'FAIL: moved onto a friendly piece';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.dama_move((select code from tests_dm), 0, 8); raise exception 'FAIL: moved from an empty cell';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select public.dama_move((select code from tests_dm), 23, 31) \g /dev/null
+reset role;
+do $$
+declare g public.dama_games;
+begin
+  select * into g from public.dama_games where code = (select code from tests_dm);
+  if g.board[32] <> 1 or g.board[24] <> 0 or g.turn <> 2 then raise exception 'FAIL: a plain step was not played, board % turn %', g.board, g.turn; end if;
+end $$;
+
+-- compulsory capture and a double jump: p1 men on 20 and 8; p2 men on 28, 44, 63
+update public.dama_games set turn = 1, chain_from = null, turn_deadline = now() + interval '60 seconds',
+  board = (select array_agg(case when g in (20, 8) then 1 when g in (28, 44, 63) then 3 else 0 end order by g) from generate_series(0, 63) g)
+ where code = (select code from tests_dm);
+set role authenticated;
+do $$
+begin
+  begin perform public.dama_move((select code from tests_dm), 8, 16); raise exception 'FAIL: a plain move while a capture was possible';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select public.dama_move((select code from tests_dm), 20, 36) \g /dev/null
+do $$
+declare v jsonb := public.dama_state((select code from tests_dm));
+begin
+  if (v ->> 'turn')::int <> 1 or (v ->> 'chain_from')::int <> 36 then raise exception 'FAIL: the capture should go on with the same piece: %', v; end if;
+  if (v -> 'board' ->> 28)::int <> 0 then raise exception 'FAIL: the captured man is still on the board'; end if;
+  if jsonb_array_length(v -> 'legal') <> 1 then raise exception 'FAIL: only the jump should be legal now: %', v -> 'legal'; end if;
+  begin perform public.dama_move((select code from tests_dm), 8, 16); raise exception 'FAIL: another piece moved during a capture chain';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select public.dama_move((select code from tests_dm), 36, 52) \g /dev/null
+reset role;
+do $$
+declare g public.dama_games;
+begin
+  select * into g from public.dama_games where code = (select code from tests_dm);
+  if g.turn <> 2 or g.chain_from is not null or g.board[45] <> 0 or g.board[53] <> 1 then raise exception 'FAIL: the double jump was not finished, board % turn %', g.board, g.turn; end if;
+end $$;
+
+-- a man that reaches the far row becomes a king
+update public.dama_games set turn = 1, chain_from = null, turn_deadline = now() + interval '60 seconds',
+  board = (select array_agg(case when g in (52, 8) then 1 when g = 17 then 3 else 0 end order by g) from generate_series(0, 63) g)
+ where code = (select code from tests_dm);
+set role authenticated;
+select public.dama_move((select code from tests_dm), 52, 60) \g /dev/null
+reset role;
+do $$
+begin
+  if (select board[61] from public.dama_games where code = (select code from tests_dm)) <> 2 then raise exception 'FAIL: a man on the far row should become a king'; end if;
+end $$;
+
+-- the last enemy piece is captured: player 1 wins 5 + 90% of 5 = 9.5
+update public.dama_games set turn = 1, chain_from = null, turn_deadline = now() + interval '60 seconds',
+  board = (select array_agg(case when g = 20 then 1 when g = 28 then 3 else 0 end order by g) from generate_series(0, 63) g)
+ where code = (select code from tests_dm);
+set role authenticated;
+select public.dama_move((select code from tests_dm), 20, 36) \g /dev/null
+reset role;
+do $$
+begin
+  if (select status from public.dama_games where code = (select code from tests_dm)) <> 'settled' or (select winner_id from public.dama_games where code = (select code from tests_dm)) <> '11111111-0000-0000-0000-0000000000a1' then
+    raise exception 'FAIL: capturing the last piece should win the game';
+  end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_dmb where tag = 'a1') + 4.5
+     or (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_dmb where tag = 'a2') - 5 then
+    raise exception 'FAIL: wrong balances after the Dama game';
+  end if;
+end $$;
+select public.settle_due_dama() \g /dev/null
+do $$ begin
+  if (select count(*) from public.wallet_ledger where kind = 'payout' and dama_id is not null) <> 1 then raise exception 'FAIL: paid twice'; end if;
+end $$;
+
+-- running out of time loses; an unjoined game is refunded
+delete from tests_dm;
+insert into tests_dmb select 'a2b', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_dm (code) select public.dama_create(5);
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.dama_join((select code from tests_dm)) \g /dev/null
+reset role;
+update public.dama_games set turn = 1, turn_deadline = now() - interval '1 second' where code = (select code from tests_dm);
+select public.settle_due_dama() \g /dev/null
+do $$
+begin
+  if (select winner_id from public.dama_games where code = (select code from tests_dm)) <> '11111111-0000-0000-0000-0000000000a2' or (select result from public.dama_games where code = (select code from tests_dm)) <> 'timeout' then
+    raise exception 'FAIL: the player who timed out should lose';
+  end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_dmb where tag = 'a2b') + 4.5 then raise exception 'FAIL: timeout winner not paid'; end if;
+end $$;
+delete from tests_dm;
+insert into tests_dmb select 'a1c', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_dm (code) select public.dama_create(5);
+reset role;
+update public.dama_games set expires_at = now() - interval '1 minute' where code = (select code from tests_dm);
+select public.settle_due_dama() \g /dev/null
+do $$
+begin
+  if (select status from public.dama_games where code = (select code from tests_dm)) <> 'cancelled' then raise exception 'FAIL: expired game not cancelled'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_dmb where tag = 'a1c') then raise exception 'FAIL: expired game did not refund'; end if;
+  raise notice 'ok  dama 1v1: server-only, rules (steps, compulsory capture, double jump, king), payout, timeout, refund';
+end $$;
+drop table tests_dm, tests_dmb;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

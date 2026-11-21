@@ -49,6 +49,9 @@ SURVIVOR POOLS
 GEBETA 1 VS 1
 - Gebeta 1 vs 1 (menu: Gebeta 1v1, /gebeta): the Ethiopian seed game for two players. Each pays the same stake (200 to 5,000 ETB). Six pits each with four seeds. Pick a pit and its seeds are dropped one by one round the board; the last seed in your own store = play again; the last seed in an empty pit of yours = you capture the seeds opposite. When one side is empty the other player keeps their remaining seeds; most seeds wins. The winner gets their stake back + 90% of the opponent's stake; a draw returns both stakes. 60 seconds per move: running out of time loses. If nobody joins within 30 minutes the stake is refunded.
 
+DAMA 1 VS 1
+- Dama 1 vs 1 (menu: Dama 1v1, /dama): Ethiopian draughts for two players on an 8x8 board, 16 men each. Each pays the same stake (200 to 5,000 ETB). Men step one square forward or sideways (never diagonally or back). Jump over an adjacent enemy to capture: you MUST capture when you can and keep jumping with the same piece. A man reaching the far row becomes a king that moves and captures along any line. You win by capturing everything or leaving your opponent with no legal move. The winner gets their stake back + 90% of the opponent's stake; 60 moves in a row without a capture = draw, stakes returned. 60 seconds per move: running out of time loses. If nobody joins within 30 minutes the stake is refunded.
+
 CHALLENGES AND LEAGUES
 - Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets their own stake back plus 90% of the other stakes (10% fee only on the money won from others; 2 x 300 ETB: the winner gets 570 ETB). If nobody joins before the first kickoff, everyone is refunded.
 - Private leagues: free (bragging rights) or paid (the winner gets their fee back plus 70% of the other fees).
