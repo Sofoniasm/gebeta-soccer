@@ -1338,4 +1338,144 @@ begin
 end $$;
 drop table tests_dm, tests_dmb;
 
+-- =====================================================================
+-- Chess 1 vs 1 (0060)
+-- =====================================================================
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.chess_games', 'select') or has_table_privilege('anon', 'public.chess_games', 'select')
+     or has_table_privilege('authenticated', 'public.chess_games', 'update') then
+    raise exception 'FAIL: players can read or write Chess games directly';
+  end if;
+  if has_function_privilege('anon', 'public.chess_state(text)', 'execute') or has_function_privilege('anon', 'public.chess_create(numeric)', 'execute') then
+    raise exception 'FAIL: anonymous visitors can call Chess functions';
+  end if;
+  if has_function_privilege('authenticated', 'public.chess_apply_move(text, uuid, text, text, text, text, text, text)', 'execute')
+     or has_function_privilege('anon', 'public.chess_apply_move(text, uuid, text, text, text, text, text, text)', 'execute') then
+    raise exception 'FAIL: players can write chess moves themselves';
+  end if;
+  if has_function_privilege('authenticated', 'public.chess_finish(bigint, uuid, text)', 'execute') or has_function_privilege('authenticated', 'public.settle_due_chess()', 'execute')
+     or has_function_privilege('authenticated', 'public.chess_advance(bigint)', 'execute') then
+    raise exception 'FAIL: players can run internal Chess functions';
+  end if;
+  if not has_function_privilege('service_role', 'public.chess_apply_move(text, uuid, text, text, text, text, text, text)', 'execute') then
+    raise exception 'FAIL: the server cannot write chess moves';
+  end if;
+end $$;
+
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a1', 50, 'test', null) \g /dev/null
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a2', 50, 'test', null) \g /dev/null
+create table tests_ch (code text);
+grant select, insert, update on tests_ch to authenticated;
+create table tests_chb (tag text primary key, bal numeric);
+insert into tests_chb select 'a1', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_chb select 'a2', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_ch (code) select public.chess_create(5);
+do $$
+begin
+  begin perform public.chess_create(5); raise exception 'FAIL: a second open game';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.chess_join((select code from tests_ch)); raise exception 'FAIL: joined own game';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.chess_join((select code from tests_ch)) \g /dev/null
+do $$
+declare v jsonb := public.chess_state((select code from tests_ch));
+begin
+  if v ->> 'status' <> 'live' or v ->> 'my_color' not in ('w', 'b') or v ->> 'turn' <> 'w' then raise exception 'FAIL: the game should be live with colours set: %', v; end if;
+end $$;
+reset role;
+
+-- the server writes moves: only for the player whose turn it is, on the position it checked
+update public.chess_games set white_id = '11111111-0000-0000-0000-0000000000a1' where code = (select code from tests_ch);
+do $$
+declare s text := 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+begin
+  begin perform public.chess_apply_move((select code from tests_ch), '11111111-0000-0000-0000-0000000000a2', s, 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1', 'e4', 'e2', 'e4', null);
+        raise exception 'FAIL: black moved on white''s turn';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.chess_apply_move((select code from tests_ch), '11111111-0000-0000-0000-0000000000a1', 'something else w KQkq - 0 1', 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1', 'e4', 'e2', 'e4', null);
+        raise exception 'FAIL: a move on a different position was accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.chess_apply_move((select code from tests_ch), '11111111-0000-0000-0000-0000000000a1', s, 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1', 'e4', 'e9', 'e4', null);
+        raise exception 'FAIL: a bad square was accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  if public.chess_apply_move((select code from tests_ch), '11111111-0000-0000-0000-0000000000a1', s, 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1', 'e4', 'e2', 'e4', null) <> 'ok' then raise exception 'FAIL: a normal move was not accepted'; end if;
+  if (select turn_deadline from public.chess_games where code = (select code from tests_ch)) < now() + interval '100 seconds' then raise exception 'FAIL: the clock was not reset'; end if;
+  begin perform public.chess_apply_move((select code from tests_ch), '11111111-0000-0000-0000-0000000000a1', 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1', 'x/x/x/x/x/x/x/x w - - 0 2', 'e5', 'e7', 'e5', null);
+        raise exception 'FAIL: white moved on black''s turn';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+
+-- checkmate: the mover wins 5 + 90% of 5 = 9.5
+do $$
+declare cur text := (select fen from public.chess_games where code = (select code from tests_ch));
+begin
+  perform public.chess_apply_move((select code from tests_ch), '11111111-0000-0000-0000-0000000000a2', cur, '4k3/8/8/8/8/8/8/R3K2R w - - 0 9', 'Qxf7#', 'd8', 'f7', 'checkmate');
+  if (select status from public.chess_games where code = (select code from tests_ch)) <> 'settled' or (select winner_id from public.chess_games where code = (select code from tests_ch)) <> '11111111-0000-0000-0000-0000000000a2' then
+    raise exception 'FAIL: checkmate should end the game for the mover';
+  end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_chb where tag = 'a2') + 4.5
+     or (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_chb where tag = 'a1') - 5 then
+    raise exception 'FAIL: wrong balances after checkmate';
+  end if;
+end $$;
+select public.settle_due_chess() \g /dev/null
+do $$ begin
+  if (select count(*) from public.wallet_ledger where kind = 'payout' and chess_id is not null) <> 1 then raise exception 'FAIL: paid twice'; end if;
+end $$;
+
+-- a draw returns both stakes; running out of time loses; an unjoined game is refunded
+delete from tests_ch;
+insert into tests_chb select 'a1b', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_chb select 'a2b', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_ch (code) select public.chess_create(5);
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.chess_join((select code from tests_ch)) \g /dev/null
+reset role;
+update public.chess_games set white_id = '11111111-0000-0000-0000-0000000000a1' where code = (select code from tests_ch);
+do $$
+declare cur text := (select fen from public.chess_games where code = (select code from tests_ch));
+begin
+  perform public.chess_apply_move((select code from tests_ch), '11111111-0000-0000-0000-0000000000a1', cur, '7k/8/8/8/8/8/8/K7 b - - 0 40', 'Kb1', 'a1', 'b1', 'draw');
+  if (select result from public.chess_games where code = (select code from tests_ch)) <> 'draw' then raise exception 'FAIL: a draw was not recorded'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_chb where tag = 'a1b')
+     or (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_chb where tag = 'a2b') then raise exception 'FAIL: a draw did not return both stakes'; end if;
+end $$;
+delete from tests_ch;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_ch (code) select public.chess_create(5);
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.chess_join((select code from tests_ch)) \g /dev/null
+reset role;
+update public.chess_games set white_id = '11111111-0000-0000-0000-0000000000a1', turn_deadline = now() - interval '1 second' where code = (select code from tests_ch);
+select public.settle_due_chess() \g /dev/null
+do $$
+begin
+  if (select winner_id from public.chess_games where code = (select code from tests_ch)) <> '11111111-0000-0000-0000-0000000000a2' or (select result from public.chess_games where code = (select code from tests_ch)) <> 'timeout' then
+    raise exception 'FAIL: white ran out of time, black should win';
+  end if;
+end $$;
+delete from tests_ch;
+insert into tests_chb select 'a1c', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_ch (code) select public.chess_create(5);
+reset role;
+update public.chess_games set expires_at = now() - interval '1 minute' where code = (select code from tests_ch);
+select public.settle_due_chess() \g /dev/null
+do $$
+begin
+  if (select status from public.chess_games where code = (select code from tests_ch)) <> 'cancelled' then raise exception 'FAIL: expired game not cancelled'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_chb where tag = 'a1c') then raise exception 'FAIL: expired game did not refund'; end if;
+  raise notice 'ok  chess 1v1: server-only moves, turn + position checks, checkmate payout, draw, timeout, refund';
+end $$;
+drop table tests_ch, tests_chb;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

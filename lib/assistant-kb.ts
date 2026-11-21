@@ -52,6 +52,9 @@ GEBETA 1 VS 1
 DAMA 1 VS 1
 - Dama 1 vs 1 (menu: Dama 1v1, /dama): Ethiopian draughts for two players on an 8x8 board, 16 men each. Each pays the same stake (200 to 5,000 ETB). Men step one square forward or sideways (never diagonally or back). Jump over an adjacent enemy to capture: you MUST capture when you can and keep jumping with the same piece. A man reaching the far row becomes a king that moves and captures along any line. You win by capturing everything or leaving your opponent with no legal move. The winner gets their stake back + 90% of the opponent's stake; 60 moves in a row without a capture = draw, stakes returned. 60 seconds per move: running out of time loses. If nobody joins within 30 minutes the stake is refunded.
 
+CHESS 1 VS 1
+- Chess 1 vs 1 (menu: Games, then Chess, /chess): normal chess for two players. Each pays the same stake (200 to 5,000 ETB); colours are drawn at random. Every move is checked by the server (castling, en passant, promotion, check, checkmate). Checkmate wins; the winner gets their stake back + 90% of the opponent's stake. Stalemate, insufficient material or the 50-move rule = draw, both stakes returned. 2 minutes per move: running out of time loses; you can also resign. If nobody joins within 30 minutes the stake is refunded.
+
 CHALLENGES AND LEAGUES
 - Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets their own stake back plus 90% of the other stakes (10% fee only on the money won from others; 2 x 300 ETB: the winner gets 570 ETB). If nobody joins before the first kickoff, everyone is refunded.
 - Private leagues: free (bragging rights) or paid (the winner gets their fee back plus 70% of the other fees).

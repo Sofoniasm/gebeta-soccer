@@ -41,6 +41,13 @@ const GAMES = [
     tag: "2 players · stake",
     text: "Ethiopian draughts. Jump to capture, crown a king, block your opponent.",
   },
+  {
+    href: "/chess",
+    emoji: "♞",
+    title: "Chess 1 vs 1",
+    tag: "2 players · stake",
+    text: "Full chess with real rules, checked by the server. Checkmate your opponent to win the pot.",
+  },
 ];
 
 export default async function GamesPage() {

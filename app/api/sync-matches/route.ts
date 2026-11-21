@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
     const { data: gebetaSettled } = await createAdminClient().rpc("settle_due_gebeta");
     // Dama games: same clean-up.
     const { data: damaSettled } = await createAdminClient().rpc("settle_due_dama");
+    // Chess games: same clean-up.
+    const { data: chessSettled } = await createAdminClient().rpc("settle_due_chess");
     // Rounds marked "settle automatically" whose matches are all over get paid too.
     let roundsSettled: string[] = [];
     try {
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       roundsSettled = [`round settle error: ${(e as Error).message}`];
     }
-    if (Number(settled) > 0 || Number(royaleSettled) > 0 || Number(survivorSettled) > 0 || Number(gebetaSettled) > 0 || Number(damaSettled) > 0 || roundsSettled.length > 0) await pushNotifications();
+    if (Number(settled) > 0 || Number(royaleSettled) > 0 || Number(survivorSettled) > 0 || Number(gebetaSettled) > 0 || Number(damaSettled) > 0 || Number(chessSettled) > 0 || roundsSettled.length > 0) await pushNotifications();
     // Morning / Evening / Night rounds (EAT) open by themselves when a slot has 10 matches.
     const autoRounds = await createDueAutoRounds();
     // Gebeta Premium renewals (from the wallet; ends quietly when there aren't enough Units).

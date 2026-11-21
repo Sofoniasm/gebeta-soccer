@@ -36,7 +36,7 @@ const PLAY: Item[] = [
   { href: "/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/fixtures", label: "Fixtures", icon: CalendarIcon },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon },
-  { href: "/games", label: "Games", icon: StarIcon, also: ["/quiz", "/royale", "/survivor", "/gebeta", "/dama"] },
+  { href: "/games", label: "Games", icon: StarIcon, also: ["/quiz", "/royale", "/survivor", "/gebeta", "/dama", "/chess"] },
   { href: "/results", label: "Results", icon: ClockIcon },
   { href: "/news", label: "News", icon: NewsIcon },
 ];
