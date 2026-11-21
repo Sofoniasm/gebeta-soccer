@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       const round = token?.match(/^r_(\d{1,9})$/);
       if (round) {
         await sendMessage(chatId, `🎯 Ready to predict? Tap below to open this round right here in Telegram. If you are new, we set you up in one tap.`, {
-          reply_markup: { inline_keyboard: [[{ text: "⚽ Play this round", web_app: { url: `${SITE}/tma?next=${encodeURIComponent(`/dashboard?round=${round[1]}`)}` } }]] },
+          reply_markup: { inline_keyboard: [[{ text: "⚽ Play this round", web_app: { url: `${SITE}/tma?next=${encodeURIComponent(`/dashboard?round=${round[1]}&new=1#slip`)}` } }]] },
         });
         return NextResponse.json({ ok: true });
       }

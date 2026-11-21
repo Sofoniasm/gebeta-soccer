@@ -54,7 +54,7 @@ export function buildRoundAnnouncement(r: RoundAnnouncementInput): {
   lines.push("", "Predict the scores and win the pot. Good luck! 🍀");
 
   const site = r.siteUrl.replace(/\/+$/, "");
-  const row: { text: string; url: string }[] = [{ text: "▶️ Play", url: `${site}/dashboard?round=${r.roundId}` }];
+  const row: { text: string; url: string }[] = [{ text: "▶️ Play", url: `${site}/dashboard?round=${r.roundId}&new=1#slip` }];
   // Mini App (web_app) buttons are not allowed in channels: use a normal link to the bot.
   if (r.botUsername) {
     const bot = r.botUsername.replace(/^@/, "");

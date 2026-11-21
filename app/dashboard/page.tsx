@@ -27,10 +27,10 @@ import { MAX_ROUND_MATCHES, MIN_ROUND_MATCHES, slotHours, slotInfo, splitRoundNa
 export const metadata = { title: "Predict · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string; round?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string; round?: string; new?: string }> }) {
   const me = await getMe("/dashboard");
   const supabase = await createClient();
-  const { tab: tabParam, round: roundParam } = await searchParams;
+  const { tab: tabParam, round: roundParam, new: newSlip } = await searchParams;
   const tab = tabParam === "results" ? "results" : "upcoming";
   const todo = await getTodo();
 
@@ -393,6 +393,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             form={form}
             crowd={crowd}
             chances={premium ? chances : undefined}
+            startNew={newSlip === "1"}
           />
           </div>
           {/* Premium before the lock; free for everyone once the round has locked. */}

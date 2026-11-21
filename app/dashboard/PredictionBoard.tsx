@@ -36,6 +36,8 @@ interface Props {
   chances?: Record<number, Chances>;
   /** How other players picked each match (split hidden before kickoff unless Premium). */
   crowd?: CrowdMap;
+  /** Opened from a "Play" button: start on a fresh slip (even if slips exist) and scroll to the games. */
+  startNew?: boolean;
 }
 
 type Draft = Record<number, { home: string; away: string }>;
@@ -64,9 +66,16 @@ const draftFrom = (matches: MatchRow[], slip?: SlipData): Draft => {
  * The betting slip: 5 to 10 matches (the round's own number), one score each. A player can place several
  * slips (each paid separately) and edit them for free until the first kickoff.
  */
-export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entryFeeLabel, balanceUnits, matches, slips, form = {}, chances, crowd = {} }: Props) {
+export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entryFeeLabel, balanceUnits, matches, slips, form = {}, chances, crowd = {}, startNew = false }: Props) {
   const router = useRouter();
-  const [selected, setSelected] = useState<number | typeof NEW>(slips.length ? slips[0].id : NEW);
+  const [selected, setSelected] = useState<number | typeof NEW>(startNew && bettable ? NEW : slips.length ? slips[0].id : NEW);
+
+  // Arriving from a Play button (channel or Telegram): take the player to the games.
+  useEffect(() => {
+    if (!startNew) return;
+    const t = setTimeout(() => document.getElementById("slip")?.scrollIntoView({ block: "start" }), 150);
+    return () => clearTimeout(t);
+  }, [startNew]);
   const slip = useMemo(() => slips.find((s) => s.id === selected), [slips, selected]);
   const [draft, setDraft] = useState<Draft>(() => draftFrom(matches, slip));
   const [result, setResult] = useState<ActionResult | null>(null);

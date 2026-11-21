@@ -25,7 +25,7 @@ declare global {
 
 /**
  * Mini App direct links (t.me/<bot>/<app>?startapp=r_5) put "start_param" in Telegram's signed data.
- *   r_<round id>  → that round on the Dashboard
+ *   r_<round id>  → that round, scrolled to a new slip with its games
  *   c_GC-XXXXXX   → that challenge
  * Anything else is ignored (it is user-controlled text).
  */
@@ -39,7 +39,7 @@ export function startParamNext(initData: string | null | undefined): string | nu
   }
   if (!sp) return null;
   const round = /^r_(\d{1,9})$/.exec(sp);
-  if (round) return `/dashboard?round=${round[1]}`;
+  if (round) return `/dashboard?round=${round[1]}&new=1#slip`;
   const ch = /^c_(GC-[A-Z0-9]{6})$/.exec(sp);
   if (ch) return `/challenges/${ch[1]}`;
   return null;
