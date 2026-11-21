@@ -913,4 +913,126 @@ begin
 end $$;
 drop table tests_ro, tests_rob;
 
+-- =====================================================================
+-- Survivor pools (0057)
+-- =====================================================================
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.survivor_pools', 'select') or has_table_privilege('authenticated', 'public.survivor_picks', 'select')
+     or has_table_privilege('anon', 'public.survivor_players', 'select') or has_table_privilege('authenticated', 'public.survivor_players', 'insert') then
+    raise exception 'FAIL: players can read or write Survivor tables directly';
+  end if;
+  if has_function_privilege('anon', 'public.survivor_state(text)', 'execute') or has_function_privilege('anon', 'public.survivor_pick(text, bigint, text)', 'execute')
+     or has_function_privilege('anon', 'public.survivor_create(numeric, int, int)', 'execute') then
+    raise exception 'FAIL: anonymous visitors can call Survivor functions';
+  end if;
+  if has_function_privilege('authenticated', 'public.survivor_advance(bigint)', 'execute') or has_function_privilege('authenticated', 'public.settle_due_survivor()', 'execute')
+     or has_function_privilege('authenticated', 'public.survivor_settle(bigint, uuid[])', 'execute') or has_function_privilege('authenticated', 'public.survivor_refund_all(bigint, text)', 'execute') then
+    raise exception 'FAIL: players can run internal Survivor money functions';
+  end if;
+end $$;
+
+update public.matches set provider = 'test';
+insert into public.matches (home_team, away_team, kickoff_at)
+  select 'SvH' || g, 'SvA' || g, date_trunc('day', now() at time zone 'Africa/Addis_Ababa') at time zone 'Africa/Addis_Ababa' + interval '10 days 12 hours' + g * interval '1 minute'
+    from generate_series(1, 4) g;
+insert into public.matches (home_team, away_team, kickoff_at)
+  select 'SwH' || g, 'SwA' || g, date_trunc('day', now() at time zone 'Africa/Addis_Ababa') at time zone 'Africa/Addis_Ababa' + interval '11 days 12 hours' + g * interval '1 minute'
+    from generate_series(1, 4) g;
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a1', 50, 'test', null) \g /dev/null
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a2', 50, 'test', null) \g /dev/null
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a3', 50, 'test', null) \g /dev/null
+create table tests_sv (code text);
+grant select, insert, update on tests_sv to authenticated;
+create table tests_svb (tag text primary key, bal numeric);
+insert into tests_svb select 'a1', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_svb select 'a2', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+insert into tests_svb select 'a3', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a3';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_sv (code) select public.survivor_create(5, 3, 7);
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.survivor_join((select code from tests_sv)) \g /dev/null
+do $$
+begin
+  begin perform public.survivor_join((select code from tests_sv)); raise exception 'FAIL: joined twice';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.survivor_start((select code from tests_sv)); raise exception 'FAIL: non-creator started';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+do $$
+begin
+  begin perform public.survivor_start((select code from tests_sv)); raise exception 'FAIL: started with too few players';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a3', false) \g /dev/null
+select public.survivor_join((select code from tests_sv)) \g /dev/null
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+select public.survivor_start((select code from tests_sv)) \g /dev/null
+
+-- picks: only matches of the current day; a1 and a2 pick, a3 does not; picks stay hidden until the lock
+do $$
+declare v jsonb := public.survivor_state((select code from tests_sv)); m1 bigint; m2 bigint; mx bigint;
+begin
+  if v ->> 'status' <> 'live' or jsonb_array_length(v -> 'matches') <> 4 then raise exception 'FAIL: expected a live pool with 4 matches, got %', v; end if;
+  select id into m1 from public.matches where home_team = 'SvH1';
+  select id into m2 from public.matches where home_team = 'SvH2';
+  select id into mx from public.matches where home_team = 'SwH1';
+  begin perform public.survivor_pick((select code from tests_sv), mx, 'home'); raise exception 'FAIL: picked a match from another day';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  perform public.survivor_pick((select code from tests_sv), m2, 'away');
+  perform public.survivor_pick((select code from tests_sv), m1, 'home');
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.survivor_pick((select code from tests_sv), (select id from public.matches where home_team = 'SvH2'), 'home') \g /dev/null
+do $$
+declare v jsonb := public.survivor_state((select code from tests_sv)); n int;
+begin
+  select count(*) into n from jsonb_array_elements(v -> 'players') p where (p ->> 'is_me')::boolean = false and p ->> 'pick_team' is not null;
+  if n <> 0 then raise exception 'FAIL: other players picks are visible before the lock'; end if;
+end $$;
+reset role;
+
+-- the day is played: a1 wins (SvH1 2-0), a2 loses (SvH2 0-1), a3 never picked
+update public.matches set status = 'finished', actual_home_score = 2, actual_away_score = 0 where home_team = 'SvH1';
+update public.matches set status = 'finished', actual_home_score = 0, actual_away_score = 1 where home_team = 'SvH2';
+update public.matches set status = 'finished', actual_home_score = 1, actual_away_score = 1 where home_team in ('SvH3', 'SvH4');
+select public.settle_due_survivor() \g /dev/null
+do $$
+declare pay numeric;
+begin
+  if (select status from public.survivor_pools where code = (select code from tests_sv)) <> 'settled' then raise exception 'FAIL: the pool should be settled, one player left'; end if;
+  select payout_units into pay from public.survivor_players where user_id = '11111111-0000-0000-0000-0000000000a1' and pool_id = (select id from public.survivor_pools where code = (select code from tests_sv));
+  if pay <> 14 then raise exception 'FAIL: winner payout should be 14, got %', pay; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_svb where tag = 'a1') + 9
+     or (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_svb where tag = 'a2') - 5
+     or (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a3') <> (select bal from tests_svb where tag = 'a3') - 5 then
+    raise exception 'FAIL: wrong balances after the Survivor pool';
+  end if;
+  if (select out_reason from public.survivor_players where user_id = '11111111-0000-0000-0000-0000000000a3' and pool_id = (select id from public.survivor_pools where code = (select code from tests_sv))) <> 'no pick' then raise exception 'FAIL: a3 should be out for no pick'; end if;
+  if not exists (select 1 from public.notifications where user_id = '11111111-0000-0000-0000-0000000000a2' and kind = 'survivor_out') then raise exception 'FAIL: no out message'; end if;
+end $$;
+select public.settle_due_survivor() \g /dev/null
+do $$ begin
+  if (select count(*) from public.wallet_ledger where kind = 'payout' and survivor_id is not null) <> 1 then raise exception 'FAIL: a second settle paid again'; end if;
+end $$;
+
+-- a pool that never starts is refunded in full
+insert into tests_svb select 'a1b', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+delete from tests_sv;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_sv (code) select public.survivor_create(5, 3, 7);
+reset role;
+update public.survivor_pools set expires_at = now() - interval '1 minute' where code = (select code from tests_sv);
+select public.settle_due_survivor() \g /dev/null
+do $$
+begin
+  if (select status from public.survivor_pools where code = (select code from tests_sv)) <> 'cancelled' then raise exception 'FAIL: an expired pool was not cancelled'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_svb where tag = 'a1b') then raise exception 'FAIL: the expired pool did not refund'; end if;
+  raise notice 'ok  survivor pools: server-only, picks hidden, last one standing wins, refunds';
+end $$;
+drop table tests_sv, tests_svb;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

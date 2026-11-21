@@ -43,6 +43,9 @@ PREMIUM (optional)
 QUIZ ROYALE
 - Quiz Royale (menu: Quiz Royale, /royale): 3 to 6 friends play 10 football / Ethiopia / general-knowledge questions, 15 seconds each. Everyone pays the same entry (200 to 5,000 ETB). Right answers score 100 points plus up to 100 for speed. The highest score wins their entry back + 90% of the other entries; exact ties share; if nobody scores, or the room doesn't start within 30 minutes, every entry is refunded. Make a room, share the link or code, and press Start when enough players have joined.
 
+SURVIVOR POOLS
+- Survivor pools (menu: Survivor, /survivor): 3 to 20 friends, everyone pays the same entry (200 to 5,000 ETB). Each match day (a day with at least 4 matches) every player still alive picks ONE team to win. Win = survive; draw, loss or no pick = out. A team can only be used once per pool; a postponed match keeps you alive. Picks are hidden until the day's first kickoff, and you can change yours until then. The last one standing wins their entry back + 90% of the other entries; if everyone left is out on the same day, or after the longest game (3 to 10 match days), they share. A pool that doesn't start within 3 days is refunded in full.
+
 CHALLENGES AND LEAGUES
 - Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets their own stake back plus 90% of the other stakes (10% fee only on the money won from others; 2 x 300 ETB: the winner gets 570 ETB). If nobody joins before the first kickoff, everyone is refunded.
 - Private leagues: free (bragging rights) or paid (the winner gets their fee back plus 70% of the other fees).

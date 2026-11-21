@@ -38,6 +38,7 @@ const PLAY: Item[] = [
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon },
   { href: "/quiz", label: "Quiz", icon: StarIcon },
   { href: "/royale", label: "Quiz Royale", icon: VersusIcon },
+  { href: "/survivor", label: "Survivor", icon: TrophyIcon },
   { href: "/results", label: "Results", icon: ClockIcon },
   { href: "/news", label: "News", icon: NewsIcon },
 ];
