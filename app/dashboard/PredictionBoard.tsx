@@ -179,7 +179,7 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
       {selected === NEW && open && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-4 text-sm">
           <p className="text-mist">
-            Fill in all <b className="text-white">{matches.length} scores</b>, then place your bet for <b className="text-white">{entryFeeLabel}</b>. You can edit it free until the first kickoff. No refunds once placed.
+            Fill in all <b className="text-white">{matches.length} scores</b>, then place your bet for <b className="text-white">{entryFeeLabel}</b>. You can edit it free until the first kickoff. No refunds once placed.{slips.length > 0 && " Tip: use different scores from your other slips."}
           </p>
           {slips.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -190,6 +190,18 @@ export default function PredictionBoard({ roundId, bettable, entryFeeUnits, entr
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {open && slips.length > 0 && selected !== NEW && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-4 text-sm">
+          <p className="text-mist">
+            💡 <b className="text-white">More slips, more chances.</b> Each slip is its own bet with its own scores, so several different slips cover more results. Each costs{" "}
+            <b className="text-white">{entryFeeLabel}</b>, and nothing is guaranteed.
+          </p>
+          <button onClick={() => setSelected(NEW)} className="shrink-0 rounded-full bg-emerald-300 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-ink hover:brightness-110">
+            + Add another slip
+          </button>
         </div>
       )}
 
