@@ -8,6 +8,9 @@ import { AppShell } from "@/components/AppShell";
 import { Banner, inputClass, secondaryButtonClass } from "@/components/ui";
 import { SubmitButton } from "../SubmitButton";
 
+/** The labelled computer player of Chess: managed in Admin > Chess bot, not here. */
+const HOUSE_BOT_ID = "00000000-0000-4000-8000-00000000b075";
+
 export const metadata = { title: "Players · Admin · GebetaSoccer" };
 export const dynamic = "force-dynamic";
 
@@ -22,7 +25,7 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
   const admin = createAdminClient();
 
   // Search, or show newest players by default
-  let query = admin.from("profiles").select("id, username, email, phone_number, balance_units, created_at, is_admin, phone_verified_at");
+  let query = admin.from("profiles").select("id, username, email, phone_number, balance_units, created_at, is_admin, phone_verified_at").neq("id", HOUSE_BOT_ID);
   const term = q.trim().replace(/[%,()]/g, "");
   if (term) {
     const digits = term.replace(/\D/g, "");
@@ -44,7 +47,7 @@ export default async function PlayersAdminPage({ searchParams }: { searchParams:
     : { data: [] };
   const inviter = new Map(((inviterRows ?? []) as { id: string; username: string; referral_code: string | null }[]).map((r) => [r.id, r]));
 
-  const { count: totalPlayers } = await admin.from("profiles").select("id", { count: "exact", head: true });
+  const { count: totalPlayers } = await admin.from("profiles").select("id", { count: "exact", head: true }).neq("id", HOUSE_BOT_ID);
 
   const { data: pending } = await admin
     .from("withdrawal_requests")
