@@ -27,7 +27,7 @@ import {
   LogOutIcon,
 } from "./icons";
 
-type Item = { href: string; label: string; icon: (p: { size?: number }) => React.ReactNode; badge?: "todo" };
+type Item = { href: string; label: string; icon: (p: { size?: number }) => React.ReactNode; badge?: "todo"; also?: string[] };
 
 const PLAY: Item[] = [
   { href: "/dashboard", label: "Dashboard", icon: BallIcon },
@@ -36,11 +36,7 @@ const PLAY: Item[] = [
   { href: "/leagues", label: "Leagues", icon: FlagIcon },
   { href: "/fixtures", label: "Fixtures", icon: CalendarIcon },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon },
-  { href: "/quiz", label: "Quiz", icon: StarIcon },
-  { href: "/royale", label: "Quiz Royale", icon: VersusIcon },
-  { href: "/survivor", label: "Survivor", icon: TrophyIcon },
-  { href: "/gebeta", label: "Gebeta 1v1", icon: VersusIcon },
-  { href: "/dama", label: "Dama 1v1", icon: VersusIcon },
+  { href: "/games", label: "Games", icon: StarIcon, also: ["/quiz", "/royale", "/survivor", "/gebeta", "/dama"] },
   { href: "/results", label: "Results", icon: ClockIcon },
   { href: "/news", label: "News", icon: NewsIcon },
 ];
@@ -92,8 +88,8 @@ function tap() {
   }
 }
 
-const isActive = (path: string, href: string) =>
-  href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`);
+const matches = (path: string, href: string) => (href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`));
+const isActive = (path: string, href: string, also: string[] = []) => matches(path, href) || also.some((h) => matches(path, h));
 
 function Badge({ n, className = "" }: { n: number; className?: string }) {
   if (n <= 0) return null;
@@ -108,8 +104,8 @@ function Group({ title, items, path, todo }: { title: string; items: Item[]; pat
   return (
     <>
       <p className="px-3 pb-2 pt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/60 first:pt-0">{title}</p>
-      {items.map(({ href, label, icon: Icon, badge }) => {
-        const active = isActive(path, href);
+      {items.map(({ href, label, icon: Icon, badge, also }) => {
+        const active = isActive(path, href, also);
         return (
           <Link
             key={href}
@@ -233,8 +229,8 @@ function MenuSheet({ path, todoCount, isAdmin, username, balanceUnits, onClose }
           <section key={g.title} className="mt-4">
             <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/60">{g.title}</p>
             <div className="grid grid-cols-3 gap-2">
-              {g.items.map(({ href, label, icon: Icon, badge }) => {
-                const active = isActive(path, href);
+              {g.items.map(({ href, label, icon: Icon, badge, also }) => {
+                const active = isActive(path, href, also);
                 return (
                   <Link
                     key={href}

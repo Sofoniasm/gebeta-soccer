@@ -18,6 +18,7 @@ export function DamaGame({ code, initial, balanceUnits, url }: { code: string; i
   const [busy, setBusy] = useState(false);
   const [sel, setSel] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [confirmResign, setConfirmResign] = useState(false);
   const gotAt = useRef(0);
   const statusRef = useRef(st.status);
   const [, force] = useState(0);
@@ -134,39 +135,50 @@ export function DamaGame({ code, initial, balanceUnits, url }: { code: string; i
       <div className="mb-2 flex items-center justify-between text-xs font-bold text-mist">
         <span>{them ?? "Opponent"} · {seat === 2 ? counts.p1 : counts.p2} men</span>
       </div>
-      <div className="mx-auto grid max-w-[30rem] grid-cols-8 overflow-hidden rounded-2xl border border-white/10">
-        {Array.from({ length: 64 }, (_, i) => {
-          const dr = Math.floor(i / 8);
-          const dc = i % 8;
-          const cell = damaCell(seat, dr, dc);
-          const v = st.board[cell] ?? 0;
-          const owner = damaOwner(v);
-          const mine = owner !== 0 && owner === (seat === 0 ? 1 : seat);
-          const isTarget = targets.includes(cell);
-          const movable = myTurn && st.chain_from === null && byFrom.has(cell);
-          const isSel = active === cell;
-          const last = st.last_from === cell || st.last_to === cell;
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => tapCell(cell)}
-              disabled={!myTurn || (!isTarget && !movable && !isSel)}
-              className={`relative flex aspect-square items-center justify-center ${(dr + dc) % 2 === 0 ? "bg-[#2b2550]" : "bg-[#1b1738]"} ${isTarget ? "ring-2 ring-inset ring-emerald-300" : ""} ${isSel ? "ring-2 ring-inset ring-lilac" : ""} ${last && !isTarget ? "ring-1 ring-inset ring-amber-200/60" : ""} disabled:cursor-default`}
-            >
-              {v !== 0 && (
-                <span
-                  className={`flex h-[78%] w-[78%] items-center justify-center rounded-full border-2 text-xs font-extrabold shadow ${
-                    mine ? "border-lilac-soft bg-lilac text-white" : "border-white/30 bg-white text-ink"
-                  } ${movable ? "animate-pulse" : ""}`}
-                >
-                  {v === 2 || v === 4 ? "♛" : ""}
-                </span>
-              )}
-              {isTarget && v === 0 && <span className="h-2.5 w-2.5 rounded-full bg-emerald-300/80" />}
-            </button>
-          );
-        })}
+      <div className="mx-auto max-w-[32rem] rounded-2xl bg-gradient-to-br from-[#6b4423] to-[#3e2614] p-2 shadow-2xl shadow-black/50">
+        <div className="grid grid-cols-8 overflow-hidden rounded-lg">
+          {Array.from({ length: 64 }, (_, i) => {
+            const dr = Math.floor(i / 8);
+            const dc = i % 8;
+            const cell = damaCell(seat, dr, dc);
+            const v = st.board[cell] ?? 0;
+            const owner = damaOwner(v);
+            const mine = owner !== 0 && owner === (seat === 0 ? 1 : seat);
+            const king = v === 2 || v === 4;
+            const isTarget = targets.includes(cell);
+            const movable = myTurn && st.chain_from === null && byFrom.has(cell);
+            const isSel = active === cell;
+            const last = st.last_from === cell || st.last_to === cell;
+            const light = (dr + dc) % 2 === 0;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => tapCell(cell)}
+                disabled={!myTurn || (!isTarget && !movable && !isSel)}
+                className={`relative flex aspect-square items-center justify-center ${light ? "bg-[#f0d9b5]" : "bg-[#b58863]"} ${last ? "after:absolute after:inset-0 after:bg-yellow-300/35" : ""} ${isSel ? "ring-4 ring-inset ring-sky-400" : ""} disabled:cursor-default`}
+              >
+                {v !== 0 && (
+                  <span
+                    className={`relative z-10 flex h-[82%] w-[82%] items-center justify-center rounded-full text-[clamp(14px,4.6vw,26px)] leading-none shadow-[0_3px_5px_rgba(0,0,0,0.55)] ${movable ? "animate-pulse ring-2 ring-sky-400" : ""} ${king ? "outline outline-2 outline-offset-[-6px] outline-yellow-300/90" : ""}`}
+                    style={{
+                      background: mine
+                        ? "radial-gradient(circle at 35% 30%, #fff7d6 0%, #f4c542 45%, #b97a10 100%)"
+                        : "radial-gradient(circle at 35% 30%, #6b6b75 0%, #2a2a33 55%, #0f0f14 100%)",
+                      border: mine ? "2px solid #8a5a08" : "2px solid #000",
+                      color: mine ? "#6b3f00" : "#f4c542",
+                    }}
+                  >
+                    {king ? "♛" : ""}
+                  </span>
+                )}
+                {isTarget && (
+                  <span className={`absolute z-20 rounded-full bg-emerald-500/85 ring-2 ring-white/70 ${v === 0 ? "h-[34%] w-[34%]" : "h-[90%] w-[90%] opacity-40"}`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="mt-2 flex items-center justify-between text-xs font-bold text-mist">
         <span>{seat === 0 ? st.creator : "You"} · {seat === 2 ? counts.p2 : counts.p1} men</span>
@@ -222,16 +234,23 @@ export function DamaGame({ code, initial, balanceUnits, url }: { code: string; i
           </p>
         </section>
         {seat !== 0 && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              if (window.confirm("Resign? You lose your stake.")) run(() => resignDama(code));
-            }}
-            className={`${secondaryButtonClass} w-full justify-center`}
-          >
-            Resign
-          </button>
+          confirmResign ? (
+            <div className="rounded-2xl border border-rose-300/30 bg-rose-300/10 p-4 text-center">
+              <p className="text-sm font-bold">Resign this game? You lose your stake.</p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" disabled={pending} onClick={() => run(() => resignDama(code))} className="flex-1 rounded-full bg-rose-400 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:brightness-110">
+                  Yes, resign
+                </button>
+                <button type="button" onClick={() => setConfirmResign(false)} className={`${secondaryButtonClass} flex-1 justify-center`}>
+                  Keep playing
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" disabled={pending} onClick={() => setConfirmResign(true)} className={`${secondaryButtonClass} w-full justify-center`}>
+              Resign
+            </button>
+          )
         )}
       </div>
     );

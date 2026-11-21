@@ -33,6 +33,7 @@ export function GebetaGame({ code, initial, balanceUnits, url }: { code: string;
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState(false); // a move is on its way
   const [copied, setCopied] = useState(false);
+  const [confirmResign, setConfirmResign] = useState(false);
   const gotAt = useRef(0);
   const statusRef = useRef(st.status);
   const [, force] = useState(0);
@@ -182,16 +183,23 @@ export function GebetaGame({ code, initial, balanceUnits, url }: { code: string;
           </p>
         </section>
         {seat !== 0 && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              if (window.confirm("Resign? You lose your stake.")) run(() => resignGebeta(code));
-            }}
-            className={`${secondaryButtonClass} w-full justify-center`}
-          >
-            Resign
-          </button>
+          confirmResign ? (
+            <div className="rounded-2xl border border-rose-300/30 bg-rose-300/10 p-4 text-center">
+              <p className="text-sm font-bold">Resign this game? You lose your stake.</p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" disabled={pending} onClick={() => run(() => resignGebeta(code))} className="flex-1 rounded-full bg-rose-400 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:brightness-110">
+                  Yes, resign
+                </button>
+                <button type="button" onClick={() => setConfirmResign(false)} className={`${secondaryButtonClass} flex-1 justify-center`}>
+                  Keep playing
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" disabled={pending} onClick={() => setConfirmResign(true)} className={`${secondaryButtonClass} w-full justify-center`}>
+              Resign
+            </button>
+          )
         )}
       </div>
     );
