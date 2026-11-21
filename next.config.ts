@@ -16,8 +16,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The chess engine (WASM) is loaded by path at run time: make sure it ships with the chess routes.
   outputFileTracingIncludes: {
-    "/api/chess/[code]": ["./engine/**/*"],
-    "/chess/[code]": ["./engine/**/*"],
+    "/api/chess/*": ["./engine/**/*"],
+    "/chess/*": ["./engine/**/*"],
     "/api/admin/chess-engine-check": ["./engine/**/*"],
   },
   async headers() {
