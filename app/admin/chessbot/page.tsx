@@ -47,7 +47,7 @@ export default async function AdminChessBotPage({ searchParams }: { searchParams
   ]);
   const set = (s ?? {}) as Settings;
   const balance = Number(bot?.balance_units ?? 0);
-  const todayNet = ((ledger ?? []) as { amount_units: number }[]).reduce((a, r) => a + Number(r.amount_units), 0);
+  const todayNet = Math.round(((ledger ?? []) as { amount_units: number }[]).reduce((a, r) => a + Number(r.amount_units), 0) * 100) / 100;
   const list = (games ?? []) as unknown as BotGame[];
   const card = "rounded-[2rem] border border-white/5 bg-card/60 p-5 sm:p-6";
   const field = "w-full rounded-xl border border-white/10 bg-ink/70 px-3 py-2 text-sm text-white outline-none";
