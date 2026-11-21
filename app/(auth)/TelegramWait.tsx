@@ -12,8 +12,8 @@ import { SpinnerIcon } from "@/components/icons";
  */
 const TEXT = {
   en: {
-    title: "One tap in Telegram",
-    body: "We just sent you a message. Open Telegram and tap 📱 Share my phone number. Telegram confirms the number is yours, so you don't need a password. This page signs you in by itself.",
+    title: "Two quick steps in Telegram",
+    body: "We just sent you a message. Open Telegram, type your date of birth (18+ only), then tap 📱 Share my phone number. Telegram confirms the number is yours, so you don't need a password. This page signs you in by itself.",
     open: "Open Telegram →",
     late: "That took too long.",
     again: "Tap the Telegram button again to get a fresh message.",
@@ -21,8 +21,8 @@ const TEXT = {
     form: "Use the sign-up form",
   },
   am: {
-    title: "በቴሌግራም አንድ ንክኪ",
-    body: "መልዕክት ልከንልዎታል። ቴሌግራምን ከፍተው «📱 Share my phone number» ን ይጫኑ። ቴሌግራም ቁጥሩ የእርስዎ መሆኑን ያረጋግጣል፣ ስለዚህ የይለፍ ቃል አያስፈልግም። ይህ ገጽ በራሱ ያስገባዎታል።",
+    title: "በቴሌግራም ሁለት ቀላል ደረጃዎች",
+    body: "መልዕክት ልከንልዎታል። ቴሌግራምን ከፍተው የልደት ቀንዎን ይጻፉ (18+ ብቻ)፣ ከዚያ «📱 Share my phone number» ን ይጫኑ። ቴሌግራም ቁጥሩ የእርስዎ መሆኑን ያረጋግጣል፣ ስለዚህ የይለፍ ቃል አያስፈልግም። ይህ ገጽ በራሱ ያስገባዎታል።",
     open: "ቴሌግራምን ክፈት →",
     late: "ጊዜው አልፏል።",
     again: "አዲስ መልዕክት ለማግኘት የቴሌግራም አዝራሩን እንደገና ይጫኑ።",

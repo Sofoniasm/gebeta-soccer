@@ -51,8 +51,8 @@ const randomPassword = () => randomBytes(24).toString("base64url");
 
 export type CreateResult = { ok: true; userId: string; username: string } | { ok: false; reason: "taken" | "failed" };
 
-/** A brand-new player from Telegram: confirmed phone, linked Telegram, no password they know. Date of birth comes next, in the app. */
-export async function createTelegramAccount(tg: TgUser, phone: string): Promise<CreateResult> {
+/** A brand-new player from Telegram: confirmed phone, linked Telegram, no password they know. Date of birth comes from the bot chat (or, from the Mini App, the app asks once). */
+export async function createTelegramAccount(tg: TgUser, phone: string, dob?: string): Promise<CreateResult> {
   const admin = createAdminClient();
   const { data: other } = await admin.from("profiles").select("id").eq("telegram_user_id", tg.id).maybeSingle();
   if (other) return { ok: false, reason: "taken" };
@@ -74,7 +74,8 @@ export async function createTelegramAccount(tg: TgUser, phone: string): Promise<
     email: placeholderEmail(phone),
     password: randomPassword(),
     email_confirm: true,
-    user_metadata: { username, phone_number: phone },
+    // date_of_birth (already checked 18+) is saved with the account; without it the app asks once before playing
+    user_metadata: { username, phone_number: phone, ...(dob ? { date_of_birth: dob } : {}) },
   });
   if (error || !created.user) return { ok: false, reason: "failed" };
   await markPhoneVerified(created.user.id, tg.id);

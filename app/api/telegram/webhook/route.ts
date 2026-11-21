@@ -15,6 +15,7 @@ import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
 import { getBotLang, handleBotCommand } from "@/lib/bot-commands";
 import { askAssistant } from "@/lib/assistant";
 import { getSiteSettings } from "@/lib/site-settings";
+import { finishOnboarding, handleOnboardingText, startOnboarding } from "@/lib/telegram-onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,10 @@ const removeKeyboard = { reply_markup: { remove_keyboard: true } };
 const playButton = {
   reply_markup: { inline_keyboard: [[{ text: "⚽ Play GebetaSoccer", web_app: { url: `${SITE}/tma` } }]] },
 };
+/** "Play" button that opens the Mini App straight on a page (a round, a challenge). */
+const playButtonTo = (path: string) => ({
+  reply_markup: { inline_keyboard: [[{ text: "⚽ Play GebetaSoccer", web_app: { url: `${SITE}/tma?next=${encodeURIComponent(path)}` } }]] },
+});
 const mask = (p: string) => p.replace(/^(\+2519?\d{2})\d{4}(\d{2})$/, "$1••••$2");
 
 export async function POST(req: NextRequest) {
@@ -63,6 +68,15 @@ export async function POST(req: NextRequest) {
     if (msg.text?.startsWith("/start")) {
       const token = msg.text.split(" ")[1]?.trim();
       const ch = token?.match(/^c_(GC-[A-Z0-9]{6})$/);
+      const roundLink = token?.match(/^r_(\d{1,9})$/);
+      // Not a verification link: a new Telegram user is signed up right here in the chat (age, then phone).
+      if (msg.from && (!token || token === "play" || ch || roundLink)) {
+        const { data: known } = await admin.from("profiles").select("id, phone_verified_at").eq("telegram_user_id", msg.from.id).maybeSingle();
+        if (!known?.phone_verified_at) {
+          await startOnboarding(chatId, ch ? `/challenges/${ch[1]}` : roundLink ? `/dashboard?round=${roundLink[1]}&new=1#slip` : null);
+          return NextResponse.json({ ok: true });
+        }
+      }
       if (ch) {
         await sendMessage(chatId, `🤝 You've been challenged on <b>GebetaSoccer</b>! Tap below to see the matches and the stake.`, {
           reply_markup: { inline_keyboard: [[{ text: `Open challenge ${ch[1]}`, web_app: { url: `${SITE}/tma?next=${encodeURIComponent(`/challenges/${ch[1]}`)}` } }]] },
@@ -97,6 +111,11 @@ export async function POST(req: NextRequest) {
       }
       await admin.from("phone_verifications").update({ telegram_chat_id: chatId }).eq("id", row.id);
       await sendMessage(chatId, "To confirm your GebetaSoccer account, tap the button below to share your phone number. 👇", shareKeyboard);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ---- text typed during the sign-up (date of birth)
+    if (msg.text && !msg.text.startsWith("/") && !msg.contact && (await handleOnboardingText(chatId, msg.text))) {
       return NextResponse.json({ ok: true });
     }
 
@@ -140,6 +159,7 @@ export async function POST(req: NextRequest) {
         //  - a confirmed account with this number: link this Telegram to it;
         //  - an account never confirmed: its real owner takes it over (old password wiped);
         //  - no account: create one (confirmed phone, no password). Date of birth is asked in the app.
+        const ob = await finishOnboarding(chatId); // age typed in the chat, and where to send them to play
         const shared = normalizeEthiopianPhone(msg.contact.phone_number);
         if (!shared) {
           await sendMessage(chatId, "GebetaSoccer is for Ethiopian mobile numbers (+251…). This Telegram number can't be used here. Message support if you think this is a mistake.", removeKeyboard);
@@ -152,10 +172,10 @@ export async function POST(req: NextRequest) {
         } else if (other && other.id !== owner?.id) {
           await sendMessage(chatId, "❌ This Telegram account is already linked to another GebetaSoccer player.", removeKeyboard);
         } else if (!owner) {
-          const created = await createTelegramAccount(msg.from, shared);
+          const created = await createTelegramAccount(msg.from, shared, ob?.dob ?? undefined);
           if (created.ok) {
-            await sendMessage(chatId, `✅ Welcome to <b>GebetaSoccer</b>, ${created.username}! Your account is ready: no password needed.\n\nThe app will ask for your date of birth once (18+ only), then you can play.`, { ...removeKeyboard });
-            await sendMessage(chatId, "Tap to play 👇", playButton);
+            await sendMessage(chatId, `✅ Welcome to <b>GebetaSoccer</b>, ${created.username}! Your account is ready: no password needed.\n\n${ob?.dob ? "Your age is confirmed, so you can play right away." : "The app will ask for your date of birth once (18+ only), then you can play."}`, { ...removeKeyboard });
+            await sendMessage(chatId, "Tap to play 👇", ob?.next_path ? playButtonTo(ob.next_path) : playButton);
             const { telegram_support } = await getSiteSettings();
             await sendMessage(
               chatId,

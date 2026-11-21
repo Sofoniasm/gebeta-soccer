@@ -24,7 +24,7 @@ WALLET
 
 ACCOUNT
 - Sign up on the website with username, phone (09... or +2519...), date of birth (18+) and password, then confirm the phone with the Telegram bot (tap Verify with Telegram, Start, Share my phone number).
-- Telegram needs no password: in the Telegram app tap Play, then "Continue with my Telegram number" and share your number once (Telegram confirms it is yours). A new account is made for you, or your website account is confirmed and linked. The first time the app asks for your date of birth (18+ only) and to accept the Terms. On a computer, tap "Log in with Telegram", confirm in Telegram and share the number once; after that only confirming in Telegram is needed.
+- Telegram needs no password. A new player opens the bot (or taps Play in the channel): the bot asks for the date of birth (18+ only; under 18 is declined, a mistyped date can be sent again) and then to share the phone number once (Telegram confirms it is yours). The account is made for you and the Mini App opens straight into it. Players who already have a website account just share their number once and it is confirmed and linked. On a computer, tap "Log in with Telegram", confirm in Telegram and share the number once; after that only confirming in Telegram is needed.
 - Or log in with phone, username or email + password. Too many wrong passwords lock the login for a while; support can unlock it.
 - Forgot password: Log in -> Forgot password? -> phone number -> Send me a code -> type the 6-digit code from @GebetaSoccerbot and the new password twice. The code works 10 minutes; 5 wrong codes lock it (ask for a new code). Needs Telegram linked to the account.
 - Change password: Profile -> Change password.

@@ -22,12 +22,11 @@ import { checkLoginLock, clientIp, recordLoginAttempt } from "@/lib/login-lock";
 import { PENDING_COOKIE, PENDING_TTL_SECONDS, safeNextPath, signPending, verifyLoginWidget } from "@/lib/telegram-login";
 import { startSessionFor } from "@/lib/telegram-session";
 import { startTelegramVerificationDm } from "@/lib/verification";
-import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
+import { sendMessage } from "@/lib/telegram";
+import { startOnboarding } from "@/lib/telegram-onboarding";
 import { REF_COOKIE, REF_COOKIE_MAX_AGE, normalizeReferralCode } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
-
-const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams;
@@ -94,12 +93,8 @@ export async function GET(req: NextRequest) {
     path: "/",
     maxAge: PENDING_TTL_SECONDS,
   });
-  const hi = v.user.first_name ? `, ${esc(v.user.first_name)}` : "";
-  await sendMessage(
-    v.user.id,
-    `👋 Hi${hi}! Welcome to <b>GebetaSoccer</b>.\n\nTap <b>Share my phone number</b> below, once. Telegram confirms the number is yours, so there is no password. Then go back to the website: you will be signed in by itself.`,
-    shareContactKeyboard,
-  ).catch(() => null);
+  // The bot writes first (the button asked for permission): age, then phone, then this page signs them in by itself.
+  await startOnboarding(v.user.id, next !== "/dashboard" ? next : null).catch(() => null);
   // Invite link code: keep it for the sign-up form (also saved by the proxy cookie).
   const ref = normalizeReferralCode(q.get("ref"));
   if (ref) {
