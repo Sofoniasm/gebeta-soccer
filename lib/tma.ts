@@ -23,6 +23,28 @@ declare global {
   }
 }
 
+/**
+ * Mini App direct links (t.me/<bot>/<app>?startapp=r_5) put "start_param" in Telegram's signed data.
+ *   r_<round id>  → that round on the Dashboard
+ *   c_GC-XXXXXX   → that challenge
+ * Anything else is ignored (it is user-controlled text).
+ */
+export function startParamNext(initData: string | null | undefined): string | null {
+  if (!initData) return null;
+  let sp: string | null = null;
+  try {
+    sp = new URLSearchParams(initData).get("start_param");
+  } catch {
+    return null;
+  }
+  if (!sp) return null;
+  const round = /^r_(\d{1,9})$/.exec(sp);
+  if (round) return `/dashboard?round=${round[1]}`;
+  const ch = /^c_(GC-[A-Z0-9]{6})$/.exec(sp);
+  if (ch) return `/challenges/${ch[1]}`;
+  return null;
+}
+
 /** The Telegram WebApp object when we're running inside Telegram, else null. */
 export function getWebApp(): TelegramWebApp | null {
   if (typeof window === "undefined") return null;

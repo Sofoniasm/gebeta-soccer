@@ -119,6 +119,7 @@ export async function announceOpenAutoRounds(): Promise<string[]> {
         feeUnits: r.entry_fee_units,
         siteUrl: SITE_URL,
         botUsername: TELEGRAM_BOT_USERNAME,
+        miniAppName: process.env.TELEGRAM_MINIAPP_NAME?.trim() || undefined,
       });
       const res = await sendChannelMessage(post.text, { reply_markup: post.reply_markup, disable_web_page_preview: true });
       if (res.ok) {

@@ -12,6 +12,9 @@
 .env*
 !.env.example
 
+# vercel CLI link (project ids)
+.vercel
+
 # misc
 .DS_Store
 *.pem

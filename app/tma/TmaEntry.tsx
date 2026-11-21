@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { initDataFromUrl, waitForWebApp } from "@/lib/tma";
+import { initDataFromUrl, startParamNext, waitForWebApp } from "@/lib/tma";
 import { Logo } from "@/components/Logo";
 import { SpinnerIcon } from "@/components/icons";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
@@ -25,7 +25,9 @@ export function TmaEntry() {
   const router = useRouter();
   const params = useSearchParams();
   const nextParam = params.get("next");
-  const next = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/dashboard";
+  const explicitNext = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : null;
+  /** Where to go after signing in: ?next=, else the direct link's start parameter (a round or a challenge), else the Dashboard. */
+  const nextFor = (initData: string | null) => explicitNext ?? startParamNext(initData) ?? "/dashboard";
   const [state, setState] = useState<State>({ kind: "loading" });
 
   /** One tap: share the Telegram phone number; the bot links it to the account with that number, then we sign in. */
@@ -50,7 +52,7 @@ export function TmaEntry() {
           const data = (await res.json()) as { status: string };
           if (data.status === "ok") {
             wa.HapticFeedback?.notificationOccurred("success");
-            router.replace(next);
+            router.replace(nextFor(initData));
             router.refresh();
             return;
           }
@@ -87,7 +89,7 @@ export function TmaEntry() {
         const data = (await res.json()) as { status: string; message?: string; firstName?: string; loggedIn?: boolean };
         if (data.status === "ok") {
           (wa ?? window.Telegram?.WebApp)?.HapticFeedback?.notificationOccurred("success");
-          router.replace(next);
+          router.replace(nextFor(initData));
           router.refresh();
         } else if (data.status === "unlinked" && data.loggedIn) {
           router.replace("/tma/link");
@@ -101,7 +103,7 @@ export function TmaEntry() {
         setState({ kind: "error", message: "The connection is too slow or was lost. Check your internet and try again." });
       }
     })();
-  }, [router, next]);
+  }, [router, explicitNext]);
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-8 px-6 py-10 text-center">

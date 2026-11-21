@@ -33,6 +33,8 @@ export interface RoundAnnouncementInput {
   siteUrl: string;
   /** Bot username without "@", for an "Open in Telegram" button. Empty = no such button. */
   botUsername?: string;
+  /** Short name of the Mini App registered in @BotFather (/newapp). Set = the button opens the app straight on this round. */
+  miniAppName?: string;
 }
 
 /** The text (HTML) and inline buttons for "a new automatic round is open". */
@@ -54,7 +56,13 @@ export function buildRoundAnnouncement(r: RoundAnnouncementInput): {
   const site = r.siteUrl.replace(/\/+$/, "");
   const row: { text: string; url: string }[] = [{ text: "▶️ Play", url: `${site}/dashboard?round=${r.roundId}` }];
   // Mini App (web_app) buttons are not allowed in channels: use a normal link to the bot.
-  if (r.botUsername) row.push({ text: "🤖 Play in Telegram", url: `https://t.me/${r.botUsername.replace(/^@/, "")}?start=r_${r.roundId}` });
+  if (r.botUsername) {
+    const bot = r.botUsername.replace(/^@/, "");
+    // With a Mini App registered in @BotFather (/newapp) the link opens the app straight on this round;
+    // otherwise it opens the bot, which answers with a "Play this round" button.
+    const url = r.miniAppName ? `https://t.me/${bot}/${r.miniAppName}?startapp=r_${r.roundId}` : `https://t.me/${bot}?start=r_${r.roundId}`;
+    row.push({ text: "🤖 Play in Telegram", url });
+  }
   return { text: lines.join("\n"), reply_markup: { inline_keyboard: [row] } };
 }
 

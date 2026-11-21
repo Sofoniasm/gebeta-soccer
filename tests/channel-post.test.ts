@@ -76,3 +76,8 @@ test("channel: winners post shows usernames and amounts, adds up a player's slip
   assert.match(buildWinnersPost({ roundName: "R", winners: [{ username: "a<b>", units: 1, rank: 1 }], poolUnits: 1, players: 2, siteUrl: "https://x" })!.text, /a&lt;b&gt;/);
   assert.equal(buildWinnersPost({ roundName: "R", winners: [], poolUnits: 5, players: 3, siteUrl: "https://x" }), null);
 });
+
+test("channel post: with a Mini App short name the Telegram button opens the app straight on the round", () => {
+  const post = buildRoundAnnouncement({ roundId: 12, name: "Test", slot: "evening", matchCount: 10, lockAt: "2026-11-21T12:30:00Z", siteUrl: "https://www.gebetasoccer.com", botUsername: "GebetaSoccerbot", miniAppName: "play" });
+  assert.equal(post.reply_markup.inline_keyboard[0][1].url, "https://t.me/GebetaSoccerbot/play?startapp=r_12");
+});
