@@ -97,7 +97,7 @@ export default async function AdminChessBotPage({ searchParams }: { searchParams
       <section className={`${card} mb-5`}>
         <h2 className="mb-3 text-lg font-extrabold">Fund the bot wallet</h2>
         <form action={fundChessBot} className="flex gap-2">
-          <input name="units" type="number" min="1" max="500" step="1" placeholder="Units (1 Unit = 200 ETB)" className={field} required />
+          <input name="units" type="number" min="5" max="500" step="1" placeholder="Units, at least 5 (1 Unit = 200 ETB)" className={field} required />
           <SubmitButton>Add Units</SubmitButton>
         </form>
         <p className="mt-2 text-xs text-mist">The bot&apos;s wallet is the house bank: only put in what you can afford to lose.</p>

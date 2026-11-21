@@ -57,7 +57,7 @@ export async function pauseChessBot() {
 export async function fundChessBot(formData: FormData) {
   const adminId = await requireAdminId("/admin/chessbot");
   const units = num(formData.get("units"));
-  if (!Number.isFinite(units) || units <= 0 || units > 500) back("err", "Enter 1 to 500 Units.");
+  if (!Number.isFinite(units) || units < 5 || units > 500) back("err", "Enter 5 to 500 Units (the wallet needs at least 5 Units per top-up).");
   const { error } = await createAdminClient().rpc("admin_add_units", { p_user_id: BOT_ID, p_units: units, p_reference: "House Bot bank", p_admin_id: adminId });
   if (error) back("err", error.message);
   back("msg", `${units} Units added to the House Bot wallet.`);
