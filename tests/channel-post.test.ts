@@ -34,7 +34,7 @@ test("channel: round announcement text and buttons", () => {
   assert.ok(!p.text.includes("1 Units"));
   const row = p.reply_markup.inline_keyboard[0];
   assert.equal(row[0].url, "https://gebetasoccer.com/dashboard?round=42");
-  assert.equal(row[1].url, "https://t.me/GebetaSoccerbot?start=play");
+  assert.match(row[1].url, /^https:\/\/t\.me\/GebetaSoccerbot\?start=r_\d+$/); // opens that round in the Mini App
   // Channels don't allow Mini App buttons: only plain url buttons.
   for (const b of row) assert.deepEqual(Object.keys(b).sort(), ["text", "url"]);
 });

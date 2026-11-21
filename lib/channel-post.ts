@@ -54,7 +54,7 @@ export function buildRoundAnnouncement(r: RoundAnnouncementInput): {
   const site = r.siteUrl.replace(/\/+$/, "");
   const row: { text: string; url: string }[] = [{ text: "▶️ Play", url: `${site}/dashboard?round=${r.roundId}` }];
   // Mini App (web_app) buttons are not allowed in channels: use a normal link to the bot.
-  if (r.botUsername) row.push({ text: "🤖 Play in Telegram", url: `https://t.me/${r.botUsername.replace(/^@/, "")}?start=play` });
+  if (r.botUsername) row.push({ text: "🤖 Play in Telegram", url: `https://t.me/${r.botUsername.replace(/^@/, "")}?start=r_${r.roundId}` });
   return { text: lines.join("\n"), reply_markup: { inline_keyboard: [row] } };
 }
 

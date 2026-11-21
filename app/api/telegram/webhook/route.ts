@@ -14,6 +14,7 @@ import { confirmUnconfirmedAccount, createTelegramAccount } from "@/lib/telegram
 import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
 import { getBotLang, handleBotCommand } from "@/lib/bot-commands";
 import { askAssistant } from "@/lib/assistant";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,13 @@ export async function POST(req: NextRequest) {
       if (ch) {
         await sendMessage(chatId, `🤝 You've been challenged on <b>GebetaSoccer</b>! Tap below to see the matches and the stake.`, {
           reply_markup: { inline_keyboard: [[{ text: `Open challenge ${ch[1]}`, web_app: { url: `${SITE}/tma?next=${encodeURIComponent(`/challenges/${ch[1]}`)}` } }]] },
+        });
+        return NextResponse.json({ ok: true });
+      }
+      const round = token?.match(/^r_(\d{1,9})$/);
+      if (round) {
+        await sendMessage(chatId, `🎯 Ready to predict? Tap below to open this round right here in Telegram. If you are new, we set you up in one tap.`, {
+          reply_markup: { inline_keyboard: [[{ text: "⚽ Play this round", web_app: { url: `${SITE}/tma?next=${encodeURIComponent(`/dashboard?round=${round[1]}`)}` } }]] },
         });
         return NextResponse.json({ ok: true });
       }
@@ -148,6 +156,12 @@ export async function POST(req: NextRequest) {
           if (created.ok) {
             await sendMessage(chatId, `✅ Welcome to <b>GebetaSoccer</b>, ${created.username}! Your account is ready: no password needed.\n\nThe app will ask for your date of birth once (18+ only), then you can play.`, { ...removeKeyboard });
             await sendMessage(chatId, "Tap to play 👇", playButton);
+            const { telegram_support } = await getSiteSettings();
+            await sendMessage(
+              chatId,
+              `💰 <b>To play you need Units</b> (1 Unit = 200 ETB, minimum 5 Units = 1,000 ETB).\n\nMessage our admin here: ${telegram_support}\nSend your Telebirr or bank payment and share the receipt. The admin adds your Units after checking, and you get a message from me right away.`,
+              { disable_web_page_preview: true },
+            );
           } else {
             await sendMessage(chatId, "Sorry, I couldn't create your account just now. Please try again in a minute, or message support.", removeKeyboard);
           }
