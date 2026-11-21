@@ -1035,4 +1035,143 @@ begin
 end $$;
 drop table tests_sv, tests_svb;
 
+-- =====================================================================
+-- Gebeta 1 vs 1 (0058)
+-- =====================================================================
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.gebeta_games', 'select') or has_table_privilege('anon', 'public.gebeta_games', 'select')
+     or has_table_privilege('authenticated', 'public.gebeta_games', 'update') then
+    raise exception 'FAIL: players can read or write Gebeta games directly';
+  end if;
+  if has_function_privilege('anon', 'public.gebeta_move(text, int)', 'execute') or has_function_privilege('anon', 'public.gebeta_state(text)', 'execute')
+     or has_function_privilege('anon', 'public.gebeta_create(numeric)', 'execute') then
+    raise exception 'FAIL: anonymous visitors can call Gebeta functions';
+  end if;
+  if has_function_privilege('authenticated', 'public.gebeta_finish(bigint, uuid, text)', 'execute') or has_function_privilege('authenticated', 'public.settle_due_gebeta()', 'execute')
+     or has_function_privilege('authenticated', 'public.gebeta_advance(bigint)', 'execute') or has_function_privilege('authenticated', 'public.gebeta_sow(int[], int, int)', 'execute') then
+    raise exception 'FAIL: players can run internal Gebeta functions';
+  end if;
+end $$;
+
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a1', 50, 'test', null) \g /dev/null
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a2', 50, 'test', null) \g /dev/null
+create table tests_gb (code text);
+grant select, insert, update on tests_gb to authenticated;
+create table tests_gbb (tag text primary key, bal numeric);
+insert into tests_gbb select 'a1', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_gbb select 'a2', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_gb (code) select public.gebeta_create(5);
+do $$
+begin
+  begin perform public.gebeta_create(5); raise exception 'FAIL: a second open game';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.gebeta_join((select code from tests_gb)); raise exception 'FAIL: joined own game';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.gebeta_move((select code from tests_gb), 0); raise exception 'FAIL: moved in a game that has not started';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.gebeta_join((select code from tests_gb)) \g /dev/null
+reset role;
+
+-- rules, on a board I set up: player 1 to move, pit 0 has 1 seed, pit 1 is empty and the pit opposite has 4 -> capture 5
+update public.gebeta_games set turn = 1, turn_deadline = now() + interval '60 seconds',
+  board = '{1,0,0,0,0,3, 0, 2,0,5,0,4,0, 0}' where code = (select code from tests_gb);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+do $$
+begin
+  begin perform public.gebeta_move((select code from tests_gb), 1); raise exception 'FAIL: moved out of turn';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+do $$
+begin
+  begin perform public.gebeta_move((select code from tests_gb), 1); raise exception 'FAIL: played an empty pit';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select public.gebeta_move((select code from tests_gb), 0) \g /dev/null
+reset role;
+do $$
+declare g public.gebeta_games;
+begin
+  select * into g from public.gebeta_games where code = (select code from tests_gb);
+  if g.board[7] <> 5 or g.board[2] <> 0 or g.board[12] <> 0 then raise exception 'FAIL: capture wrong, board %', g.board; end if;
+  if g.turn <> 2 then raise exception 'FAIL: turn should pass to the opponent after a capture'; end if;
+end $$;
+
+-- extra turn: pit 2 has 4 seeds, the last one lands in my store
+update public.gebeta_games set turn = 1, turn_deadline = now() + interval '60 seconds',
+  board = '{0,0,4,0,0,1, 0, 0,1,0,0,0,0, 0}' where code = (select code from tests_gb);
+set role authenticated;
+select public.gebeta_move((select code from tests_gb), 2) \g /dev/null
+reset role;
+do $$
+declare g public.gebeta_games;
+begin
+  select * into g from public.gebeta_games where code = (select code from tests_gb);
+  if g.turn <> 1 or g.board[7] <> 1 then raise exception 'FAIL: last seed in my store should give another turn, got turn % board %', g.turn, g.board; end if;
+  -- the opponent's store is skipped: 14 seeds from pit 0 go all the way round
+end $$;
+
+-- one side empties: the other keeps the rest; 21 vs 16 -> creator wins 5 + 90% of 5 = 9.5
+update public.gebeta_games set turn = 1, turn_deadline = now() + interval '60 seconds',
+  board = '{0,0,0,0,0,1, 20, 6,0,0,0,0,0, 10}' where code = (select code from tests_gb);
+set role authenticated;
+select public.gebeta_move((select code from tests_gb), 5) \g /dev/null
+reset role;
+do $$
+begin
+  if (select status from public.gebeta_games where code = (select code from tests_gb)) <> 'settled' then raise exception 'FAIL: the game should be finished'; end if;
+  if (select winner_id from public.gebeta_games where code = (select code from tests_gb)) <> '11111111-0000-0000-0000-0000000000a1' then raise exception 'FAIL: wrong winner'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_gbb where tag = 'a1') + 4.5
+     or (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_gbb where tag = 'a2') - 5 then
+    raise exception 'FAIL: wrong balances after the Gebeta game';
+  end if;
+end $$;
+select public.settle_due_gebeta() \g /dev/null
+do $$ begin
+  if (select count(*) from public.wallet_ledger where kind = 'payout' and gebeta_id is not null) <> 1 then raise exception 'FAIL: paid twice'; end if;
+end $$;
+
+-- a player who lets the 60 seconds run out loses
+delete from tests_gb;
+insert into tests_gbb select 'a1b', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_gbb select 'a2b', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_gb (code) select public.gebeta_create(5);
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.gebeta_join((select code from tests_gb)) \g /dev/null
+reset role;
+update public.gebeta_games set turn = 1, turn_deadline = now() - interval '1 second' where code = (select code from tests_gb);
+select public.settle_due_gebeta() \g /dev/null
+do $$
+begin
+  if (select winner_id from public.gebeta_games where code = (select code from tests_gb)) <> '11111111-0000-0000-0000-0000000000a2' or (select result from public.gebeta_games where code = (select code from tests_gb)) <> 'timeout' then
+    raise exception 'FAIL: the player who timed out should lose';
+  end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_gbb where tag = 'a2b') + 4.5 then raise exception 'FAIL: timeout winner not paid'; end if;
+end $$;
+
+-- an open game nobody joins is refunded
+delete from tests_gb;
+insert into tests_gbb select 'a1c', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_gb (code) select public.gebeta_create(5);
+reset role;
+update public.gebeta_games set expires_at = now() - interval '1 minute' where code = (select code from tests_gb);
+select public.settle_due_gebeta() \g /dev/null
+do $$
+begin
+  if (select status from public.gebeta_games where code = (select code from tests_gb)) <> 'cancelled' then raise exception 'FAIL: expired game not cancelled'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_gbb where tag = 'a1c') then raise exception 'FAIL: expired game did not refund'; end if;
+  raise notice 'ok  gebeta 1v1: server-only, rules (capture, extra turn, sweep), payout, timeout, refund';
+end $$;
+drop table tests_gb, tests_gbb;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

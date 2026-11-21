@@ -46,6 +46,9 @@ QUIZ ROYALE
 SURVIVOR POOLS
 - Survivor pools (menu: Survivor, /survivor): 3 to 20 friends, everyone pays the same entry (200 to 5,000 ETB). Each match day (a day with at least 4 matches) every player still alive picks ONE team to win. Win = survive; draw, loss or no pick = out. A team can only be used once per pool; a postponed match keeps you alive. Picks are hidden until the day's first kickoff, and you can change yours until then. The last one standing wins their entry back + 90% of the other entries; if everyone left is out on the same day, or after the longest game (3 to 10 match days), they share. A pool that doesn't start within 3 days is refunded in full.
 
+GEBETA 1 VS 1
+- Gebeta 1 vs 1 (menu: Gebeta 1v1, /gebeta): the Ethiopian seed game for two players. Each pays the same stake (200 to 5,000 ETB). Six pits each with four seeds. Pick a pit and its seeds are dropped one by one round the board; the last seed in your own store = play again; the last seed in an empty pit of yours = you capture the seeds opposite. When one side is empty the other player keeps their remaining seeds; most seeds wins. The winner gets their stake back + 90% of the opponent's stake; a draw returns both stakes. 60 seconds per move: running out of time loses. If nobody joins within 30 minutes the stake is refunded.
+
 CHALLENGES AND LEAGUES
 - Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets their own stake back plus 90% of the other stakes (10% fee only on the money won from others; 2 x 300 ETB: the winner gets 570 ETB). If nobody joins before the first kickoff, everyone is refunded.
 - Private leagues: free (bragging rights) or paid (the winner gets their fee back plus 70% of the other fees).
