@@ -9,35 +9,48 @@ import { checkMove } from "@/lib/chess-rules";
 import { bestMove, parseUci } from "@/lib/stockfish";
 import type { ChessState } from "@/lib/chess";
 
-/** Plays the bot's move when it is the bot's turn (only one request at a time gets to do it). */
-export async function botMove(code: string): Promise<boolean> {
-  const admin = createAdminClient();
-  const { data: claimed } = await admin.rpc("chess_bot_claim", { p_code: code });
-  if (claimed !== true) return false;
-  const [{ data: game }, { data: s }] = await Promise.all([
-    admin.from("chess_games").select("fen, status, vs_bot").eq("code", code).single(),
-    admin.from("house_bot_settings").select("bot_id").eq("id", 1).single(),
-  ]);
-  if (!game || !s || game.status !== "live" || !game.vs_bot) return false;
+/** Plays the bot's move when it is the bot's turn (only one request at a time gets to do it). Returns what happened. */
+export async function botMoveWhy(code: string): Promise<string> {
+  try {
+    const admin = createAdminClient();
+    const { data: claimed, error: ce } = await admin.rpc("chess_bot_claim", { p_code: code });
+    if (ce) return `claim error: ${ce.message}`;
+    if (claimed !== true) return "not claimed (not the bot's turn, or another request is already thinking)";
+    const [{ data: game, error: ge }, { data: s, error: se }] = await Promise.all([
+      admin.from("chess_games").select("fen, status, vs_bot").eq("code", code).single(),
+      admin.from("house_bot_settings").select("bot_id").eq("id", 1).single(),
+    ]);
+    if (ge || se || !game || !s) return `read error: ${ge?.message ?? se?.message ?? "no row"}`;
+    if (game.status !== "live" || !game.vs_bot) return "game is not a live bot game";
 
-  const uci = await bestMove(game.fen as string);
-  const mv = uci ? parseUci(uci) : null;
-  if (!mv) return false; // the claim runs out in a few seconds and the next request tries again
-  const chk = checkMove(game.fen as string, mv.from, mv.to, mv.promotion ?? "q");
-  if (!chk.ok) return false;
-  const { error } = await admin.rpc("chess_apply_move", {
-    p_code: code,
-    p_user: s.bot_id,
-    p_expected_fen: game.fen,
-    p_new_fen: chk.newFen,
-    p_san: chk.san,
-    p_from: mv.from,
-    p_to: mv.to,
-    p_outcome: chk.outcome,
-  });
-  if (error) return false;
-  if (chk.outcome) await pushNotifications();
-  return true;
+    const uci = await bestMove(game.fen as string);
+    if (!uci) return "the engine gave no move";
+    const mv = parseUci(uci);
+    if (!mv) return `unreadable engine move: ${uci}`;
+    const chk = checkMove(game.fen as string, mv.from, mv.to, mv.promotion ?? "q");
+    if (!chk.ok) return `engine move ${uci} is not legal`;
+    const { error } = await admin.rpc("chess_apply_move", {
+      p_code: code,
+      p_user: s.bot_id,
+      p_expected_fen: game.fen,
+      p_new_fen: chk.newFen,
+      p_san: chk.san,
+      p_from: mv.from,
+      p_to: mv.to,
+      p_outcome: chk.outcome,
+    });
+    if (error) return `apply error: ${error.message}`;
+    if (chk.outcome) await pushNotifications();
+    return `moved ${chk.san}`;
+  } catch (e) {
+    return `exception: ${(e as Error).message}`;
+  }
+}
+
+export async function botMove(code: string): Promise<boolean> {
+  const why = await botMoveWhy(code);
+  if (!why.startsWith("moved")) console.error("house bot did not move:", why);
+  return why.startsWith("moved");
 }
 
 /**

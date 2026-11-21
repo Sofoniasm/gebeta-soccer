@@ -7,11 +7,12 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { bestMove } from "@/lib/stockfish";
+import { botMoveWhy } from "@/lib/chess-bot";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-export async function GET() {
+export async function GET(req: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,6 +20,10 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "not signed in" }, { status: 401 });
   const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (!me?.is_admin) return NextResponse.json({ error: "admin only" }, { status: 403 });
+
+  // ?code=CH-XXXXXX: try to play the House Bot's move in that game and say why it did or did not move
+  const code = new URL(req.url).searchParams.get("code");
+  if (code) return NextResponse.json({ code, result: await botMoveWhy(code.toUpperCase().slice(0, 12)) });
 
   const cwd = process.cwd();
   const dir = path.join(cwd, "engine");
