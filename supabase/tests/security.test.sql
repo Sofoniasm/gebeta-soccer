@@ -720,4 +720,197 @@ begin
   raise notice 'ok  revoke_user_sessions: server-only';
 end $$;
 
+-- ---------- Quiz Royale (0056) ----------
+-- three fresh players (earlier tests put some of the others on a break or a deposit limit)
+reset role;
+insert into auth.users (id, raw_user_meta_data) values
+  ('11111111-0000-0000-0000-0000000000a1', '{"username":"royal_a","phone_number":"+251911000071"}'),
+  ('11111111-0000-0000-0000-0000000000a2', '{"username":"royal_b","phone_number":"+251911000072"}'),
+  ('11111111-0000-0000-0000-0000000000a3', '{"username":"royal_c","phone_number":"+251911000073"}');
+update public.profiles set phone_verified_at = now(), date_of_birth = date '1990-01-01' where username like 'royal\_%';
+reset role;
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.royale_questions', 'select') or has_table_privilege('anon', 'public.royale_questions', 'select')
+     or has_table_privilege('authenticated', 'public.royale_answers', 'select') or has_table_privilege('authenticated', 'public.royale_rooms', 'select')
+     or has_table_privilege('authenticated', 'public.royale_players', 'insert') then
+    raise exception 'FAIL: Quiz Royale tables readable or writable directly (the right answers!)';
+  end if;
+  if has_function_privilege('anon', 'public.royale_state(text)', 'execute') or has_function_privilege('anon', 'public.royale_answer(text, int, int)', 'execute')
+     or has_function_privilege('anon', 'public.royale_create(numeric, int)', 'execute') or has_function_privilege('anon', 'public.royale_join(text)', 'execute') then
+    raise exception 'FAIL: logged-out visitors can run Quiz Royale functions';
+  end if;
+  if has_function_privilege('authenticated', 'public.royale_settle_if_due(bigint)', 'execute') or has_function_privilege('authenticated', 'public.settle_due_royale()', 'execute')
+     or has_function_privilege('authenticated', 'public.royale_refund_all(bigint, text)', 'execute') or has_function_privilege('authenticated', 'public.royale_code()', 'execute') then
+    raise exception 'FAIL: players can run internal Quiz Royale money functions';
+  end if;
+end $$;
+
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a1', 50, 'test', null) \g /dev/null
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a2', 50, 'test', null) \g /dev/null
+create table tests_ro (code text, c0 smallint);
+grant select, insert, update on tests_ro to authenticated;
+create table tests_rob (tag text primary key, bal numeric);
+insert into tests_rob select 'alice', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_rob select 'bob', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_ro (code) select public.royale_create(5, 3);
+do $$
+begin
+  begin perform public.royale_create(5, 3); raise exception 'FAIL: a second open room for the same creator';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.royale_join((select code from tests_ro)); raise exception 'FAIL: joined the same room twice';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.royale_start((select code from tests_ro)); raise exception 'FAIL: started with too few players';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+
+-- bob joins; mallory has no Units yet and is refused, then joins after a deposit
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.royale_join((select code from tests_ro)) \g /dev/null
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a3', false) \g /dev/null
+do $$
+begin
+  begin perform public.royale_join((select code from tests_ro)); raise exception 'FAIL: joined without enough Units';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+reset role;
+select public.admin_add_units('11111111-0000-0000-0000-0000000000a3', 50, 'test', null) \g /dev/null
+insert into tests_rob select 'mallory', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a3';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a3', false) \g /dev/null
+select public.royale_join((select code from tests_ro)) \g /dev/null
+
+-- only the creator can start; then answers are timed by the database
+do $$
+begin
+  begin perform public.royale_start((select code from tests_ro)); raise exception 'FAIL: a player who is not the creator started the game';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+select public.royale_start((select code from tests_ro)) \g /dev/null
+do $$
+begin
+  begin perform public.royale_answer((select code from tests_ro), 0, 1); raise exception 'FAIL: answered during the countdown';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+reset role;
+-- 2 seconds into question 1
+update public.royale_rooms set started_at = now() - interval '2 seconds' where code = (select code from tests_ro);
+update tests_ro set c0 = (select q.correct from public.royale_rooms r join public.royale_questions q on q.id = r.question_ids[1] where r.code = tests_ro.code);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+do $$
+declare v jsonb := public.royale_state((select code from tests_ro));
+begin
+  if v ->> 'phase' <> 'question' then raise exception 'FAIL: expected the question phase, got %', v ->> 'phase'; end if;
+  if (v -> 'question') ? 'correct' or v -> 'reveal' <> 'null'::jsonb then raise exception 'FAIL: the right answer is visible while the question is open'; end if;
+  if jsonb_array_length(v -> 'question' -> 'options') <> 4 then raise exception 'FAIL: the question has no 4 options'; end if;
+end $$;
+select public.royale_answer((select code from tests_ro), 0, (select c0 from tests_ro)) \g /dev/null
+do $$
+begin
+  begin perform public.royale_answer((select code from tests_ro), 0, 0); raise exception 'FAIL: answered the same question twice';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+  begin perform public.royale_answer((select code from tests_ro), 1, 0); raise exception 'FAIL: answered a question that is not open';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.royale_answer((select code from tests_ro), 0, ((select c0 from tests_ro) + 1) % 4) \g /dev/null
+reset role;
+do $$
+declare a int; b int;
+begin
+  select score into a from public.royale_players where user_id = '11111111-0000-0000-0000-0000000000a1' and room_id = (select id from public.royale_rooms where code = (select code from tests_ro));
+  select score into b from public.royale_players where user_id = '11111111-0000-0000-0000-0000000000a2' and room_id = (select id from public.royale_rooms where code = (select code from tests_ro));
+  if a not between 170 and 200 then raise exception 'FAIL: a right answer about 2 seconds in should score 170-200, got %', a; end if;
+  if b <> 0 then raise exception 'FAIL: a wrong answer scored %', b; end if;
+end $$;
+
+-- after the 15 seconds the right answer is shown; a late answer is refused
+update public.royale_rooms set started_at = now() - interval '16 seconds' where code = (select code from tests_ro);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a3', false) \g /dev/null
+do $$
+declare v jsonb := public.royale_state((select code from tests_ro));
+begin
+  if v ->> 'phase' <> 'reveal' then raise exception 'FAIL: expected the reveal phase, got %', v ->> 'phase'; end if;
+  if (v -> 'reveal' ->> 'correct')::int <> (select c0 from tests_ro) then raise exception 'FAIL: the revealed answer is not the right one'; end if;
+  begin perform public.royale_answer((select code from tests_ro), 0, 0); raise exception 'FAIL: a late answer was accepted';
+  exception when raise_exception then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+
+-- the game ends: scores 450 / 300 / 0, pot 15 Units, winner gets 5 + 90% of 10 = 14, the house keeps 1
+reset role;
+update public.royale_players set score = 450, correct = 3, total_ms = 9000 where user_id = '11111111-0000-0000-0000-0000000000a1' and room_id = (select id from public.royale_rooms where code = (select code from tests_ro));
+update public.royale_players set score = 300, correct = 2, total_ms = 9000 where user_id = '11111111-0000-0000-0000-0000000000a2' and room_id = (select id from public.royale_rooms where code = (select code from tests_ro));
+update public.royale_players set score = 0, correct = 0, total_ms = 0 where user_id = '11111111-0000-0000-0000-0000000000a3' and room_id = (select id from public.royale_rooms where code = (select code from tests_ro));
+update public.royale_rooms set started_at = now() - interval '200 seconds' where code = (select code from tests_ro);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a3', false) \g /dev/null
+do $$
+declare v jsonb := public.royale_state((select code from tests_ro));
+begin
+  if v ->> 'status' <> 'settled' then raise exception 'FAIL: the game was not settled when it ended: %', v ->> 'status'; end if;
+  if jsonb_array_length(v -> 'review') <> 10 then raise exception 'FAIL: the review of the 10 questions is missing'; end if;
+end $$;
+reset role;
+do $$
+declare ba numeric; bb numeric; bm numeric; pay numeric;
+begin
+  select balance_units into ba from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+  select balance_units into bb from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+  select balance_units into bm from public.profiles where id = '11111111-0000-0000-0000-0000000000a3';
+  select payout_units into pay from public.royale_players where user_id = '11111111-0000-0000-0000-0000000000a1' and room_id = (select id from public.royale_rooms where code = (select code from tests_ro));
+  if pay <> 14 then raise exception 'FAIL: winner payout should be 14, got %', pay; end if;
+  if ba <> (select bal from tests_rob where tag = 'alice') + 9 or bb <> (select bal from tests_rob where tag = 'bob') - 5 or bm <> (select bal from tests_rob where tag = 'mallory') - 5 then
+    raise exception 'FAIL: after the game the winner should be +9 (14 back for 5) and the others -5, got % / % / %', ba, bb, bm;
+  end if;
+  if (select count(*) from public.wallet_ledger where kind = 'payout' and royale_id is not null) <> 1 then raise exception 'FAIL: more than one payout row'; end if;
+  if not exists (select 1 from public.notifications where user_id = '11111111-0000-0000-0000-0000000000a2' and kind = 'royale_result') then raise exception 'FAIL: no result message for the others'; end if;
+end $$;
+-- settling again changes nothing
+select public.settle_due_royale() \g /dev/null
+do $$ begin
+  if (select count(*) from public.wallet_ledger where kind = 'payout' and royale_id is not null) <> 1 then raise exception 'FAIL: a second settle paid again'; end if;
+end $$;
+
+-- a room that never starts is refunded in full; a game nobody scores in refunds every stake
+update tests_ro set code = null, c0 = null;
+insert into tests_rob select 'alice2', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_ro (code) select public.royale_create(5, 3);
+reset role;
+update public.royale_rooms set expires_at = now() - interval '1 minute' where code = (select code from tests_ro where code is not null);
+select public.settle_due_royale() \g /dev/null
+do $$
+begin
+  if (select status from public.royale_rooms where code = (select code from tests_ro where code is not null)) <> 'cancelled' then raise exception 'FAIL: an expired room was not cancelled'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_rob where tag = 'alice2') then raise exception 'FAIL: the expired room did not refund the stake'; end if;
+end $$;
+delete from tests_ro;
+insert into tests_rob select 'alice3', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1';
+insert into tests_rob select 'bob3', balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+insert into tests_ro (code) select public.royale_create(5, 2);
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', false) \g /dev/null
+select public.royale_join((select code from tests_ro)) \g /dev/null
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+select public.royale_start((select code from tests_ro)) \g /dev/null
+reset role;
+update public.royale_rooms set started_at = now() - interval '200 seconds' where code = (select code from tests_ro);
+select public.settle_due_royale() \g /dev/null
+do $$
+begin
+  if (select status from public.royale_rooms where code = (select code from tests_ro)) <> 'refunded' then raise exception 'FAIL: nobody scored but the room was not refunded'; end if;
+  if (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a1') <> (select bal from tests_rob where tag = 'alice3') or (select balance_units from public.profiles where id = '11111111-0000-0000-0000-0000000000a2') <> (select bal from tests_rob where tag = 'bob3') then
+    raise exception 'FAIL: stakes were not all refunded';
+  end if;
+  raise notice 'ok  quiz royale: server-only, timed by the database, answers hidden until the reveal, fair payout, refunds';
+end $$;
+drop table tests_ro, tests_rob;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

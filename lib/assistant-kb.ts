@@ -40,6 +40,9 @@ PREMIUM (optional)
 - Monthly 2 Units (400 ETB, 30 days) or yearly 20 Units (4,000 ETB, 365 days), paid from the wallet on the Premium page. Starts the moment you pay; buying again adds the time after the current end date. Renews automatically unless turned off on the Premium page. Not refunded.
 - Gives: anonymous crowd picks while a round is open (once 5+ slips), a form guide % on pick cards, and every player's full slip after the lock (free players never see other players' picks, also not after the lock). It does not change points or the chance to win. Nobody sees picks before the lock.
 
+QUIZ ROYALE
+- Quiz Royale (menu: Quiz Royale, /royale): 3 to 6 friends play 10 football / Ethiopia / general-knowledge questions, 15 seconds each. Everyone pays the same entry (200 to 5,000 ETB). Right answers score 100 points plus up to 100 for speed. The highest score wins their entry back + 90% of the other entries; exact ties share; if nobody scores, or the room doesn't start within 30 minutes, every entry is refunded. Make a room, share the link or code, and press Start when enough players have joined.
+
 CHALLENGES AND LEAGUES
 - Challenges: pick 1-10 upcoming matches, set a stake, share the link. Friends join with the same stake. Winner gets their own stake back plus 90% of the other stakes (10% fee only on the money won from others; 2 x 300 ETB: the winner gets 570 ETB). If nobody joins before the first kickoff, everyone is refunded.
 - Private leagues: free (bragging rights) or paid (the winner gets their fee back plus 70% of the other fees).

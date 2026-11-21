@@ -37,6 +37,7 @@ const PLAY: Item[] = [
   { href: "/fixtures", label: "Fixtures", icon: CalendarIcon },
   { href: "/leaderboard", label: "Leaderboard", icon: TrophyIcon },
   { href: "/quiz", label: "Quiz", icon: StarIcon },
+  { href: "/royale", label: "Quiz Royale", icon: VersusIcon },
   { href: "/results", label: "Results", icon: ClockIcon },
   { href: "/news", label: "News", icon: NewsIcon },
 ];
@@ -63,6 +64,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin/challenges", label: "Challenges", icon: VersusIcon },
   { href: "/admin/previews", label: "Previews", icon: StarIcon },
   { href: "/admin/quiz", label: "Quiz", icon: ListCheckIcon },
+  { href: "/admin/royale", label: "Royale", icon: ListCheckIcon },
   { href: "/admin/news", label: "News", icon: NewsIcon },
   { href: "/admin/site", label: "Site", icon: SettingsIcon },
 ];
