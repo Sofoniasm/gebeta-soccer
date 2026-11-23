@@ -9,6 +9,8 @@ import { PENDING_COOKIE, readPending } from "@/lib/telegram-login";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { OrDivider } from "@/components/OrDivider";
 import { REF_COOKIE, normalizeReferralCode } from "@/lib/referrals";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export async function generateMetadata() {
   const lang = await getLang();
@@ -18,6 +20,9 @@ export async function generateMetadata() {
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string; ref?: string }> }) {
   const { next, ref: refParam } = await searchParams;
   const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
+  // Already signed in: an invite link cannot give this account a referrer, so do not show the sign-up form again.
+  const { data: { user } } = await (await createClient()).auth.getUser();
+  if (user) redirect(safe ?? "/dashboard");
   const lang = await getLang();
   const t = PAGES[lang].auth;
   // Came back from "Log in with Telegram" as a new player?
