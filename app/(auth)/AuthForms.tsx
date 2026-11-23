@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { login, register, type AuthState } from "./actions";
 import { Banner, inputClass, primaryButtonClass } from "@/components/ui";
 import { SpinnerIcon } from "@/components/icons";
@@ -53,6 +53,7 @@ export function LoginForm({ next, lang = "en" }: { next?: string; lang?: Lang })
 
 export function RegisterForm({ next, lang = "en", referral }: { next?: string; lang?: Lang; referral?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(register, undefined);
+  const [ageOk, setAgeOk] = useState(false); // Create account stays off until the 18+ box is ticked
   const t = PAGES[lang].auth;
 
   if (state?.success) {
@@ -88,13 +89,13 @@ export function RegisterForm({ next, lang = "en", referral }: { next?: string; l
         <input name="email" type="email" autoComplete="email" className={inputClass} placeholder="you@example.com" />
       </Field>
       <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-ink/50 p-4 text-sm text-mist">
-        <input name="age_ok" type="checkbox" required className="mt-0.5 h-5 w-5 shrink-0 accent-violet-300" />
+        <input name="age_ok" type="checkbox" required checked={ageOk} onChange={(e) => setAgeOk(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-violet-300" />
         <span>
           {t.ageA}<b className="text-white">{t.ageB}</b>{t.ageC}
           <Link href={localPath("/terms", lang)} target="_blank" className="font-semibold text-lilac underline underline-offset-2">{t.terms}</Link>{t.ageD}
         </span>
       </label>
-      <button type="submit" disabled={pending} className={primaryButtonClass}>
+      <button type="submit" disabled={pending || !ageOk} className={`${primaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}>
         {pending && <SpinnerIcon size={18} />} {t.create}
       </button>
       <p className="text-center text-sm text-mist">
