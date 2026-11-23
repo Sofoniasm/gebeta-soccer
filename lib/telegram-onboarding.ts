@@ -64,3 +64,8 @@ export async function finishOnboarding(chatId: number): Promise<{ dob: string | 
   await createAdminClient().from("telegram_onboarding").delete().eq("chat_id", chatId);
   return { dob: row.step === "phone" ? row.dob : null, next_path: row.next_path };
 }
+
+/** Where the chat sign-up stands: "dob" (the bot asked and waits for the date of birth), "phone", or null (no sign-up going on). */
+export async function onboardingStep(chatId: number): Promise<"dob" | "phone" | null> {
+  return (await getRow(chatId))?.step ?? null;
+}

@@ -134,10 +134,6 @@ export function TmaEntry() {
           </button>
           <p className="text-xs text-mist">Telegram confirms your phone number, so you never need a password. The first time you will be asked for your date of birth (18+ only).</p>
           {state.note && <p className="text-xs text-amber-100">{state.note}</p>}
-          <p className="text-xs text-mist">
-            Have a different number, or prefer a password?{" "}
-            <Link href="/login?next=%2Ftma%2Flink" className="font-bold text-lilac">Log in</Link> · <Link href="/register?next=%2Ftma%2Flink" className="font-bold text-lilac">Sign up with the form</Link>
-          </p>
           <p className="text-xs text-mist">Same account, wallet and picks as the website.</p>
         </div>
       )}

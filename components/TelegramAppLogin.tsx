@@ -8,8 +8,9 @@ const TEXT = {
   en: {
     button: "Open Telegram app to log in",
     hint: "One tap: Telegram opens, you tap the number shown here, and this page logs you in. No password.",
-    waitTitle: "Now in Telegram, tap this number:",
-    waitBody: "We sent you a message from our bot. Tap the same number there. This page logs you in by itself.",
+    waitTitle: "Remember this number:",
+    waitBody: "Tap Open Telegram below. The bot shows 3 numbers: tap the same one as here. This page logs you in by itself.",
+    open: "Open Telegram",
     again: "Open Telegram again",
     fallback: "Telegram did not show the numbers? Open @GebetaSoccerbot and send this message:",
     copy: "Copy",
@@ -24,6 +25,7 @@ const TEXT = {
     hint: "አንድ ንክኪ፦ ቴሌግራም ይከፈታል፣ እዚህ የሚታየውን ቁጥር ይጫኑ፣ ገጹ በራሱ ያስገባዎታል። የይለፍ ቃል አያስፈልግም።",
     waitTitle: "አሁን በቴሌግራም ይህን ቁጥር ይጫኑ፦",
     waitBody: "ከቦታችን መልዕክት ልከንልዎታል። እዚያ ተመሳሳዩን ቁጥር ይጫኑ። ገጹ በራሱ ያስገባዎታል።",
+    open: "ቴሌግራምን ክፈት",
     again: "ቴሌግራምን እንደገና ክፈት",
     fallback: "ቴሌግራም ቁጥሮቹን አላሳየም? @GebetaSoccerbot ን ከፍተው ይህን መልዕክት ይላኩ፦",
     copy: "ቅዳ",
@@ -96,7 +98,7 @@ export function TelegramAppLogin({ next, lang = "en" }: { next?: string; lang?: 
       setLink(d.link);
       setState("waiting");
       poll(Date.now());
-      window.location.assign(d.link); // opens the Telegram app on a phone
+      // No automatic jump: the player first reads the number, then taps 'Open Telegram'.
     } catch {
       setState("idle");
       setNote(t.failed);
@@ -135,10 +137,10 @@ export function TelegramAppLogin({ next, lang = "en" }: { next?: string; lang?: 
             </p>
           </div>
         )}
+        <a href={link} className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2aabee] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#2aabee]/25 hover:brightness-110">
+          <SendIcon size={18} /> {t.open}
+        </a>
         <div className="flex flex-wrap justify-center gap-3 text-sm">
-          <a href={link} className="font-bold text-[#2aabee] underline underline-offset-4">
-            {t.again}
-          </a>
           <button
             type="button"
             className="text-mist underline underline-offset-4"

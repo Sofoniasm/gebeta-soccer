@@ -17,7 +17,7 @@ import { sendMessage, shareContactKeyboard } from "@/lib/telegram";
 import { getBotLang, handleBotCommand } from "@/lib/bot-commands";
 import { askAssistant } from "@/lib/assistant";
 import { getSiteSettings } from "@/lib/site-settings";
-import { finishOnboarding, handleOnboardingText, startOnboarding } from "@/lib/telegram-onboarding";
+import { finishOnboarding, handleOnboardingText, onboardingStep, startOnboarding } from "@/lib/telegram-onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +186,7 @@ export async function POST(req: NextRequest) {
         //  - a confirmed account with this number: link this Telegram to it;
         //  - an account never confirmed: its real owner takes it over (old password wiped);
         //  - no account: create one (confirmed phone, no password). Date of birth is asked in the app.
+        const stage = await onboardingStep(chatId); // "dob" = the chat is still waiting for the date of birth
         const ob = await finishOnboarding(chatId); // age typed in the chat, and where to send them to play
         const shared = normalizeEthiopianPhone(msg.contact.phone_number);
         if (!shared) {
@@ -198,6 +199,11 @@ export async function POST(req: NextRequest) {
           await sendMessage(chatId, "❌ This number's account is already linked to a different Telegram account. Contact support if that's wrong.", removeKeyboard);
         } else if (other && other.id !== owner?.id) {
           await sendMessage(chatId, "❌ This Telegram account is already linked to another GebetaSoccer player.", removeKeyboard);
+        } else if (!owner && stage === "dob") {
+          // The number arrived before the age (for example from the Mini App button). Ask the age HERE, once,
+          // instead of making the account without it and asking again in the app.
+          await sendMessage(chatId, "👍 Got your number. One more thing before we make your account:", removeKeyboard);
+          await startOnboarding(chatId, ob?.next_path ?? null);
         } else if (!owner) {
           const created = await createTelegramAccount(msg.from, shared, ob?.dob ?? undefined);
           if (created.ok) {
