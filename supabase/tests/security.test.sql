@@ -1654,4 +1654,51 @@ begin
   raise notice 'ok  sync on demand: one claim per 25 minutes, server only';
 end $$;
 
+-- =====================================================================
+-- Referral notifications and the friends' activity list (0065)
+-- =====================================================================
+do $$
+begin
+  if has_function_privilege('anon', 'public.get_my_referral_activity()', 'execute') then raise exception 'FAIL: visitors can read friends activity'; end if;
+  if has_function_privilege('authenticated', 'public.notify_referrer_bet()', 'execute') or has_function_privilege('authenticated', 'public.notify_referrer_signup()', 'execute') then
+    raise exception 'FAIL: players can run the referral notification triggers';
+  end if;
+end $$;
+-- a2 signs up with a1's link
+update public.profiles set referred_by = '11111111-0000-0000-0000-0000000000a1' where id = '11111111-0000-0000-0000-0000000000a2' and referred_by is null;
+do $$
+begin
+  if not exists (select 1 from public.notifications where user_id = '11111111-0000-0000-0000-0000000000a1' and kind = 'referral_joined') then
+    raise exception 'FAIL: the inviter was not told that a friend joined';
+  end if;
+end $$;
+-- the friend pays a stake and wins
+insert into public.wallet_ledger (user_id, amount_units, kind, reference) values ('11111111-0000-0000-0000-0000000000a2', -1, 'entry_fee', 'Test round slip');
+insert into public.wallet_ledger (user_id, amount_units, kind, reference) values ('11111111-0000-0000-0000-0000000000a2', 1.9, 'payout', 'Test round winnings');
+do $$
+begin
+  if not exists (select 1 from public.notifications where user_id = '11111111-0000-0000-0000-0000000000a1' and kind = 'referral_bet' and body like 'Test round slip%') then
+    raise exception 'FAIL: the inviter was not told about the friends bet';
+  end if;
+  if exists (select 1 from public.notifications where user_id = '11111111-0000-0000-0000-0000000000a3' and kind = 'referral_bet') then
+    raise exception 'FAIL: somebody who is not the inviter was told';
+  end if;
+end $$;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', false) \g /dev/null
+do $$
+declare v jsonb := public.get_my_referral_activity();
+begin
+  if jsonb_array_length(v) < 2 or not exists (select 1 from jsonb_array_elements(v) e where e ->> 'label' = 'Test round slip' and e ->> 'kind' = 'entry_fee') then
+    raise exception 'FAIL: the inviter cannot see the friends activity: %', v;
+  end if;
+end $$;
+-- a3 is nobody's inviter: sees nothing of a2's
+select set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a3', false) \g /dev/null
+do $$ begin
+  if jsonb_array_length(public.get_my_referral_activity()) <> 0 then raise exception 'FAIL: a stranger can see another players friends activity'; end if;
+  raise notice 'ok  referrals: inviter is told about sign-ups and bets, sees only his own friends activity';
+end $$;
+reset role;
+
 \echo 'ALL DATABASE SECURITY TESTS PASSED'

@@ -23,11 +23,22 @@ interface Sales {
   players: { username: string; joined_at: string | null; games: number; wins: number; earned: number }[];
 }
 
+interface Activity {
+  at: string;
+  player: string;
+  kind: "entry_fee" | "payout" | "refund";
+  units: number;
+  label: string | null;
+}
+
+const ACTIVITY_TEXT: Record<Activity["kind"], string> = { entry_fee: "placed a bet", payout: "won", refund: "got a refund" };
+
 export default async function SalesPage() {
   const me = await getMe("/sales");
   const supabase = await createClient();
   // Only the signed-in player's own friends and numbers (security-definer RPC).
-  const { data, error } = await supabase.rpc("get_my_sales");
+  const [{ data, error }, { data: activityData }] = await Promise.all([supabase.rpc("get_my_sales"), supabase.rpc("get_my_referral_activity")]);
+  const activity = ((activityData ?? []) as Activity[]).map((a) => ({ ...a, units: Math.abs(Number(a.units)) }));
   const s = (data ?? { code: me.referral_code, referred: 0, active: 0, wins: 0, total_units: 0, earnings: [], players: [] }) as Sales;
   const code = s.code ?? me.referral_code;
   const total = Number(s.total_units);
@@ -121,6 +132,28 @@ export default async function SalesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </section>
+
+      <section className={`${card} mt-5`}>
+        <h2 className="mb-1 text-lg font-extrabold">What your friends did</h2>
+        <p className="mb-3 text-xs text-mist">Their bets, wins and refunds, newest first. You never see their picks or scores. You earn only when a friend wins a round or challenge.</p>
+        {activity.length === 0 ? (
+          <p className="text-sm text-mist">Nothing yet. When a friend places a bet or wins, it shows here and you get a notification.</p>
+        ) : (
+          <div className="space-y-2">
+            {activity.map((a, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/5 bg-ink/40 p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold">
+                    {a.player} <span className="font-semibold text-mist">{ACTIVITY_TEXT[a.kind]}</span>
+                  </p>
+                  <p className="truncate text-xs text-mist">{formatKickoff(a.at)}{a.label ? ` · ${a.label}` : ""}</p>
+                </div>
+                <p className={`font-extrabold ${a.kind === "payout" ? "text-emerald-200" : ""}`}>{a.kind === "entry_fee" ? "" : "+"}{formatUnits(a.units)}</p>
+              </div>
+            ))}
           </div>
         )}
       </section>
