@@ -11,6 +11,7 @@ import {
   hashAppLoginToken,
   newAppLoginCode,
   newAppLoginToken,
+  decideTap,
   parseAppLoginCallback,
 } from "@/lib/telegram-app-login";
 
@@ -66,17 +67,21 @@ export async function handleAppLoginCallback(cb: { id: string; from: { id: numbe
   const { data: row } = await admin.from("telegram_app_logins").select("id, code, status, telegram_user_id, expires_at").eq("id", parsed.id).maybeSingle();
   const edit = (text: string) =>
     cb.message ? tg("editMessageText", { chat_id: cb.message.chat.id, message_id: cb.message.message_id, text, parse_mode: "HTML" }) : Promise.resolve(null);
-  if (!row || row.status !== "pending" || Number(row.telegram_user_id) !== cb.from.id || new Date(row.expires_at as string).getTime() < Date.now()) {
+  const decision = decideTap(
+    row ? { status: row.status as string, code: row.code as string, telegram_user_id: row.telegram_user_id as number | null, expires_at: row.expires_at as string } : null,
+    { fromId: cb.from.id, code: parsed.code },
+  );
+  if (decision === "invalid") {
     await tg("answerCallbackQuery", { callback_query_id: cb.id, text: "This login is no longer valid." });
     await edit("⌛ This login is no longer valid.");
     return;
   }
-  if (parsed.code === row.code) {
-    await admin.from("telegram_app_logins").update({ status: "approved" }).eq("id", row.id).eq("status", "pending");
+  if (decision === "approve") {
+    await admin.from("telegram_app_logins").update({ status: "approved" }).eq("id", parsed.id).eq("status", "pending");
     await tg("answerCallbackQuery", { callback_query_id: cb.id, text: "Approved" });
     await edit("✅ Approved. Go back to the website: you are being logged in.");
   } else {
-    await admin.from("telegram_app_logins").update({ status: "denied" }).eq("id", row.id).eq("status", "pending");
+    await admin.from("telegram_app_logins").update({ status: "denied" }).eq("id", parsed.id).eq("status", "pending");
     await tg("answerCallbackQuery", { callback_query_id: cb.id, text: "Wrong number" });
     await edit("❌ That is not the number on the website. The login was cancelled for your safety.");
   }

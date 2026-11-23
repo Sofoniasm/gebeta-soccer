@@ -4,6 +4,7 @@ import {
   appLoginCallback,
   appLoginStartParam,
   codeChoices,
+  decideTap,
   hashAppLoginToken,
   newAppLoginCode,
   newAppLoginToken,
@@ -51,4 +52,17 @@ test("app login: button data round trip and refusal of anything else", () => {
   assert.equal(parseAppLoginCallback("lg:x:47"), null);
   assert.equal(parseAppLoginCallback("something"), null);
   assert.equal(parseAppLoginCallback(undefined), null);
+});
+
+test("app login: a tap approves only the right number from the right Telegram, in time, once", () => {
+  const now = Date.parse("2026-11-23T10:00:00Z");
+  const row = { status: "pending", code: "58", telegram_user_id: 777, expires_at: "2026-11-23T10:04:00Z" };
+  assert.equal(decideTap(row, { fromId: 777, code: "58" }, now), "approve");
+  assert.equal(decideTap(row, { fromId: 777, code: "12" }, now), "deny"); // wrong number cancels the login
+  assert.equal(decideTap(row, { fromId: 999, code: "58" }, now), "invalid"); // another Telegram account cannot answer
+  assert.equal(decideTap(row, { fromId: 777, code: "58" }, Date.parse("2026-11-23T10:05:00Z")), "invalid"); // expired
+  assert.equal(decideTap({ ...row, status: "approved" }, { fromId: 777, code: "58" }, now), "invalid"); // already used
+  assert.equal(decideTap({ ...row, status: "denied" }, { fromId: 777, code: "58" }, now), "invalid");
+  assert.equal(decideTap({ ...row, telegram_user_id: null }, { fromId: 777, code: "58" }, now), "invalid"); // the bot never saw /start
+  assert.equal(decideTap(null, { fromId: 777, code: "58" }, now), "invalid");
 });

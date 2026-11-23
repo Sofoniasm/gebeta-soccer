@@ -75,3 +75,28 @@ export async function driveBot(code: string, st: ChessState): Promise<{ changed:
   }
   return { changed: false, note: null };
 }
+
+/**
+ * Called whenever players are using the app (see /api/sync-kick): lets the House Bot join open games that waited long
+ * enough EVEN IF their creator left the page, and plays the bot's pending moves. Cheap when the bot is off or idle.
+ * Returns how many games the bot joined.
+ */
+export async function tickBots(): Promise<number> {
+  const admin = createAdminClient();
+  const { data: s } = await admin.from("house_bot_settings").select("enabled, paused_at, join_after_seconds").eq("id", 1).maybeSingle();
+  if (!s || !s.enabled || s.paused_at) return 0;
+  const cutoff = new Date(Date.now() - Number(s.join_after_seconds) * 1000).toISOString();
+  const { data: open } = await admin.from("chess_games").select("code").eq("status", "open").eq("open_to_all", true).lte("created_at", cutoff).limit(5);
+  let joinedCount = 0;
+  for (const g of (open ?? []) as { code: string }[]) {
+    const { data: joined } = await admin.rpc("chess_bot_join", { p_code: g.code });
+    if (joined === true) {
+      joinedCount++;
+      await botMoveWhy(g.code); // the bot may be white and open the game
+    }
+  }
+  const { data: live } = await admin.from("chess_games").select("code").eq("status", "live").eq("vs_bot", true).limit(10);
+  for (const g of (live ?? []) as { code: string }[]) await botMoveWhy(g.code); // only moves when it is the bot's turn
+  if (joinedCount > 0) await pushNotifications(); // "The House Bot joined your Chess game"
+  return joinedCount;
+}

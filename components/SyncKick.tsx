@@ -2,20 +2,22 @@
 
 import { useEffect } from "react";
 
-/** Quietly asks the server to refresh the match data when it is stale (at most once every 10 minutes per browser). */
+/**
+ * Quietly pings the server while the app is open: it refreshes stale match data and lets the House Bot join waiting
+ * chess games (every 2 minutes, only while the tab is visible). Costs one tiny request when nothing is due.
+ */
 export function SyncKick() {
   useEffect(() => {
-    try {
-      const last = Number(localStorage.getItem("sync-kick") ?? 0);
-      if (Date.now() - last < 10 * 60 * 1000) return;
-      localStorage.setItem("sync-kick", String(Date.now()));
-    } catch {
-      /* private mode: just ask */
-    }
-    const t = setTimeout(() => {
+    const ping = () => {
+      if (document.visibilityState === "hidden") return;
       void fetch("/api/sync-kick", { method: "POST" }).catch(() => undefined);
-    }, 4000);
-    return () => clearTimeout(t);
+    };
+    const first = setTimeout(ping, 4000);
+    const every = setInterval(ping, 2 * 60 * 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(every);
+    };
   }, []);
   return null;
 }

@@ -37,3 +37,15 @@ export function parseAppLoginCallback(data: string | undefined | null): { id: nu
   const m = /^lg:(\d{1,12}):(\d{2})$/.exec(data ?? "");
   return m ? { id: Number(m[1]), code: m[2] } : null;
 }
+
+/** What a tap on one of the three numbers means (pure, so it can be tested without Telegram). */
+export function decideTap(
+  row: { status: string; code: string; telegram_user_id: number | string | null; expires_at: string } | null,
+  tap: { fromId: number; code: string },
+  now: number = Date.now(),
+): "approve" | "deny" | "invalid" {
+  if (!row || row.status !== "pending") return "invalid";
+  if (Number(row.telegram_user_id) !== tap.fromId) return "invalid"; // only the Telegram that opened this login may answer
+  if (new Date(row.expires_at).getTime() < now) return "invalid";
+  return tap.code === row.code ? "approve" : "deny";
+}
