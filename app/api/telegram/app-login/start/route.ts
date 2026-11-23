@@ -25,5 +25,5 @@ export async function POST() {
     path: "/",
     maxAge: APP_LOGIN_TTL_SECONDS,
   });
-  return NextResponse.json({ ok: true, code: made.code, link: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${appLoginStartParam(made.raw)}`, seconds: APP_LOGIN_TTL_SECONDS });
+  return NextResponse.json({ ok: true, code: made.code, short: made.short, link: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${appLoginStartParam(made.raw)}`, seconds: APP_LOGIN_TTL_SECONDS });
 }

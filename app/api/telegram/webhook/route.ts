@@ -6,8 +6,8 @@
  *     sender's OWN number (contact.user_id === from.id) and it matches
  *     the phone on their GebetaSoccer account.
  */
-import { handleAppLoginCallback, handleAppLoginStart } from "@/lib/telegram-app-login-server";
-import { parseAppLoginStart } from "@/lib/telegram-app-login";
+import { handleAppLoginCallback, handleAppLoginShort, handleAppLoginStart } from "@/lib/telegram-app-login-server";
+import { parseAppLoginStart, parseLoginCommand } from "@/lib/telegram-app-login";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
@@ -71,6 +71,13 @@ export async function POST(req: NextRequest) {
   const chatId = msg.chat.id;
 
   try {
+    // ---- "/login 123456": the fallback of "Open Telegram app to log in"
+    const loginShort = parseLoginCommand(msg.text);
+    if (loginShort && msg.from) {
+      await handleAppLoginShort(chatId, msg.from.id, loginShort);
+      return NextResponse.json({ ok: true });
+    }
+
     // ---- /help, /balance, /rounds, /settings, /english, /amharic
     if (msg.text?.startsWith("/") && !msg.text.startsWith("/start")) {
       const handled = await handleBotCommand(chatId, msg.from?.id, msg.text);

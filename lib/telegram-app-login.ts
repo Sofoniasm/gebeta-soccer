@@ -49,3 +49,11 @@ export function decideTap(
   if (new Date(row.expires_at).getTime() < now) return "invalid";
   return tap.code === row.code ? "approve" : "deny";
 }
+
+/** A 6-digit code for the fallback "/login 123456" message to the bot. */
+export const newShortCode = () => String(randomInt(100000, 1000000));
+/** "/login 123456" (also "/login@Bot 123456") -> "123456", or null. */
+export function parseLoginCommand(text: string | undefined | null): string | null {
+  const m = /^\/login(?:@\w+)?\s+(\d{6})\s*$/i.exec((text ?? "").trim());
+  return m ? m[1] : null;
+}

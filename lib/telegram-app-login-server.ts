@@ -11,52 +11,72 @@ import {
   hashAppLoginToken,
   newAppLoginCode,
   newAppLoginToken,
+  newShortCode,
   decideTap,
   parseAppLoginCallback,
 } from "@/lib/telegram-app-login";
 
 /** A new pending login: returns the raw token (for the cookie and the Telegram link) and the code to show. */
-export async function createAppLogin(): Promise<{ raw: string; code: string } | null> {
+export async function createAppLogin(): Promise<{ raw: string; code: string; short: string } | null> {
   const admin = createAdminClient();
   await admin.from("telegram_app_logins").delete().lt("created_at", new Date(Date.now() - 3600_000).toISOString());
   const raw = newAppLoginToken();
   const code = newAppLoginCode();
+  const short = newShortCode();
   const { error } = await admin.from("telegram_app_logins").insert({
     token_hash: hashAppLoginToken(raw),
     code,
+    short_code: short,
     expires_at: new Date(Date.now() + APP_LOGIN_TTL_SECONDS * 1000).toISOString(),
   });
-  return error ? null : { raw, code };
+  return error ? null : { raw, code, short };
 }
 
-/** The bot was opened with /start lg_<token>: ask the player to tap the number shown on the website. */
-export async function handleAppLoginStart(chatId: number, telegramUserId: number, raw: string): Promise<void> {
+type LoginRow = { id: number; code: string; status: string; expires_at: string };
+
+/** Asks the player (in the bot chat) to tap the number shown on the website. */
+async function askForNumber(chatId: number, telegramUserId: number, row: LoginRow | null): Promise<void> {
   const admin = createAdminClient();
-  const { data: row } = await admin
-    .from("telegram_app_logins")
-    .select("id, code, status, expires_at")
-    .eq("token_hash", hashAppLoginToken(raw))
-    .maybeSingle();
-  if (!row || row.status !== "pending" || new Date(row.expires_at as string).getTime() < Date.now()) {
-    await sendMessage(chatId, "⌛ This login link has expired. Go back to GebetaSoccer and tap <b>Open Telegram app to log in</b> again.");
+  if (!row || row.status !== "pending" || new Date(row.expires_at).getTime() < Date.now()) {
+    await sendMessage(chatId, "⌛ This login has expired. Go back to GebetaSoccer and tap <b>Open Telegram app to log in</b> again.");
     return;
   }
   const { data: profile } = await admin.from("profiles").select("id, username, phone_verified_at").eq("telegram_user_id", telegramUserId).maybeSingle();
   if (!profile?.phone_verified_at) {
     await sendMessage(
       chatId,
-      "I don't know this Telegram account yet. Send /start here to create your GebetaSoccer account in the chat (no password needed), then tap <b>Open Telegram app to log in</b> again.",
+      "I don't know this Telegram account yet. Send /start here to create your GebetaSoccer account in the chat (no password needed), then try the login again.",
     );
     return;
   }
   await admin.from("telegram_app_logins").update({ telegram_user_id: telegramUserId, user_id: profile.id }).eq("id", row.id);
-  const buttons = codeChoices(row.code as string).map((c) => ({ text: c, callback_data: appLoginCallback(row.id as number, c) }));
+  const buttons = codeChoices(row.code).map((c) => ({ text: c, callback_data: appLoginCallback(row.id, c) }));
   const name = String(profile.username).replace(/[<>&]/g, "");
   await sendMessage(
     chatId,
     `🔐 <b>Log in to GebetaSoccer as ${name}?</b>\n\nTap the number that is shown on the website screen. If you did NOT just ask to log in, ignore this message.`,
     { reply_markup: { inline_keyboard: [buttons] } },
   );
+}
+
+/** The bot was opened with /start lg_<token>. */
+export async function handleAppLoginStart(chatId: number, telegramUserId: number, raw: string): Promise<void> {
+  const { data: row } = await createAdminClient().from("telegram_app_logins").select("id, code, status, expires_at").eq("token_hash", hashAppLoginToken(raw)).maybeSingle();
+  await askForNumber(chatId, telegramUserId, (row as LoginRow | null) ?? null);
+}
+
+/** Fallback: the player typed "/login 123456" (the 6-digit code shown on the website). */
+export async function handleAppLoginShort(chatId: number, telegramUserId: number, short: string): Promise<void> {
+  const { data: row } = await createAdminClient()
+    .from("telegram_app_logins")
+    .select("id, code, status, expires_at")
+    .eq("short_code", short)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  await askForNumber(chatId, telegramUserId, (row as LoginRow | null) ?? null);
 }
 
 /** The player tapped one of the three numbers. */

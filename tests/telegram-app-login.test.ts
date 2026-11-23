@@ -8,6 +8,8 @@ import {
   hashAppLoginToken,
   newAppLoginCode,
   newAppLoginToken,
+  newShortCode,
+  parseLoginCommand,
   parseAppLoginCallback,
   parseAppLoginStart,
 } from "../lib/telegram-app-login";
@@ -65,4 +67,16 @@ test("app login: a tap approves only the right number from the right Telegram, i
   assert.equal(decideTap({ ...row, status: "denied" }, { fromId: 777, code: "58" }, now), "invalid");
   assert.equal(decideTap({ ...row, telegram_user_id: null }, { fromId: 777, code: "58" }, now), "invalid"); // the bot never saw /start
   assert.equal(decideTap(null, { fromId: 777, code: "58" }, now), "invalid");
+});
+
+test("app login fallback: the 6-digit code and the /login command", () => {
+  for (let i = 0; i < 30; i++) assert.match(newShortCode(), /^[1-9][0-9]{5}$/);
+  assert.equal(parseLoginCommand("/login 482910"), "482910");
+  assert.equal(parseLoginCommand("/login@GebetaSoccerbot 482910"), "482910");
+  assert.equal(parseLoginCommand("  /LOGIN 482910  "), "482910");
+  assert.equal(parseLoginCommand("/login 4829"), null);
+  assert.equal(parseLoginCommand("/login 48291012"), null);
+  assert.equal(parseLoginCommand("login 482910"), null);
+  assert.equal(parseLoginCommand("34"), null);
+  assert.equal(parseLoginCommand(undefined), null);
 });
