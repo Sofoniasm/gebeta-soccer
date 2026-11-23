@@ -5,6 +5,7 @@ import { PAGES } from "@/lib/i18n/pages";
 import { TELEGRAM_BOT_USERNAME, telegramBotId, telegramEnabled } from "@/lib/telegram";
 import { TelegramWait } from "../TelegramWait";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
+import { TelegramAppLogin } from "@/components/TelegramAppLogin";
 import { OrDivider } from "@/components/OrDivider";
 
 export async function generateMetadata() {
@@ -28,6 +29,7 @@ export default async function LoginPage({
       {tgwait && <TelegramWait next={next} bot={TELEGRAM_BOT_USERNAME} referral={ref} lang={lang} />}
       {telegramEnabled() && (
         <>
+          <TelegramAppLogin next={next} lang={lang === "am" ? "am" : "en"} />
           <TelegramLoginButton botId={telegramBotId()} next={next} label={t.tgLogin} failedText={t.tgFailed} />
           <p className="text-center text-xs text-mist">{t.tgLoginHint}</p>
           <OrDivider label={t.tgOr} />

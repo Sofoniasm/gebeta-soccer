@@ -28,7 +28,7 @@ export function LoginForm({ next, lang = "en" }: { next?: string; lang?: Lang })
       <input type="hidden" name="next" value={next ?? "/dashboard"} />
       <input type="hidden" name="lang" value={lang} />
       <Field label={t.phone} hint={t.phoneHintLogin}>
-        <input name="identifier" type="tel" inputMode="tel" autoComplete="tel" autoCapitalize="none" required className={inputClass} placeholder="0911 223 344" />
+        <input name="identifier" type="text" inputMode="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required className={inputClass} placeholder="0911 223 344" />
       </Field>
       <Field label={t.password}>
         <input name="password" type="password" autoComplete="current-password" required className={inputClass} placeholder="••••••••" />

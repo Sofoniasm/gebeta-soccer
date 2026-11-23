@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const hook = await tg("setWebhook", {
     url,
     secret_token: process.env.TELEGRAM_WEBHOOK_SECRET,
-    allowed_updates: ["message"],
+    allowed_updates: ["message", "callback_query"],
     drop_pending_updates: true,
   });
   await tg("setMyCommands", { commands: BOT_COMMANDS.en });

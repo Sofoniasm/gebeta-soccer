@@ -6,6 +6,8 @@
  *     sender's OWN number (contact.user_id === from.id) and it matches
  *     the phone on their GebetaSoccer account.
  */
+import { handleAppLoginCallback, handleAppLoginStart } from "@/lib/telegram-app-login-server";
+import { parseAppLoginStart } from "@/lib/telegram-app-login";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeEthiopianPhone } from "@/lib/phone";
@@ -49,7 +51,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const update = (await req.json().catch(() => ({}))) as { message?: TgMessage };
+  const update = (await req.json().catch(() => ({}))) as {
+    message?: TgMessage;
+    callback_query?: { id: string; from: { id: number }; data?: string; message?: { chat: { id: number }; message_id: number } };
+  };
+  // A tap on one of the three numbers of "Log in with the Telegram app".
+  if (update.callback_query) {
+    try {
+      await handleAppLoginCallback(update.callback_query);
+    } catch (e) {
+      console.error("telegram app-login callback:", (e as Error).message);
+    }
+    return NextResponse.json({ ok: true });
+  }
   const msg = update.message;
   if (!msg || msg.chat.type !== "private") return NextResponse.json({ ok: true });
 
@@ -67,6 +81,12 @@ export async function POST(req: NextRequest) {
     // ---- /start <token>
     if (msg.text?.startsWith("/start")) {
       const token = msg.text.split(" ")[1]?.trim();
+      // "Open Telegram app to log in" on the website: ask for the number shown there.
+      const appLoginToken = parseAppLoginStart(token);
+      if (appLoginToken && msg.from) {
+        await handleAppLoginStart(chatId, msg.from.id, appLoginToken);
+        return NextResponse.json({ ok: true });
+      }
       const ch = token?.match(/^c_(GC-[A-Z0-9]{6})$/);
       const roundLink = token?.match(/^r_(\d{1,9})$/);
       // Not a verification link: a new Telegram user is signed up right here in the chat (age, then phone).
